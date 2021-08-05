@@ -9,6 +9,7 @@ integer -?[0-9]+
 
 
 %%
+
 "EOF"                   {exit(0);}
 [)]                     {
                             printf("[lex] PAREN_RIGHT : %s\n", yytext);
@@ -30,6 +31,13 @@ integer -?[0-9]+
                         }
 ";"                     {
                             return SEMI;
+                        }
+","                     {
+                            printf("[lex] COMMA : %s\n", yytext);
+                            return COMMA;
+                        }
+"."                     {
+                            return DOT;
                         }
 [ ]                     {;}
 \n                      {
@@ -70,10 +78,6 @@ integer -?[0-9]+
 "if"                    {
 	                        printf("[lex] if : %s\n", yytext);
                             return KW_IF; 
-                        }
-"else if"               {
-                            printf("[lex] else if : %s\n", yytext);
-                            return KW_ELIF;
                         }
 "else"                  {
                             printf("[lex] else : %s\n", yytext);

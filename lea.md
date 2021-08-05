@@ -49,3 +49,10 @@ println(s.length);
 -  left-value definition # var[: var_type]
 - right-value definition # invoking | expression
 -    invoking definition # invoking(expression)
+
+## Test use case
+
+```lea
+if (true) {}
+
+```

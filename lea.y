@@ -8,33 +8,55 @@ extern int yyparse(void);
 
 %}
 
+%token KW_EOF
 %token KW_BYTE KW_CHAR KW_INT KW_BOOL KW_TRUE KW_FALSE KW_DOUBLE KW_STRING KW_DEF
-%token KW_IF KW_ELIF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE
-%token ASSIGN PAREN_LEFT PAREN_RIGHT SEMI COLON NEWLINE BLOCK_BEGIN BLOCK_END
+%token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE
+%token ASSIGN PAREN_LEFT PAREN_RIGHT DOT COMMA SEMI COLON NEWLINE BLOCK_BEGIN BLOCK_END
 %token INTEGER FIELD CHAR STRING
 %%
 
-define_var: 
-FIELD {printf("[y] begin 01\n");} COLON basic_type line_end {
-    printf("[y] define var\n");
-}
-| FIELD {printf("[y] begin02\n");} COLON basic_type ASSIGN right_value line_end {
-    printf("[y] define var, with right value\n");
-}
-| statement_if 
+root: 
+  {printf(">> 0\n");} FIELD statement_variable root
+| {printf(">> 1\n");} KW_IF statement_if root
+| {printf(">> 2\n");} KW_ELSE statement_else root
+| {printf(">> 3\n");} KW_FOR statement_for root
+| KW_EOF
 ;
 
- /* simple: KW_IF line_end {printf("test simple\n");};*/
+statement_variable: 
+  COLON basic_type variable_define
+| PAREN_LEFT statement_invoking
+;
 
-statement_if: KW_IF PAREN_LEFT right_value PAREN_RIGHT code_block {
-    printf("[y] if expr\n");
-}
+variable_define:
+  line_end
+| ASSIGN right_value line_end
+;
+
+statement_if: PAREN_LEFT right_value PAREN_RIGHT code_block
+;
+
+statement_else: KW_IF statement_if
+| code_block
+;
+
+statement_for: PAREN_LEFT right_value PAREN_RIGHT code_block
+;
+
+statement_invoking: 
+  PAREN_RIGHT
+| right_value invoking_args
+;
+
+invoking_args: 
+  COMMA right_value invoking_args
+| PAREN_RIGHT
 ;
 
 code_block: BLOCK_BEGIN BLOCK_END
 ;
 
-line_end: SEMI {printf("[y] semi;\n");} | NEWLINE;
+line_end: SEMI | NEWLINE;
 
 
 basic_type: KW_BYTE | KW_CHAR | KW_INT | KW_BOOL | KW_DOUBLE | KW_STRING;
@@ -43,13 +65,11 @@ right_value: CHAR | INTEGER | STRING | bool_value;
 
 bool_value: KW_TRUE | KW_FALSE;
 
- /*{printf("[y] \n");}*/
-
 %%
 
 void yyerror(const char* s)
 {
-	printf("[yacc] error : %s\n", s);
+	printf("[y] error : %s\n", s);
 }
 
 int main()
