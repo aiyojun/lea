@@ -1,9 +1,8 @@
-LEX=flex
-YACC=bison
-CXX=gcc
+LEX     =flex
+YACC    =bison
+CXX     =gcc
 
 all: clean lea.tab.o lex.yy.o
-
 	$(CXX) -o lea lea.tab.o lex.yy.o
 
 lea.tab.o: lea.tab.c
