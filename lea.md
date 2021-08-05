@@ -55,4 +55,7 @@ println(s.length);
 ```lea
 if (true) {}
 
+// right value
+12+(121-121 + ((43+32) + 76))
+
 ```

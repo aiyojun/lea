@@ -11,6 +11,9 @@ integer -?[0-9]+
 %%
 
 "EOF"                   {exit(0);}
+[.]                     {   
+                            return ANY;
+                        }
 [)]                     {
                             printf("[lex] PAREN_RIGHT : %s\n", yytext);
                             return PAREN_RIGHT;
@@ -38,6 +41,21 @@ integer -?[0-9]+
                         }
 "."                     {
                             return DOT;
+                        }
+"+"                     {
+                            printf("[lex] + : %s\n", yytext);
+                            return OP_ADD;
+                        }
+"-"                     {
+                            printf("[lex] - : %s\n", yytext);
+                            return OP_SUB;
+                        }
+"*"                     {
+                            printf("[lex] * : %s\n", yytext);
+                            return OP_MUL;
+                        }
+"/"                     {
+                            return OP_DIV;
                         }
 [ ]                     {;}
 \n                      {
@@ -104,9 +122,13 @@ integer -?[0-9]+
                             printf("[lex] STRING : %s\n", yytext);
                             return STRING;
                         }
--?[0-9]+                {
-	                        printf("[lex] INT : %s\n", yytext);
+[0-9]+                  {
+                            printf("[lex] POS_INT : %s\n", yytext);
                             return INTEGER;
+                        }
+[0-9]+"."[0-9]+         {
+                            printf("[lex] DOUBLE : %s\n", yytext);
+                            return DOUBLE;
                         }
 [a-zA-Z_][0-9a-zA-Z_]*  {
                             printf("[lex] FIELD : %s\n", yytext);
