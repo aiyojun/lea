@@ -66,4 +66,13 @@ if (true) {}
 // 2. variable definition
 // 3. variable assignment
 
+// bool expression
+// 1. (
+// 2. function return
+// 3. x bool_op y/func ret
+
+(
+atom
+!
+
 ```

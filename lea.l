@@ -57,7 +57,7 @@ integer -?[0-9]+
 "/"                     {
                             return OP_DIV;
                         }
-[ ]                     {;}
+[ \t]                     {;}
 \n                      {
                             printf("[lex] newline\n");
                             return NEWLINE;
@@ -93,6 +93,33 @@ integer -?[0-9]+
 "string"                {
                             printf("[lex] KW_STRING : %s\n", yytext);
                             return KW_STRING;
+                        }
+"&&"                    {
+                            return BOOL_AND;
+                        }
+"||"                    {
+                            return BOOL_OR;
+                        }
+"=="                    {
+                            return BOOL_EQ;
+                        }
+"!="                    {
+                            return BOOL_NE;
+                        }
+">="                    {
+                            return BOOL_GTE;
+                        }
+"<="                    {
+                            return BOOL_LTE;
+                        }
+">"                     {
+                            return BOOL_GT;
+                        }
+"<"                     {
+                            return BOOL_LT;
+                        }
+"!"                     {
+                            return BOOL_NOT;
                         }
 "def"                   {
                             return KW_DEF;
