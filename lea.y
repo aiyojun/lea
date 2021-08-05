@@ -57,6 +57,19 @@ func_args_app:
 | PAREN_RIGHT
 ;
 
+
+
+
+statement_exec: FIELD statement_exec_app
+;
+
+statement_exec_app:
+  PAREN_LEFT statement_invoking
+| ASSIGN right_value_v2
+;
+
+
+
 statement_variable: 
   {printf("## 0\n");} COLON basic_type variable_define
 | {printf("## 1\n");} PAREN_LEFT statement_invoking
@@ -64,8 +77,8 @@ statement_variable:
 ;
 
 variable_define:
-  line_end
-| {printf("## =\n");} ASSIGN right_value_v2
+  {printf("## =\n");} ASSIGN right_value_v2
+| line_end
 ;
 
 statement_if: PAREN_LEFT right_value PAREN_RIGHT code_block
@@ -126,7 +139,14 @@ expr_1:
 ;
 
 
-code_block: BLOCK_BEGIN BLOCK_END
+code_block: BLOCK_BEGIN code_block_app
+;
+
+code_block_app:
+  line_end code_block_app
+| {printf("&& var\n");} statement_variable code_block_app
+| {printf("&& exec\n");} statement_exec code_block_app
+| BLOCK_END
 ;
 
 line_end: SEMI | NEWLINE;
@@ -140,7 +160,7 @@ bool_value: KW_TRUE | KW_FALSE;
 
 void yyerror(const char* s)
 {
-	printf("[y] error : %s\n", s);
+    printf("[y] error : %s\n", s);
 }
 
 int main()

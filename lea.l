@@ -142,6 +142,5 @@ integer -?[0-9]+
 %%
 int yywrap()
 {
-
-	return 1;
+    return 1;
 }

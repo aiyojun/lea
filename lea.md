@@ -61,4 +61,9 @@ if (true) {}
 // right value
 12+(121-121 + ((43+32) + 76))
 
+// exec code
+// 1. function invoking
+// 2. variable definition
+// 3. variable assignment
+
 ```
