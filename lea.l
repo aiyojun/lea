@@ -59,7 +59,11 @@ integer -?[0-9]+
                         }
 [ ]                     {;}
 \n                      {
+                            printf("[lex] newline\n");
                             return NEWLINE;
+                        }
+"->"                    {
+                            return ARROW;
                         }
 "="                     {
                             return ASSIGN;

@@ -12,7 +12,7 @@ extern int yyparse(void);
 %token KW_EOF
 %token KW_BYTE KW_CHAR KW_INT KW_BOOL KW_TRUE KW_FALSE KW_DOUBLE KW_STRING KW_DEF
 %token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE
-%token ASSIGN PAREN_LEFT PAREN_RIGHT DOT COMMA SEMI COLON NEWLINE BLOCK_BEGIN BLOCK_END
+%token ARROW ASSIGN PAREN_LEFT PAREN_RIGHT DOT COMMA SEMI COLON NEWLINE BLOCK_BEGIN BLOCK_END
 %token DOUBLE INTEGER FIELD CHAR STRING
 %token OP_ADD OP_SUB OP_MUL OP_DIV OP_MOD
 %%
@@ -24,13 +24,43 @@ root:
 | {printf(">> 1\n");} KW_IF statement_if root
 | {printf(">> 2\n");} KW_ELSE statement_else root
 | {printf(">> 3\n");} KW_FOR statement_for root
-| KW_EOF
+| {printf(">> 4\n");} KW_DEF FIELD function_define root
+| line_end root
+| KW_EOF {exit(0);}
 | {printf(">> Any\n");} ANY
+;
+
+
+function_define: 
+  PAREN_LEFT func_args_list COLON func_return_type
+| COLON func_return_type
+| func_return
+;
+
+func_return_type:
+  basic_type func_return
+| func_return
+;
+
+func_return:
+  ARROW right_value_v2
+| code_block
+;
+
+func_args_list:
+  FIELD COLON basic_type func_args_app
+| PAREN_RIGHT
+;
+
+func_args_app: 
+  COMMA FIELD COLON basic_type func_args_list
+| PAREN_RIGHT
 ;
 
 statement_variable: 
   {printf("## 0\n");} COLON basic_type variable_define
 | {printf("## 1\n");} PAREN_LEFT statement_invoking
+| {printf("## 2\n");} variable_define
 ;
 
 variable_define:

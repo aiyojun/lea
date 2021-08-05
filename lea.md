@@ -16,6 +16,9 @@ def add(x: int, y: int): int -> x + y;
 def add(x: int, y: int): int {
 	return x + y;
 }
+def doNothing: int -> 12
+def doNothing -> 12
+def doNothing -> 12
 ```
 
 ## class definition

@@ -1,0 +1,18 @@
+x: int = 12;
+y: char = 'a'
+z: double = 12.32
+
+x = 34
+x = 12+(121-121 + ((43+32) + 76))
+
+def add(x: int, y: int): int -> x + y;
+
+def add(x: int, y: int): int {}
+
+def doNothing: int -> 12
+
+def doNothing -> 12
+
+def doNothing -> 12
+
+EOF
