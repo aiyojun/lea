@@ -4,3 +4,7 @@ build/
 .idea/
 
 lea.iml
+
+cmake-build-debug/
+
+lea
