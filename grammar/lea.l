@@ -9,13 +9,13 @@ integer -?[0-9]+
 
 
 %%
+<<EOF>>                 {return KW_EOF;}
 "/*"                    {return COMMENT_BEGIN;}
 "*/"                    {return COMMENT_END;}
 "//"                    {
                             printf("[lex] single comment : %s\n", yytext);
                             return COMMENT_SINGLE;
                         }
-"EOF"                   {exit(0);}
 [)]                     {
                             printf("[lex] PAREN_RIGHT : %s\n", yytext);
                             return RPAREN;

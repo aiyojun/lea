@@ -25,7 +25,7 @@ extern int yyparse(void);
 root: statement;
 
 statement:
-  KW_EOF
+  KW_EOF                                            {printf("Grammar parsed success.\n");exit(0);}
 | ending statement
 | commentDefine statement
 | variableDefine statement
