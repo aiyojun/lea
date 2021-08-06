@@ -9,18 +9,23 @@ integer -?[0-9]+
 
 
 %%
-
+"/*"                    {return COMMENT_BEGIN;}
+"*/"                    {return COMMENT_END;}
+"//"                    {
+                            printf("[lex] single comment : %s\n", yytext);
+                            return COMMENT_SINGLE;
+                        }
 "EOF"                   {exit(0);}
 [.]                     {   
                             return ANY;
                         }
 [)]                     {
                             printf("[lex] PAREN_RIGHT : %s\n", yytext);
-                            return PAREN_RIGHT;
+                            return RPAREN;
                         }
 [(]                     {
                             printf("[lex] PAREN_LEFT : %s\n", yytext);
-                            return PAREN_LEFT;
+                            return LPAREN;
                         }
 "{"                     {
                             printf("[lex] { : %s\n", yytext);
@@ -95,31 +100,31 @@ integer -?[0-9]+
                             return KW_STRING;
                         }
 "&&"                    {
-                            return BOOL_AND;
+                            return AND;
                         }
 "||"                    {
-                            return BOOL_OR;
+                            return OR;
                         }
 "=="                    {
-                            return BOOL_EQ;
+                            return EQ;
                         }
 "!="                    {
-                            return BOOL_NE;
+                            return NE;
                         }
 ">="                    {
-                            return BOOL_GTE;
+                            return GE;
                         }
 "<="                    {
-                            return BOOL_LTE;
+                            return LE;
                         }
 ">"                     {
-                            return BOOL_GT;
+                            return GT;
                         }
 "<"                     {
-                            return BOOL_LT;
+                            return LT;
                         }
 "!"                     {
-                            return BOOL_NOT;
+                            return NOT;
                         }
 "def"                   {
                             return KW_DEF;

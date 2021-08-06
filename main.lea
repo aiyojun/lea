@@ -5,7 +5,16 @@ z: double = 12.32
 x = 34
 x = 12+(121-121 + ((43+32) + 76))
 
-x = add(2,4) * 43 > 10 == true
+doTask("abc", 12)
+
+// x = (add(2,4) * 43 > 10) == true
+
+/*
+comment 0
+
+ 	654;,u4657-ou4k,jhk34-65
+
+*/
 
 def add(x: int, y: int): int -> x + y;
 
@@ -23,6 +32,13 @@ def doTask(x: int): int {
 	add(1, 2);
 	
 	nx: string = "simon"
+}
+
+{
+	x: int = 12;
+	y: string = "";
+	z: double = 34.321
+
 }
 
 EOF
