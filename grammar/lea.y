@@ -8,7 +8,6 @@ extern int yyparse(void);
 
 %}
 
-%token ANY
 %token KW_EOF
 %token COMMENT_SINGLE COMMENT_BEGIN COMMENT_END
 %token KW_BYTE KW_CHAR KW_STRING KW_INT KW_DOUBLE KW_BOOL
@@ -19,7 +18,7 @@ extern int yyparse(void);
 %token DOUBLE INTEGER FIELD CHAR STRING
 %token OP_ADD OP_SUB OP_MUL OP_DIV OP_MOD
 
-%start statement
+%start root
 
 %%
 
@@ -44,7 +43,7 @@ KW_TRUE|KW_FALSE|KW_IF|KW_ELSE|KW_FOR|KW_WHILE|KW_MATCH|KW_CASE|KW_DEF|
 AND|OR|NOT|EQ|NE|GT|GE|LT|LE|
 ARROW|ASSIGN|LPAREN|RPAREN|DOT|COMMA|SEMI|COLON|BLOCK_BEGIN|BLOCK_END|
 DOUBLE|INTEGER|FIELD|CHAR|STRING|
-OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD|ANY;
+OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD;
 
 // --------------------------------------------
 // define comment
@@ -64,7 +63,7 @@ baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
 variableDefine: variableName COLON basicType;
 variableAssign:
-  variableName COLON basicType ASSIGN leaVal  {printf("-assign-type\n");}
+  variableName COLON basicType ASSIGN leaVal   {printf("-assign-type\n");}
 | variableName ASSIGN leaVal                   {printf("-assign\n");}
 ;
 variableName: FIELD;

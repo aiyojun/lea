@@ -1,22 +1,30 @@
-LEX     =flex
-YACC    =bison
-CXX     =gcc
+LEX        =flex
+YACC       =bison
+CXX        =gcc
+build_dir  =./build
+option_inc =-I ./include
 
-all: clean lea.tab.o lex.yy.o
-	$(CXX) -o lea lea.tab.o lex.yy.o
+all: check_build clean lea.tab.o lex.yy.o grammar.o
+	$(CXX) -o lea $(build_dir)/lea.tab.o $(build_dir)/lex.yy.o
+
+check_build:
+	@if [ ! -d $(build_dir) ]; then mkdir -p $(build_dir); fi
 
 lea.tab.o: lea.tab.c
-	$(CXX) -c lea.tab.c
+	$(CXX) -o $(build_dir)/lea.tab.o -c $(build_dir)/lea.tab.c $(option_inc)
 
 lex.yy.o: lex.yy.c
-	$(CXX) -c lex.yy.c
+	$(CXX) -o $(build_dir)/lex.yy.o -c $(build_dir)/lex.yy.c
+
+grammar.o:
+	$(CXX) -o $(build_dir)/grammar.o -c src/grammar.c $(option_inc)
 
 lea.tab.c: lex.yy.c
-	$(YACC) -d lea.y
+	$(YACC) -o $(build_dir)/lea.tab.c -d grammar/lea.y -v
 
 lex.yy.c:
-	$(LEX) lea.l
+	$(LEX) -o $(build_dir)/lex.yy.c grammar/lea.l
 
 clean:
-	@rm -rf lea.tab.o lex.yy.o lea.tab.c lea.tab.h lex.yy.c
+	@rm -rf $(build_dir)/*
 

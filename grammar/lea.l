@@ -16,9 +16,6 @@ integer -?[0-9]+
                             return COMMENT_SINGLE;
                         }
 "EOF"                   {exit(0);}
-[.]                     {   
-                            return ANY;
-                        }
 [)]                     {
                             printf("[lex] PAREN_RIGHT : %s\n", yytext);
                             return RPAREN;
