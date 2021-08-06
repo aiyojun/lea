@@ -9,8 +9,8 @@ extern int yyparse(void);
 %}
 
 %token ANY
-%token COMMENT_SINGLE COMMENT_BEGIN COMMENT_END
 %token KW_EOF
+%token COMMENT_SINGLE COMMENT_BEGIN COMMENT_END
 %token KW_BYTE KW_CHAR KW_STRING KW_INT KW_DOUBLE KW_BOOL
 %token KW_TRUE KW_FALSE
 %token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE KW_DEF
@@ -64,8 +64,8 @@ baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
 variableDefine: variableName COLON basicType;
 variableAssign:
-  variableName COLON basicType ASSIGN lea_val  {printf("-assign-type\n");}
-| variableName ASSIGN lea_val                   {printf("-assign\n");}
+  variableName COLON basicType ASSIGN leaVal  {printf("-assign-type\n");}
+| variableName ASSIGN leaVal                   {printf("-assign\n");}
 ;
 variableName: FIELD;
 // --------------------------------------------
@@ -84,27 +84,27 @@ lparen: LPAREN;
 argsList: RPAREN | FIELD COLON basicType argsLoop;
 argsLoop: COMMA FIELD COLON basicType argsList | RPAREN;
 returnType: basicType;
-functionBody: ARROW lea_val {printf("-lambda\n");} | codeBlockDefine;
+functionBody: ARROW leaVal {printf("-lambda\n");} | codeBlockDefine;
 // --------------------------------------------
 
 // --------------------------------------------
 // define function invoke
 // --------------------------------------------
 invokeDefine: variableName LPAREN invokeArgsList;
-invokeArgsList: RPAREN | lea_val invokeArgsLoop;
-invokeArgsLoop: COMMA lea_val invokeArgsList | RPAREN;
+invokeArgsList: RPAREN | leaVal invokeArgsLoop;
+invokeArgsLoop: COMMA leaVal invokeArgsList | RPAREN;
 // --------------------------------------------
 
 // --------------------------------------------
 // define if-else if-else
 // --------------------------------------------
 stateIfDefine: stateIf stateElse;
-stateIf: KW_IF LPAREN lea_val RPAREN codeBlockDefine {printf("-if\n");}
+stateIf: KW_IF LPAREN leaVal RPAREN codeBlockDefine {printf("-if\n");}
 ;
 stateElse: ending | stateElseApp;
 stateElseApp: ending | KW_ELSE stateElseLoop;
 stateElseLoop:
-  {printf("-elif\n");} KW_IF LPAREN lea_val RPAREN codeBlockDefine stateElseApp
+  {printf("-elif\n");} KW_IF LPAREN leaVal RPAREN codeBlockDefine stateElseApp
 | {printf("-else\n");} codeBlockDefine
 ;
 // --------------------------------------------
@@ -115,7 +115,7 @@ stateElseLoop:
 stateForDefine: KW_FOR LPAREN stateForInit stateForCondition stateForUpdate RPAREN codeBlockDefine
 ;
 stateForInit: SEMI | variableAssign SEMI;
-stateForCondition: SEMI | lea_val SEMI;
+stateForCondition: SEMI | leaVal SEMI;
 stateForUpdate: variableAssign;
 // --------------------------------------------
 
@@ -136,62 +136,71 @@ codeBlockLoop:
 ;
 // --------------------------------------------
 
-// specific value
-lea_bas: CHAR|OP_SUB INTEGER|INTEGER|DOUBLE|STRING|boo_bas;
-lea_num: OP_SUB INTEGER|INTEGER|DOUBLE
-lea_vai: lea_var {printf("[y] is var\n");} | lea_var LPAREN lea_inv_001 {printf("[y] is invoke\n");};
-lea_var: FIELD;
-//lea_inv: FIELD LPAREN lea_inv_001;
-lea_inv_001: RPAREN | lea_inv_002;// args list
-lea_inv_002: lea_bas lea_inv_003 | lea_vai lea_inv_003; // args list
-lea_inv_003:
-  COMMA lea_inv_002
-| RPAREN
-;
 
-lea_val:
-  boo_exp_001// SEMI{printf("over\n");};
-;
-boo_exp_001:
-  boo_exp_002
-| boo_exp_002 AND boo_exp_002
-| boo_exp_002 OR boo_exp_002
-| NOT boo_exp_002
-;
-boo_exp_002:
-  cal_exp
-| cal_exp LT cal_exp
-| cal_exp GT cal_exp
-| cal_exp LE cal_exp
-| cal_exp GE cal_exp
-| cal_exp EQ cal_exp
-| cal_exp NE cal_exp
-| boo_bas
-;
+// --------------------------------------------
+// define right value of variable and function return
+// --------------------------------------------
+// represent variable/function-invoking
+leaVai: leaVar {printf("[y] is var\n");} | leaVar LPAREN leaInv {printf("[y] is invoke\n");};
+leaVar: FIELD;
+leaInv: RPAREN | leaInvOptions; // args list
+leaInvOptions: leaBas leaInvLoop | leaVai leaInvLoop; // args list
+leaInvLoop: COMMA leaInvOptions | RPAREN;
+// --------------------------------------------
 
-cal_exp:
-  {printf("[y] through\n");} cal_exp_001
-| cal_exp OP_ADD cal_exp_001
-| cal_exp OP_SUB cal_exp_001
+// --------------------------------------------
+// define bool expression
+// --------------------------------------------
+leaVal: booExp;
+booExp: // Don't use! inner implement!
+  booAtom
+| booAtom AND booAtom
+| booAtom OR booAtom
+| NOT booAtom
 ;
-cal_exp_001:
-  cal_exp_002
-| cal_exp_001 OP_MUL cal_exp_002
-| cal_exp_001 OP_DIV cal_exp_002
+booAtom: // Don't use! inner implement!
+  calExp
+| calExp LT calExp
+| calExp GT calExp
+| calExp LE calExp
+| calExp GE calExp
+| calExp EQ calExp
+| calExp NE calExp
+| booBas
 ;
-cal_exp_002:
-  lea_num
+// --------------------------------------------
+
+// --------------------------------------------
+// define calculation expression
+// --------------------------------------------
+calExp:
+  calExpPro
+| calExp OP_ADD calExpPro
+| calExp OP_SUB calExpPro
+;
+calExpPro: // Don't use! inner implement!
+  calExpAtom
+| calExpPro OP_MUL calExpAtom
+| calExpPro OP_DIV calExpAtom
+;
+calExpAtom: // Don't use! inner implement!
+  leaNum
 | CHAR
 | STRING
-| LPAREN boo_exp_001 RPAREN
-| {printf("[y] vai\n");} lea_vai
+| LPAREN booExp RPAREN // solve "(" matching and loop back to the top level
+| leaVai
 ;
+// --------------------------------------------
 
-boo_bas: KW_TRUE|KW_FALSE;
-
+// --------------------------------------------
+// common definition
+// --------------------------------------------
+leaBas: CHAR|OP_SUB INTEGER|INTEGER|DOUBLE|STRING|booBas; // specific value
+leaNum: OP_SUB INTEGER|INTEGER|DOUBLE
+booBas: KW_TRUE|KW_FALSE;
 ending: SEMI | NEWLINE;
-
 basicType: KW_BYTE | KW_CHAR | KW_INT | KW_BOOL | KW_DOUBLE | KW_STRING;
+// --------------------------------------------
 
 %%
 
