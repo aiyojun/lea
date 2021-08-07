@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include "grammar.h"
 void yyerror(const char* s);
 extern int yylex(void);
 extern int yyparse(void);
@@ -52,9 +53,9 @@ OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD;
 commentDefine: sc | mc;
 sc: COMMENT_SINGLE singleComment;
 mc: COMMENT_BEGIN multiComment;
-singleComment: baseInput singleComment | NEWLINE    {printf("-multiComment-end\n");}
+singleComment: baseInput singleComment | NEWLINE    {_p_yacc("-multiComment-end\n");}
 ;
-multiComment: baseInput2 multiComment | COMMENT_END {printf("-multiComment-end\n");}
+multiComment: baseInput2 multiComment | COMMENT_END {_p_yacc("-multiComment-end\n");}
 ;
 baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
@@ -62,10 +63,10 @@ baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
 // define variable
 // --------------------------------------------
-variableDefine: variableName COLON basicType;
+variableDefine: variableName COLON basicType   {_var_def();};
 variableAssign:
-  variableName COLON basicType ASSIGN leaVal   {printf("-assign-type\n");}
-| variableName ASSIGN leaVal                   {printf("-assign\n");}
+  variableName COLON basicType ASSIGN leaVal   {_var_def_ass();_p_yacc("-assign-type\n");}
+| variableName ASSIGN leaVal                   {_var_ass();_p_yacc("-assign\n");}
 ;
 variableName: FIELD;
 // --------------------------------------------
@@ -73,24 +74,24 @@ variableName: FIELD;
 // --------------------------------------------
 // define function
 // --------------------------------------------
-functionDefine: KW_DEF FIELD functionOptions;
+functionDefine: KW_DEF FIELD functionOptions    {_def();};
 functionOptions:
-  functionBody                                  {printf("-{}\n");}
-| COLON returnType functionBody                 {printf("-type-{}\n");}
-| lparen argsList functionBody                  {printf("-()-{}\n");}
-| lparen argsList COLON returnType functionBody {printf("-()-type-{}\n");}
+  functionBody                                  {_p_yacc("-{}\n");}
+| COLON returnType functionBody                 {_p_yacc("-type-{}\n");}
+| lparen argsList functionBody                  {_p_yacc("-()-{}\n");}
+| lparen argsList COLON returnType functionBody {_p_yacc("-()-type-{}\n");}
 ;
 lparen: LPAREN;
 argsList: RPAREN | FIELD COLON basicType argsLoop;
 argsLoop: COMMA FIELD COLON basicType argsList | RPAREN;
 returnType: basicType;
-functionBody: ARROW leaVal {printf("-lambda\n");} | codeBlockDefine;
+functionBody: ARROW leaVal {_p_yacc("-lambda\n");} | codeBlockDefine;
 // --------------------------------------------
 
 // --------------------------------------------
 // define function invoke
 // --------------------------------------------
-invokeDefine: variableName LPAREN invokeArgsList;
+invokeDefine: variableName LPAREN invokeArgsList {_call(2);};
 invokeArgsList: RPAREN | leaVal invokeArgsLoop;
 invokeArgsLoop: COMMA leaVal invokeArgsList | RPAREN;
 // --------------------------------------------
@@ -99,20 +100,20 @@ invokeArgsLoop: COMMA leaVal invokeArgsList | RPAREN;
 // define if-else if-else
 // --------------------------------------------
 stateIfDefine: stateIf stateElse;
-stateIf: KW_IF LPAREN leaVal RPAREN codeBlockDefine {printf("-if\n");}
+stateIf: KW_IF LPAREN leaVal RPAREN codeBlockDefine {_if();_p_yacc("-if\n");}
 ;
 stateElse: ending | stateElseApp;
 stateElseApp: ending | KW_ELSE stateElseLoop;
 stateElseLoop:
-  {printf("-elif\n");} KW_IF LPAREN leaVal RPAREN codeBlockDefine stateElseApp
-| {printf("-else\n");} codeBlockDefine
+  {_p_yacc("-elif\n");} KW_IF LPAREN leaVal RPAREN codeBlockDefine {_elif();} stateElseApp
+| {_p_yacc("-else\n");} codeBlockDefine {_else();}
 ;
 // --------------------------------------------
 
 // --------------------------------------------
 // define for-loop
 // --------------------------------------------
-stateForDefine: KW_FOR LPAREN stateForInit stateForCondition stateForUpdate codeBlockDefine
+stateForDefine: KW_FOR LPAREN stateForInit stateForCondition stateForUpdate {_for();} codeBlockDefine
 ;
 stateForInit: SEMI | variableAssign SEMI;
 stateForCondition: SEMI | leaVal SEMI;
@@ -122,12 +123,12 @@ stateForUpdate: RPAREN | variableAssign RPAREN;
 // --------------------------------------------
 // define match-case
 // --------------------------------------------
-stateMatchDefine: variableName KW_MATCH stateMatchBlock;
+stateMatchDefine: variableName KW_MATCH {_match();} stateMatchBlock;
 stateMatchBlock: BLOCK_BEGIN stateCase;
 stateCase:
-  wordCase KW__ ARROW stateCaseTail stateCaseLoop
-| wordCase basicType ARROW stateCaseTail stateCaseLoop
-| wordCase leaVal ARROW stateCaseTail stateCaseLoop
+  wordCase KW__ {_case();} ARROW stateCaseTail stateCaseLoop
+| wordCase basicType {_case();} ARROW stateCaseTail stateCaseLoop
+| wordCase leaVal {_case();} ARROW stateCaseTail stateCaseLoop
 | ending stateCaseLoop
 ;
 stateCaseLoop: stateCase | BLOCK_END;
@@ -138,7 +139,7 @@ stateCaseTail: codeBlockDefine | leaVal ending;
 // --------------------------------------------
 // define code block
 // --------------------------------------------
-codeBlockDefine: BLOCK_BEGIN codeBlockLoop;
+codeBlockDefine: BLOCK_BEGIN {_block();} codeBlockLoop;
 codeBlockLoop:
   ending codeBlockLoop
 | variableDefine codeBlockLoop
@@ -149,7 +150,7 @@ codeBlockLoop:
 | stateForDefine codeBlockLoop
 | stateMatchDefine statement
 | codeBlockDefine codeBlockLoop
-| BLOCK_END                                     {printf("-block-end\n");}
+| BLOCK_END                                     {_block_();_p_yacc("-block-end\n");}
 ;
 // --------------------------------------------
 
@@ -158,11 +159,11 @@ codeBlockLoop:
 // define right value of variable and function return
 // --------------------------------------------
 // represent variable/function-invoking
-leaVai: leaVar {printf("[y] is var\n");} | leaVar LPAREN leaInv {printf("[y] is invoke\n");};
+leaVai: leaVar {_p_yacc("[y] is var\n");} | leaVar LPAREN leaInv {_p_yacc("[y] is invoke\n");};
 leaVar: FIELD;
-leaInv: RPAREN | leaInvOptions; // args list
+leaInv: RPAREN {_call(0);} | leaInvOptions; // args list
 leaInvOptions: leaBas leaInvLoop | leaVai leaInvLoop; // args list
-leaInvLoop: COMMA leaInvOptions | RPAREN;
+leaInvLoop: COMMA leaInvOptions | RPAREN {_call(1);};
 // --------------------------------------------
 
 // --------------------------------------------

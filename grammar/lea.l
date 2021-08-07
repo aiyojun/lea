@@ -1,7 +1,7 @@
 %{
 #include <stdio.h>
 #include "lea.tab.h"
-
+#include "grammar.h"
 %}
 
 field [a-zA-Z_][0-9a-zA-Z_]*
@@ -13,47 +13,47 @@ integer -?[0-9]+
 "/*"                    {return COMMENT_BEGIN;}
 "*/"                    {return COMMENT_END;}
 "//"                    {
-                            printf("[lex] single comment : %s\n", yytext);
+                            _p_lex("[lex] single comment : %s\n", yytext);
                             return COMMENT_SINGLE;
                         }
 [)]                     {
-                            printf("[lex] PAREN_RIGHT : %s\n", yytext);
+                            _p_lex("[lex] PAREN_RIGHT : %s\n", yytext);
                             return RPAREN;
                         }
 [(]                     {
-                            printf("[lex] PAREN_LEFT : %s\n", yytext);
+                            _p_lex("[lex] PAREN_LEFT : %s\n", yytext);
                             return LPAREN;
                         }
 "{"                     {
-                            printf("[lex] { : %s\n", yytext);
+                            _p_lex("[lex] { : %s\n", yytext);
                             return BLOCK_BEGIN; }
 "}"                     {
-                            printf("[lex] } : %s\n", yytext);
+                            _p_lex("[lex] } : %s\n", yytext);
                             return BLOCK_END; }
 ":"                     {
-                            printf("[lex] COLON : %s\n", yytext);
+                            _p_lex("[lex] COLON : %s\n", yytext);
                             return COLON;
                         }
 ";"                     {
                             return SEMI;
                         }
 ","                     {
-                            printf("[lex] COMMA : %s\n", yytext);
+                            _p_lex("[lex] COMMA : %s\n", yytext);
                             return COMMA;
                         }
 "."                     {
                             return DOT;
                         }
 "+"                     {
-                            printf("[lex] + : %s\n", yytext);
+                            _p_lex("[lex] + : %s\n", yytext);
                             return OP_ADD;
                         }
 "-"                     {
-                            printf("[lex] - : %s\n", yytext);
+                            _p_lex("[lex] - : %s\n", yytext);
                             return OP_SUB;
                         }
 "*"                     {
-                            printf("[lex] * : %s\n", yytext);
+                            _p_lex("[lex] * : %s\n", yytext);
                             return OP_MUL;
                         }
 "/"                     {
@@ -61,7 +61,7 @@ integer -?[0-9]+
                         }
 [ \t]                     {;}
 \n                      {
-                            printf("[lex] newline\n");
+                            _p_lex("[lex] newline\n");
                             return NEWLINE;
                         }
 "->"                    {
@@ -83,7 +83,7 @@ integer -?[0-9]+
                             return KW_BOOL;
                         }
 "true"                  {
-                            printf("[lex] TRUE : %s\n", yytext);
+                            _p_lex("[lex] TRUE : %s\n", yytext);
                             return KW_TRUE;
                         }
 "false"                 {
@@ -93,7 +93,7 @@ integer -?[0-9]+
                             return KW_DOUBLE;
                         }
 "string"                {
-                            printf("[lex] KW_STRING : %s\n", yytext);
+                            _p_lex("[lex] KW_STRING : %s\n", yytext);
                             return KW_STRING;
                         }
 "&&"                    {
@@ -127,23 +127,23 @@ integer -?[0-9]+
                             return KW_DEF;
                         }
 "class"                 {
-                            printf("[lex] else : %s\n", yytext);
+                            _p_lex("[lex] else : %s\n", yytext);
                             return KW_CLASS;
                         }
 "struct"                {
-                            printf("[lex] else : %s\n", yytext);
+                            _p_lex("[lex] else : %s\n", yytext);
                             return KW_STRUCT;
                         }
 "if"                    {
-	                        printf("[lex] if : %s\n", yytext);
+	                        _p_lex("[lex] if : %s\n", yytext);
                             return KW_IF; 
                         }
 "else"                  {
-                            printf("[lex] else : %s\n", yytext);
+                            _p_lex("[lex] else : %s\n", yytext);
                             return KW_ELSE;
                         }
 "for"                   {
-                            printf("[lex] for : %s\n", yytext);
+                            _p_lex("[lex] for : %s\n", yytext);
                             return KW_FOR;
                         }
 "while"                 {
@@ -159,23 +159,23 @@ integer -?[0-9]+
                             return KW__;
                         }
 (')(.|\n|\r)(')         {
-                            printf("[lex] CHAR : %s\n", yytext);
+                            _p_lex("[lex] CHAR : %s\n", yytext);
                             return CHAR;
                         }
 "\""([^"\""\\]|\\"\"")*"\""         {
-                            printf("[lex] STRING : %s\n", yytext);
+                            _p_lex("[lex] STRING : %s\n", yytext);
                             return STRING;
                         }
 [0-9]+                  {
-                            printf("[lex] POS_INT : %s\n", yytext);
+                            _p_lex("[lex] POS_INT : %s\n", yytext);
                             return INTEGER;
                         }
 [0-9]+"."[0-9]+         {
-                            printf("[lex] DOUBLE : %s\n", yytext);
+                            _p_lex("[lex] DOUBLE : %s\n", yytext);
                             return DOUBLE;
                         }
 [a-zA-Z_][0-9a-zA-Z_]*  {
-                            printf("[lex] FIELD : %s\n", yytext);
+                            _p_lex("[lex] FIELD : %s\n", yytext);
                             return FIELD;
                         }
 
