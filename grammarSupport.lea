@@ -5,6 +5,24 @@ z: double = 12.32
 x = 34
 x = 12+(121-121 + ((43+32) + 76))
 
+if (true) {
+
+}
+
+if (true) { ;} else if (false) {;}
+
+if (true) { ;} else if (false) {;} else {}
+
+if (0) {} else {}
+
+for (;;) { ; }
+
+x match {
+    case 10 -> 'a';
+    case 'b' -> 12
+    case _ -> y
+}
+
 doTask("abc", 12)
 
 // x = (add(2,4) * 43 > 10) == true
@@ -40,5 +58,3 @@ def doTask(x: int): int {
 	z: double = 34.321
 
 }
-
-EOF

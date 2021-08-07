@@ -12,7 +12,7 @@ extern int yyparse(void);
 %token COMMENT_SINGLE COMMENT_BEGIN COMMENT_END
 %token KW_BYTE KW_CHAR KW_STRING KW_INT KW_DOUBLE KW_BOOL
 %token KW_TRUE KW_FALSE
-%token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE KW_DEF
+%token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE KW__ KW_DEF KW_CLASS KW_STRUCT
 %token AND OR NOT EQ NE GT GE LT LE
 %token ARROW ASSIGN LPAREN RPAREN DOT COMMA SEMI COLON NEWLINE BLOCK_BEGIN BLOCK_END
 %token DOUBLE INTEGER FIELD CHAR STRING
@@ -34,12 +34,13 @@ statement:
 | functionDefine statement
 | stateIfDefine statement
 | stateForDefine statement
+| stateMatchDefine statement
 | codeBlockDefine statement
 ;
 
 
 baseInput: COMMENT_SINGLE|KW_BYTE|KW_CHAR|KW_STRING|KW_INT|KW_DOUBLE|KW_BOOL|
-KW_TRUE|KW_FALSE|KW_IF|KW_ELSE|KW_FOR|KW_WHILE|KW_MATCH|KW_CASE|KW_DEF|
+KW_TRUE|KW_FALSE|KW_IF|KW_ELSE|KW_FOR|KW_WHILE|KW_MATCH|KW_CASE|KW_DEF|KW__|KW_STRUCT|KW_CLASS|
 AND|OR|NOT|EQ|NE|GT|GE|LT|LE|
 ARROW|ASSIGN|LPAREN|RPAREN|DOT|COMMA|SEMI|COLON|BLOCK_BEGIN|BLOCK_END|
 DOUBLE|INTEGER|FIELD|CHAR|STRING|
@@ -111,11 +112,27 @@ stateElseLoop:
 // --------------------------------------------
 // define for-loop
 // --------------------------------------------
-stateForDefine: KW_FOR LPAREN stateForInit stateForCondition stateForUpdate RPAREN codeBlockDefine
+stateForDefine: KW_FOR LPAREN stateForInit stateForCondition stateForUpdate codeBlockDefine
 ;
 stateForInit: SEMI | variableAssign SEMI;
 stateForCondition: SEMI | leaVal SEMI;
-stateForUpdate: variableAssign;
+stateForUpdate: RPAREN | variableAssign RPAREN;
+// --------------------------------------------
+
+// --------------------------------------------
+// define match-case
+// --------------------------------------------
+stateMatchDefine: variableName KW_MATCH stateMatchBlock;
+stateMatchBlock: BLOCK_BEGIN stateCase;
+stateCase:
+  wordCase KW__ ARROW stateCaseTail stateCaseLoop
+| wordCase basicType ARROW stateCaseTail stateCaseLoop
+| wordCase leaVal ARROW stateCaseTail stateCaseLoop
+| ending stateCaseLoop
+;
+stateCaseLoop: stateCase | BLOCK_END;
+wordCase: KW_CASE;
+stateCaseTail: codeBlockDefine | leaVal ending;
 // --------------------------------------------
 
 // --------------------------------------------
@@ -130,6 +147,7 @@ codeBlockLoop:
 | commentDefine codeBlockLoop
 | stateIfDefine codeBlockLoop
 | stateForDefine codeBlockLoop
+| stateMatchDefine statement
 | codeBlockDefine codeBlockLoop
 | BLOCK_END                                     {printf("-block-end\n");}
 ;
@@ -205,7 +223,7 @@ basicType: KW_BYTE | KW_CHAR | KW_INT | KW_BOOL | KW_DOUBLE | KW_STRING;
 
 void yyerror(const char* s)
 {
-    printf("[y] error : %s\n", s);
+    printf("Grammar error : %s\n", s);
 }
 
 int main()

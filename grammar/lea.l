@@ -126,6 +126,14 @@ integer -?[0-9]+
 "def"                   {
                             return KW_DEF;
                         }
+"class"                 {
+                            printf("[lex] else : %s\n", yytext);
+                            return KW_CLASS;
+                        }
+"struct"                {
+                            printf("[lex] else : %s\n", yytext);
+                            return KW_STRUCT;
+                        }
 "if"                    {
 	                        printf("[lex] if : %s\n", yytext);
                             return KW_IF; 
@@ -135,6 +143,7 @@ integer -?[0-9]+
                             return KW_ELSE;
                         }
 "for"                   {
+                            printf("[lex] for : %s\n", yytext);
                             return KW_FOR;
                         }
 "while"                 {
@@ -146,7 +155,9 @@ integer -?[0-9]+
 "case"                  {
                             return KW_CASE;
                         }
-
+"_"                     {
+                            return KW__;
+                        }
 (')(.|\n|\r)(')         {
                             printf("[lex] CHAR : %s\n", yytext);
                             return CHAR;
