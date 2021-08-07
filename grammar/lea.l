@@ -1,7 +1,9 @@
 %{
 #include <stdio.h>
+#include <stdlib.h>
 #include "lea.tab.h"
 #include "grammar.h"
+extern YYSTYPE yylval;
 %}
 
 field [a-zA-Z_][0-9a-zA-Z_]*
@@ -31,6 +33,7 @@ integer -?[0-9]+
                             _p_lex("[lex] } : %s\n", yytext);
                             return BLOCK_END; }
 ":"                     {
+                            yylval.ycText = yytext;
                             _p_lex("[lex] COLON : %s\n", yytext);
                             return COLON;
                         }
@@ -83,10 +86,12 @@ integer -?[0-9]+
                             return KW_BOOL;
                         }
 "true"                  {
+                            yylval.ycValueBool = 1;
                             _p_lex("[lex] TRUE : %s\n", yytext);
                             return KW_TRUE;
                         }
 "false"                 {
+                            yylval.ycValueBool = 0;
                             return KW_FALSE;
                         }
 "double"                {
@@ -124,6 +129,7 @@ integer -?[0-9]+
                             return NOT;
                         }
 "def"                   {
+                            yylval.ycText = yytext;
                             return KW_DEF;
                         }
 "class"                 {
@@ -159,22 +165,27 @@ integer -?[0-9]+
                             return KW__;
                         }
 (')(.|\n|\r)(')         {
+                            yylval.ycValueChar = yytext[0];
                             _p_lex("[lex] CHAR : %s\n", yytext);
                             return CHAR;
                         }
 "\""([^"\""\\]|\\"\"")*"\""         {
+                            yylval.ycText = yytext;
                             _p_lex("[lex] STRING : %s\n", yytext);
                             return STRING;
                         }
 [0-9]+                  {
+                            yylval.ycValueInt = atoi(yytext);
                             _p_lex("[lex] POS_INT : %s\n", yytext);
                             return INTEGER;
                         }
 [0-9]+"."[0-9]+         {
+                            yylval.ycValueDouble = atof(yytext);
                             _p_lex("[lex] DOUBLE : %s\n", yytext);
                             return DOUBLE;
                         }
 [a-zA-Z_][0-9a-zA-Z_]*  {
+                            yylval.ycText = yytext;
                             _p_lex("[lex] FIELD : %s\n", yytext);
                             return FIELD;
                         }

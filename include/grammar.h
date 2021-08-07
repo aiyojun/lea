@@ -13,6 +13,7 @@
  * Inner use for cpp
  */
 void declare(const char* _identifier);
+void declare(const char* _identifier, const char* context);
 #else
 #  define __export_c
 #  define __export_c_begin
@@ -27,18 +28,21 @@ void declare(const char* _identifier);
 
 __export_c void printf_empty(const char *__restrict __format, ...);
 
+__export_c void _push(char *s);
+__export_c void _pull(char *s);
+
 __export_c void _if();
 __export_c void _elif();
 __export_c void _else();
 __export_c void _for();
 __export_c void _match();
 __export_c void _case();
-__export_c void _def();
+__export_c void _def(char* fun_name);
 __export_c void _block();
 __export_c void _block_();
 __export_c void _call(int args);
-__export_c void _var_def();
-__export_c void _var_ass();
-__export_c void _var_def_ass();
+__export_c void _var_def(char* var_name);
+__export_c void _var_ass(char* var_name);
+__export_c void _var_def_ass(char* var_name);
 
 #endif//__grammar_h__

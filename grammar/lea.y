@@ -9,15 +9,39 @@ extern int yyparse(void);
 
 %}
 
+%union {
+    char* ycText;
+    char* ycType;
+    int ycValueInt;
+    double ycValueDouble;
+    unsigned short ycValueBool;
+    char ycValueChar;
+    char* ycOther;
+}
+
 %token KW_EOF
 %token COMMENT_SINGLE COMMENT_BEGIN COMMENT_END
-%token KW_BYTE KW_CHAR KW_STRING KW_INT KW_DOUBLE KW_BOOL
-%token KW_TRUE KW_FALSE
-%token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE KW__ KW_DEF KW_CLASS KW_STRUCT
+%token KW_BYTE
+%token KW_CHAR
+%token KW_STRING
+%token KW_INT
+%token KW_DOUBLE
+%token KW_BOOL
+%token <ycBool> KW_TRUE
+%token <ycBool> KW_FALSE
+%token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE KW__ KW_CLASS KW_STRUCT
+%token <ycText> KW_DEF
 %token AND OR NOT EQ NE GT GE LT LE
-%token ARROW ASSIGN LPAREN RPAREN DOT COMMA SEMI COLON NEWLINE BLOCK_BEGIN BLOCK_END
-%token DOUBLE INTEGER FIELD CHAR STRING
+%token ARROW ASSIGN LPAREN RPAREN DOT COMMA SEMI NEWLINE BLOCK_BEGIN BLOCK_END
+%token <ycText> COLON
+%token <ycValueDouble> DOUBLE
+%token <ycValueInt> INTEGER
+%token <ycText> FIELD
+%token <ycValueChar> CHAR
+%token <ycText> STRING
 %token OP_ADD OP_SUB OP_MUL OP_DIV OP_MOD
+
+%type <ycText> variableName
 
 %start root
 
@@ -63,18 +87,18 @@ baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
 // define variable
 // --------------------------------------------
-variableDefine: variableName COLON basicType   {_var_def();};
+variableDefine: variableName COLON basicType   {_var_def($2);};
 variableAssign:
-  variableName COLON basicType ASSIGN leaVal   {_var_def_ass();_p_yacc("-assign-type\n");}
-| variableName ASSIGN leaVal                   {_var_ass();_p_yacc("-assign\n");}
+  variableName COLON basicType ASSIGN leaVal   {_var_def_ass($1);_p_yacc("-assign-type\n");}
+| variableName ASSIGN leaVal                   {_var_ass($1);_p_yacc("-assign\n");}
 ;
-variableName: FIELD;
+variableName: FIELD                            {$$ = $1; _push($1);};
 // --------------------------------------------
 
 // --------------------------------------------
 // define function
 // --------------------------------------------
-functionDefine: KW_DEF FIELD functionOptions    {_def();};
+functionDefine: KW_DEF FIELD {_def($2);} functionOptions;
 functionOptions:
   functionBody                                  {_p_yacc("-{}\n");}
 | COLON returnType functionBody                 {_p_yacc("-type-{}\n");}
@@ -91,8 +115,8 @@ functionBody: ARROW leaVal {_p_yacc("-lambda\n");} | codeBlockDefine;
 // --------------------------------------------
 // define function invoke
 // --------------------------------------------
-invokeDefine: variableName LPAREN invokeArgsList {_call(2);};
-invokeArgsList: RPAREN | leaVal invokeArgsLoop;
+invokeDefine: variableName LPAREN invokeArgsList;
+invokeArgsList: {_call(0);} RPAREN | {_call(1);} leaVal invokeArgsLoop;
 invokeArgsLoop: COMMA leaVal invokeArgsList | RPAREN;
 // --------------------------------------------
 

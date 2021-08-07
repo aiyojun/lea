@@ -23,6 +23,7 @@ x match {
     case _ -> y
 }
 
+doTask();
 doTask("abc", 12)
 
 // x = (add(2,4) * 43 > 10) == true
