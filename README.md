@@ -6,6 +6,8 @@ A utility programming language.
 
 I hope i can insist on accomplishing the project!
 
+At present, this isn't a completed project. So, it's unnecessary to download the project!
+
 ## build
 
 Now, you can just build parsing program of 'lea' language! And this will go on for a long time. 
