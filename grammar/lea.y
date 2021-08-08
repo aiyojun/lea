@@ -31,6 +31,7 @@ extern int yyparse(void);
 %token <ycBool> KW_FALSE
 %token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE KW__ KW_CLASS KW_STRUCT
 %token <ycText> KW_DEF
+%token <ycText> KW_RETURN
 %token AND OR NOT EQ NE GT GE LT LE
 %token ARROW ASSIGN LPAREN RPAREN DOT COMMA SEMI NEWLINE BLOCK_BEGIN BLOCK_END
 %token <ycText> COLON
@@ -65,7 +66,7 @@ statement:
 
 
 baseInput: COMMENT_SINGLE|KW_BYTE|KW_CHAR|KW_STRING|KW_INT|KW_DOUBLE|KW_BOOL|
-KW_TRUE|KW_FALSE|KW_IF|KW_ELSE|KW_FOR|KW_WHILE|KW_MATCH|KW_CASE|KW_DEF|KW__|KW_STRUCT|KW_CLASS|
+KW_TRUE|KW_FALSE|KW_IF|KW_ELSE|KW_FOR|KW_WHILE|KW_MATCH|KW_CASE|KW_DEF|KW__|KW_STRUCT|KW_CLASS|KW_RETURN|
 AND|OR|NOT|EQ|NE|GT|GE|LT|LE|
 ARROW|ASSIGN|LPAREN|RPAREN|DOT|COMMA|SEMI|COLON|BLOCK_BEGIN|BLOCK_END|
 DOUBLE|INTEGER|FIELD|CHAR|STRING|
@@ -76,10 +77,10 @@ OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD;
 // --------------------------------------------
 commentDefine: sc | mc;
 sc: COMMENT_SINGLE singleComment;
-mc: COMMENT_BEGIN multiComment;
+mc: COMMENT_BEGIN {_open_mc();} multiComment;
 singleComment: baseInput singleComment | NEWLINE    {_p_yacc("-multiComment-end\n");}
 ;
-multiComment: baseInput2 multiComment | COMMENT_END {_p_yacc("-multiComment-end\n");}
+multiComment: baseInput2 multiComment | COMMENT_END {_close_mc();_p_yacc("-multiComment-end\n");}
 ;
 baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
@@ -116,8 +117,8 @@ functionBody: ARROW leaVal {_p_yacc("-lambda\n");} | codeBlockDefine;
 // define function invoke
 // --------------------------------------------
 invokeDefine: variableName LPAREN invokeArgsList;
-invokeArgsList: {_call(0);} RPAREN | {_call(1);} leaVal invokeArgsLoop;
-invokeArgsLoop: COMMA leaVal invokeArgsList | RPAREN;
+invokeArgsList: invokeArgsLoop | {_add_arg();} leaVal invokeArgsLoop;
+invokeArgsLoop: {_add_arg();} COMMA leaVal invokeArgsList | RPAREN {_call(1);};
 // --------------------------------------------
 
 // --------------------------------------------
@@ -185,9 +186,9 @@ codeBlockLoop:
 // represent variable/function-invoking
 leaVai: leaVar {_p_yacc("[y] is var\n");} | leaVar LPAREN leaInv {_p_yacc("[y] is invoke\n");};
 leaVar: FIELD;
-leaInv: RPAREN {_call(0);} | leaInvOptions; // args list
+leaInv: RPAREN | leaInvOptions; // args list
 leaInvOptions: leaBas leaInvLoop | leaVai leaInvLoop; // args list
-leaInvLoop: COMMA leaInvOptions | RPAREN {_call(1);};
+leaInvLoop: COMMA leaInvOptions | RPAREN;
 // --------------------------------------------
 
 // --------------------------------------------

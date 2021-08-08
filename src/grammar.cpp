@@ -4,6 +4,9 @@
 #include "grammar.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <vector>
+
+using namespace std;
 
 void declare(const char* _identifier) {
     printf("[%-6s]\n", _identifier);
@@ -21,6 +24,16 @@ void _push(char *s) {
 
 void _pull(char *s) {
     sprintf(s, "%s", _stack);
+}
+
+unsigned int _openMultiComment = 0;
+
+void _open_mc() {
+    _openMultiComment = 1;
+}
+
+void _close_mc() {
+    _openMultiComment = 0;
 }
 
 void _if() {
@@ -49,10 +62,19 @@ void _block_() {
     declare("block}");
 }
 
+vector<int> call_args;
+
+void _add_arg() {
+    call_args.emplace_back(1);
+}
+
 void _call(int args) {
+    if (_openMultiComment) return;
     char buf[8];
-    sprintf(buf, "call-%d", args);
-    declare(buf);
+    sprintf(buf, "call-%zu", call_args.size());
+    call_args.clear();
+    char var[512]; _pull(var);
+    declare(buf, var);
 }
 
 void _var_def(char* var_name) {
@@ -83,3 +105,6 @@ void _case() {
 }
 
 void printf_empty(const char *__restrict __format, ...) {}
+
+void clean() {
+}

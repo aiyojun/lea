@@ -132,6 +132,10 @@ integer -?[0-9]+
                             yylval.ycText = yytext;
                             return KW_DEF;
                         }
+"return"                   {
+                            yylval.ycText = yytext;
+                            return KW_RETURN;
+                        }
 "class"                 {
                             _p_lex("[lex] else : %s\n", yytext);
                             return KW_CLASS;

@@ -5,7 +5,7 @@ build_dir  =./build
 option_inc =-I ./include
 
 all: check_build clean lea.tab.o lex.yy.o grammar.o
-	$(CXX) -o lea $(build_dir)/lea.tab.o $(build_dir)/lex.yy.o $(build_dir)/grammar.o
+	$(CXX) -o lea $(build_dir)/lea.tab.o $(build_dir)/lex.yy.o $(build_dir)/grammar.o -lstdc++
 
 check_build:
 	@if [ ! -d $(build_dir) ]; then mkdir -p $(build_dir); fi
