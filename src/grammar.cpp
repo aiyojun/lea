@@ -3,13 +3,23 @@
 //
 #include "grammar.h"
 #include <stdio.h>
+#include <string.h>
 #include <vector>
+#include <mutex>
 
 #include "SymbolTable.h"
 
 SymbolTable symbolTable;
+long lea_line = 0;
+std::mutex line_mutex;
+std::vector<std::string> _scopes;
 
 using namespace std;
+
+std::string getScope() {
+    if (_scopes.empty()) return std::string("global");
+    return _scopes.back();
+}
 
 void declare(const char* _identifier) {
     printf("[%-6s]\n", _identifier);
@@ -19,7 +29,20 @@ void declare(const char* _identifier, const char* context) {
     printf("[%-6s] %s\n", _identifier, context);
 }
 
-char _stack[512];
+char _lea_file[512];
+
+void _lea(char *name) {
+    strcpy(name, name);
+    _scopes.clear();
+}
+
+void _line_inc() {
+    line_mutex.lock();
+    lea_line++;
+    line_mutex.unlock();
+}
+
+char _stack[128];
 
 void _push(char *s) {
     sprintf(_stack, "%s", s);
@@ -39,6 +62,28 @@ void _close_mc() {
     _openMultiComment = 0;
 }
 
+void _scope_ano(long line) {
+    _scopes.emplace_back(std::string("anonymous::" + std::to_string(line)));
+}
+
+void _scope_begin(char *scope) {
+    _scopes.emplace_back(std::string(scope));
+}
+
+void _scope_end(char *scope) {
+    std::cout << "scopes : ";
+    for (const auto& s : _scopes) {
+        std::cout << s << " ";
+    }
+    std::cout << std::endl;
+    std::string back = _scopes.back();
+    if (scope != nullptr && strcmp(back.c_str(), scope) != 0) {
+        std::cerr << "[scope] try to close (" << std::string(scope) << "), expect (" << back << ")." << endl;
+        exit(1);
+    }
+    _scopes.pop_back();
+}
+
 void _if() {
     declare("if");
 }
@@ -55,15 +100,17 @@ void _def(char* fun_name) {
 //    char var[512]; _pull(var);
 //    printf("_def : %s\n", fun_name);
     declare("def", fun_name);
-    symbolTable.addFunc(fun_name, FunctionAction::Def);
+    symbolTable.addFunc(lea_line, getScope(), fun_name, FunctionAction::Def);
 }
 
 void _block() {
     declare("block{");
+
 }
 
 void _block_() {
     declare("block}");
+
 }
 
 vector<int> call_args;
@@ -79,25 +126,25 @@ void _call(int args) {
     call_args.clear();
     char var[512]; _pull(var);
     declare(buf, var);
-    symbolTable.addFunc(var, FunctionAction::Call);
+    symbolTable.addFunc(lea_line, getScope(), var, FunctionAction::Call);
 }
 
 void _var_def(char* var_name) {
     char var[512]; _pull(var);
     declare("var:", var);
-    symbolTable.addSymbol(var, SymbolType::Variable);
+    symbolTable.addVar(lea_line, getScope(), var, "");
 }
 
 void _var_ass(char* var_name) {
     char var[512]; _pull(var);
     declare("var=", var);
-    symbolTable.addSymbol(var, SymbolType::Variable);
+    symbolTable.addVar(lea_line, getScope(), var, "");
 }
 
 void _var_def_ass(char* var_name) {
     char var[512]; _pull(var);
     declare("var:=", var);
-    symbolTable.addSymbol(var, SymbolType::Variable);
+    symbolTable.addVar(lea_line, getScope(), var, "");
 }
 
 void _for() {

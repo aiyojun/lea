@@ -26,13 +26,22 @@ void declare(const char* _identifier, const char* context);
 #define _p_lex printf_empty
 #define _p_yacc printf_empty
 
+extern long lea_line;
+
 __export_c void printf_empty(const char *__restrict __format, ...);
+
+__export_c void _lea(char *name);
+__export_c void _line_inc();
 
 __export_c void _push(char *s);
 __export_c void _pull(char *s);
 
 __export_c void _open_mc();
 __export_c void _close_mc();
+
+__export_c void _scope_ano(long line);
+__export_c void _scope_begin(char *scope);
+__export_c void _scope_end(char *scope);
 
 __export_c void _if();
 __export_c void _elif();

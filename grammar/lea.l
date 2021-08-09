@@ -62,9 +62,10 @@ integer -?[0-9]+
 "/"                     {
                             return OP_DIV;
                         }
-[ \t]                     {;}
+[ \t]                   {;}
 \n                      {
                             _p_lex("[lex] newline\n");
+                            _line_inc();
                             return NEWLINE;
                         }
 "->"                    {

@@ -1,12 +1,12 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "grammar.h"
 void yyerror(const char* s);
 extern int yylex(void);
 extern int yyparse(void);
-
-
+char lea_file[128];
 %}
 
 %union {
@@ -48,7 +48,7 @@ extern int yyparse(void);
 
 %%
 
-root: statement;
+root: {_lea(lea_file);} statement;
 
 statement:
   KW_EOF                                            {printf("Grammar parsed success.\n"); complete(); exit(0);}
@@ -61,7 +61,7 @@ statement:
 | stateIfDefine statement
 | stateForDefine statement
 | stateMatchDefine statement
-| codeBlockDefine statement
+| {_scope_ano(lea_line);} codeBlockDefine {_scope_end(NULL);} statement
 ;
 
 
@@ -99,7 +99,7 @@ variableName: FIELD                            {$$ = $1; _push($1);};
 // --------------------------------------------
 // define function
 // --------------------------------------------
-functionDefine: KW_DEF FIELD {_def($2);} functionOptions;
+functionDefine: KW_DEF FIELD {_scope_begin($2); _def($2);} functionOptions {_scope_end(NULL);};
 functionOptions:
   functionBody                                  {_p_yacc("-{}\n");}
 | COLON returnType functionBody                 {_p_yacc("-type-{}\n");}
@@ -125,20 +125,20 @@ invokeArgsLoop: {_add_arg();} COMMA leaVal invokeArgsList | RPAREN {_call(1);};
 // define if-else if-else
 // --------------------------------------------
 stateIfDefine: stateIf stateElse;
-stateIf: KW_IF LPAREN leaVal RPAREN codeBlockDefine {_if();_p_yacc("-if\n");}
+stateIf: KW_IF {_scope_begin("if");} LPAREN leaVal RPAREN codeBlockDefine {_scope_end("if"); _if(); _p_yacc("-if\n");}
 ;
 stateElse: ending | stateElseApp;
 stateElseApp: ending | KW_ELSE stateElseLoop;
 stateElseLoop:
-  {_p_yacc("-elif\n");} KW_IF LPAREN leaVal RPAREN codeBlockDefine {_elif();} stateElseApp
-| {_p_yacc("-else\n");} codeBlockDefine {_else();}
+  {_p_yacc("-elif\n"); _scope_begin("elif");} KW_IF LPAREN leaVal RPAREN codeBlockDefine {_scope_end("elif"); _elif();} stateElseApp
+| {_p_yacc("-else\n"); _scope_begin("else");} codeBlockDefine {_scope_end("else"); _else();}
 ;
 // --------------------------------------------
 
 // --------------------------------------------
 // define for-loop
 // --------------------------------------------
-stateForDefine: KW_FOR LPAREN stateForInit stateForCondition stateForUpdate {_for();} codeBlockDefine
+stateForDefine: KW_FOR LPAREN stateForInit stateForCondition stateForUpdate {_scope_begin("for"); _for();} codeBlockDefine {_scope_end("for");}
 ;
 stateForInit: SEMI | variableAssign SEMI;
 stateForCondition: SEMI | leaVal SEMI;
@@ -158,7 +158,7 @@ stateCase:
 ;
 stateCaseLoop: stateCase | BLOCK_END;
 wordCase: KW_CASE;
-stateCaseTail: codeBlockDefine | leaVal ending;
+stateCaseTail: {_scope_begin("case");} codeBlockDefine {_scope_end("case");} | leaVal ending;
 // --------------------------------------------
 
 // --------------------------------------------
@@ -174,7 +174,7 @@ codeBlockLoop:
 | stateIfDefine codeBlockLoop
 | stateForDefine codeBlockLoop
 | stateMatchDefine statement
-| codeBlockDefine codeBlockLoop
+| {_scope_ano(lea_line);} codeBlockDefine {_scope_end(NULL);} codeBlockLoop
 | BLOCK_END                                     {_block_();_p_yacc("-block-end\n");}
 ;
 // --------------------------------------------
@@ -252,7 +252,7 @@ void yyerror(const char* s)
     printf("Grammar error : %s\n", s);
 }
 
-int main()
+int main(int argc, char **argv)
 {
     yyparse();
     return 0;
