@@ -8,3 +8,5 @@ lea.iml
 cmake-build-debug/
 
 lea
+
+test/
