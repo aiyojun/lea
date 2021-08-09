@@ -1,5 +1,0 @@
-#!/bin/bash
-
-bison -d lea.y
-flex lea.l
-gcc -o lea-lex lex.yy.c -lfl
