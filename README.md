@@ -23,7 +23,7 @@ make clean # remove cache files
 
 ```shell
 make       # build first
-cat ./grammarSupport.lea | ./lea
+make run   # execute
 # observe the last segment:
 # "Grammar error : ..."     represents failed!
 # "Grammar parsed success." represents success!
