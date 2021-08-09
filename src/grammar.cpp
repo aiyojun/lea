@@ -1,13 +1,13 @@
 //
 // Created by Mr.Jun on 2021/8/7.
 //
-#include "grammar.h"
+#include "lang/grammar.h"
 #include <stdio.h>
 #include <string.h>
 #include <vector>
 #include <mutex>
 
-#include "SymbolTable.h"
+#include "lang/SymbolTable.h"
 
 SymbolTable symbolTable;
 long lea_line = 0;

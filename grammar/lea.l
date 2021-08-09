@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "lea.tab.h"
-#include "grammar.h"
+#include "lang/grammar.h"
 extern YYSTYPE yylval;
 %}
 

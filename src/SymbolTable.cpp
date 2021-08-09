@@ -1,7 +1,7 @@
 //
 // Created by Mr.Jun on 2021/8/9.
 //
-#include "../include/SymbolTable.h"
+#include "../include/lang/SymbolTable.h"
 #include <iomanip>
 #include <vector>
 

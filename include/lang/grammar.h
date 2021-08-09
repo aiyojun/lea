@@ -18,6 +18,7 @@ void declare(const char* _identifier, const char* context);
 #  define __export_c
 #  define __export_c_begin
 #  define __export_c_end
+extern int yyparse(void);
 #endif
 
 /**

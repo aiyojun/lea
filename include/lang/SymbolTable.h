@@ -5,7 +5,7 @@
 #ifndef LEA_SYMBOLTABLE_H
 #define LEA_SYMBOLTABLE_H
 
-#include "STL.h"
+#include "../STL.h"
 
 enum SymbolType {
     Unknown = -1, Variable = 0, Function = 1

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "grammar.h"
+#include "lang/grammar.h"
 void yyerror(const char* s);
 extern int yylex(void);
 extern int yyparse(void);
@@ -250,10 +250,4 @@ basicType: KW_BYTE | KW_CHAR | KW_INT | KW_BOOL | KW_DOUBLE | KW_STRING;
 void yyerror(const char* s)
 {
     printf("Grammar error : %s\n", s);
-}
-
-int main(int argc, char **argv)
-{
-    yyparse();
-    return 0;
 }
