@@ -1,14 +1,11 @@
 //
-// Created by root on 2021/8/9.
+// Created by Mr.Jun on 2021/8/9.
 //
 
 #ifndef LEA_SYMBOLTABLE_H
 #define LEA_SYMBOLTABLE_H
 
-#include <map>
-#include <vector>
-#include <string>
-#include <iostream>
+#include "STL.h"
 
 enum SymbolType {
     Unknown = -1, Variable = 0, Function = 1
