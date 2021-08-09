@@ -50,5 +50,6 @@ __export_c void _var_ass(char* var_name);
 __export_c void _var_def_ass(char* var_name);
 
 __export_c void clean();
+__export_c void complete();
 
 #endif//__grammar_h__

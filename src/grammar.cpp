@@ -3,8 +3,11 @@
 //
 #include "grammar.h"
 #include <stdio.h>
-#include <stdarg.h>
 #include <vector>
+
+#include "SymbolTable.h"
+
+SymbolTable symbolTable;
 
 using namespace std;
 
@@ -52,6 +55,7 @@ void _def(char* fun_name) {
 //    char var[512]; _pull(var);
 //    printf("_def : %s\n", fun_name);
     declare("def", fun_name);
+    symbolTable.addFunc(fun_name, FunctionAction::Def);
 }
 
 void _block() {
@@ -75,21 +79,25 @@ void _call(int args) {
     call_args.clear();
     char var[512]; _pull(var);
     declare(buf, var);
+    symbolTable.addFunc(var, FunctionAction::Call);
 }
 
 void _var_def(char* var_name) {
     char var[512]; _pull(var);
     declare("var:", var);
+    symbolTable.addSymbol(var, SymbolType::Variable);
 }
 
 void _var_ass(char* var_name) {
     char var[512]; _pull(var);
     declare("var=", var);
+    symbolTable.addSymbol(var, SymbolType::Variable);
 }
 
 void _var_def_ass(char* var_name) {
     char var[512]; _pull(var);
     declare("var:=", var);
+    symbolTable.addSymbol(var, SymbolType::Variable);
 }
 
 void _for() {
@@ -107,4 +115,9 @@ void _case() {
 void printf_empty(const char *__restrict __format, ...) {}
 
 void clean() {
+
+}
+
+void complete() {
+    symbolTable.show();
 }
