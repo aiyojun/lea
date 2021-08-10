@@ -23,7 +23,7 @@ Two subdirectories in project:
 'leapro' is a simple project built by lea programming language.
 
 ```shell
-cd compile    # enter lea compiler directory
+cd compiler   # enter lea compiler directory
 make          # build parsing program - lea
 cd ../leapro  # enter lea project directory
 make          # build & run main.lea
