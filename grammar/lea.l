@@ -174,7 +174,7 @@ integer -?[0-9]+
                             _p_lex("[lex] CHAR : %s\n", yytext);
                             return CHAR;
                         }
-"\""([^"\""\\]|\\"\"")*"\""         {
+"\""([^"\""\\]|\\"\""|(\\[nr]))*"\""         {
                             yylval.ycText = yytext;
                             _p_lex("[lex] STRING : %s\n", yytext);
                             return STRING;

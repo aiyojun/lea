@@ -8,6 +8,7 @@
 #include <mutex>
 
 #include "lang/SymbolTable.h"
+#include "gen/CodeAction.h"
 
 SymbolTable symbolTable;
 long lea_line = 0;
@@ -96,11 +97,24 @@ void _else() {
     declare("else");
 }
 
+std::string funcNameNow;
+
 void _def(char* fun_name) {
 //    char var[512]; _pull(var);
 //    printf("_def : %s\n", fun_name);
     declare("def", fun_name);
     symbolTable.addFunc(lea_line, getScope(), fun_name, FunctionAction::Def);
+    funcNameNow = std::string(fun_name);
+    if (funcNameNow == "main") {
+        CodeAction::codeAction.M_Def();
+    }
+}
+
+void _def_() {
+    if (funcNameNow == "main") {
+        CodeAction::codeAction.M_Ret(0);
+    }
+    funcNameNow = "";
 }
 
 void _block() {
@@ -114,19 +128,34 @@ void _block_() {
 }
 
 vector<int> call_args;
+vector<string> call_args_str;
 
 void _add_arg() {
     call_args.emplace_back(1);
 }
-
+void _add_arg_str(char* s) {
+    call_args_str.emplace_back(string(s));
+}
 void _call(int args) {
     if (_openMultiComment) return;
     char buf[8];
     sprintf(buf, "call-%zu", call_args.size());
-    call_args.clear();
     char var[512]; _pull(var);
     declare(buf, var);
     symbolTable.addFunc(lea_line, getScope(), var, FunctionAction::Call);
+
+
+    CodeAction::codeAction.D_Def("msg", call_args_str.back());
+    std::string func(var);
+    if (func == "printf") {
+        std::vector<std::string> argv{"msg"};
+        CodeAction::codeAction.F_Call(argv, func);
+    }
+
+    CodeAction::codeAction.M_Ret(0);
+
+    call_args.clear();
+    call_args_str.clear();
 }
 
 void _var_def(char* var_name) {

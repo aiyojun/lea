@@ -43,6 +43,13 @@ char lea_file[128];
 %token OP_ADD OP_SUB OP_MUL OP_DIV OP_MOD
 
 %type <ycText> variableName
+%type <ycText> leaVal
+%type <ycText> booExp
+%type <ycText> booAtom
+%type <ycText> calExp
+%type <ycText> calExpPro
+%type <ycText> calExpAtom
+%type <ycText> leaNum
 
 %start root
 
@@ -227,11 +234,11 @@ calExpPro: // Don't use! inner implement!
 | calExpPro OP_DIV calExpAtom
 ;
 calExpAtom: // Don't use! inner implement!
-  leaNum
-| CHAR
-| STRING
-| LPAREN booExp RPAREN // solve "(" matching and loop back to the top level
-| leaVai
+  leaNum {$$ = "num";}
+| CHAR {$$ = "char";}
+| STRING {$$ = $1; printf("- %s\n", $1); _add_arg_str($1);}
+| LPAREN booExp RPAREN {$$ = "(xxx)";} // solve "(" matching and loop back to the top level
+| leaVai {$$ = "1.0";}
 ;
 // --------------------------------------------
 
@@ -239,7 +246,7 @@ calExpAtom: // Don't use! inner implement!
 // common definition
 // --------------------------------------------
 leaBas: CHAR|OP_SUB INTEGER|INTEGER|DOUBLE|STRING|booBas; // specific value
-leaNum: OP_SUB INTEGER|INTEGER|DOUBLE
+leaNum: OP_SUB INTEGER|INTEGER|DOUBLE;
 booBas: KW_TRUE|KW_FALSE;
 ending: SEMI | NEWLINE;
 basicType: KW_BYTE | KW_CHAR | KW_INT | KW_BOOL | KW_DOUBLE | KW_STRING;

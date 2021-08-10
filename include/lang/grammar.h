@@ -24,7 +24,7 @@ extern int yyparse(void);
 /**
  * Prepared for 'lea.y'
  */
-#define _p_lex printf_empty
+#define _p_lex printf
 #define _p_yacc printf_empty
 
 extern long lea_line;
@@ -51,9 +51,11 @@ __export_c void _for();
 __export_c void _match();
 __export_c void _case();
 __export_c void _def(char* fun_name);
+__export_c void _def_();
 __export_c void _block();
 __export_c void _block_();
 __export_c void _add_arg();
+__export_c void _add_arg_str(char* s);
 __export_c void _call(int args);
 __export_c void _var_def(char* var_name);
 __export_c void _var_ass(char* var_name);

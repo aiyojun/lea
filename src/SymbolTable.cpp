@@ -2,6 +2,7 @@
 // Created by Mr.Jun on 2021/8/9.
 //
 #include "../include/lang/SymbolTable.h"
+#include "../include/gen/CodeAction.h"
 #include <iomanip>
 #include <vector>
 
@@ -31,6 +32,9 @@ void SymbolTable::addFunc(long line, const std::string& scope, char* name, Funct
     std::string key = n + "::" + scope + "::" + std::to_string(line);
     symbols[key] = symbol;
     keys.emplace_back(key);
+//    if (n == "main") {
+//        CodeAction::codeAction.addMain();
+//    }
 }
 
 //void SymbolTable::addSymbol(char* name, SymbolType type) {
@@ -100,6 +104,10 @@ void SymbolTable::show() {
         << std::setw(15) << std::left << toFunctionActionString(symbol.action)
         << std::endl;
     }
+    std::cout << "*****************************" << std::endl;
+    std::cout << "********* ASSEMBLE  *********" << std::endl;
+    std::cout << "*****************************" << std::endl;
+    CodeAction::codeAction.show();
 //    for (const auto& each : symbols) {
 //        std::cout << std::setw(15) << std::left << each.second.name
 //                  << std::setw(15) << std::left << each.second.lineNo
