@@ -20,6 +20,7 @@ public:
     void D_Def(const std::string& label, const std::string& s);
     void F_Call(const std::vector<std::string>& args, const std::string& label);
     static CodeAction codeAction;
+    std::string output;
 private:
     std::vector<std::string> nasm_seq;
     std::vector<std::string> section_data;

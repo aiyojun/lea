@@ -66,7 +66,7 @@ void CodeAction::addMain() {
 
 void CodeAction::show() {
     FileWriter writer;
-    writer.open("build/main.lea.asm");
+    writer.open(output);
     for (const auto& gas : section_data) {
         std::cout << gas << std::endl;
         writer.write(gas + "\n");

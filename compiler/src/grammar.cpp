@@ -14,6 +14,7 @@ SymbolTable symbolTable;
 long lea_line = 0;
 std::mutex line_mutex;
 std::vector<std::string> _scopes;
+char output_file[100];
 
 using namespace std;
 
@@ -35,6 +36,7 @@ char _lea_file[512];
 void _lea(char *name) {
     strcpy(name, name);
     _scopes.clear();
+    CodeAction::codeAction.output = std::string(output_file);
 }
 
 void _line_inc() {

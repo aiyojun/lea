@@ -28,6 +28,7 @@ extern int yyparse(void);
 #define _p_yacc printf_empty
 
 extern long lea_line;
+extern char output_file[100];
 
 __export_c void printf_empty(const char *__restrict __format, ...);
 

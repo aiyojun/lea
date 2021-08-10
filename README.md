@@ -16,11 +16,15 @@ If the compiler/interpreter program is finished, I will update the abstract of t
 
 **08.10.2021 update** Now, you can compile the simple "lea" program - main.lea, using the following command.
 
+Two subdirectories in project: 
+
+'compiler' is sub-project to construct lea compiler.
+
+'leapro' is a simple project built by lea programming language.
+
 ```shell
 cd compile    # enter lea compiler directory
 make          # build parsing program - lea
-make assemble # generate assemble file of main.lea
-make compile  # compile and link to generate executable file - main.lea.run
-make run      # run the executable file - main.lea.run
-make clean    # remove cache files in build directory
+cd ../leapro  # enter lea project directory
+make          # build & run main.lea
 ```
