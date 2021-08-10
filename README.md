@@ -10,7 +10,7 @@ At present, this isn't a completed project. So, it's unnecessary to download the
 
 ## build
 
-Now, you can just build parsing program of 'lea' language! And this will go on for a long time. 
+**08.06.2021 update** Now, you can just build parsing program of 'lea' language! And this will go on for a long time. 
 
 If the compiler/interpreter program is finished, I will update the abstract of the README.
 
@@ -22,14 +22,4 @@ make assemble # generate assemble file of main.lea
 make compile  # compile and link to generate executable file - main.lea.run
 make run      # run the executable file - main.lea.run
 make clean    # remove cache files in build directory
-```
-
-## syntax verify
-
-```shell
-make       # build first
-make run   # execute
-# observe the last segment:
-# "Grammar error : ..."     represents failed!
-# "Grammar parsed success." represents success!
 ```
