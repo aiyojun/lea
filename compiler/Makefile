@@ -42,9 +42,9 @@ lex.yy.c:
 	$(LEX) -o $(build_dir)/lex.yy.c grammar/lea.l
 
 assemble:
-	./lea ./main.lea
+	./lea ../leapro/main.lea
 
-compile:
+compile: assemble
 	$(ASM) -o $(build_dir)/main.lea.o $(build_dir)/main.lea.asm
 	$(CXX) -o main.lea.run $(build_dir)/main.lea.o -lc -no-pie
 
