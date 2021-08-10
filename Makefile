@@ -42,14 +42,14 @@ lex.yy.c:
 	$(LEX) -o $(build_dir)/lex.yy.c grammar/lea.l
 
 assemble:
-	cat ./main.lea | ./lea
+	./lea ./main.lea
 
 compile:
 	$(ASM) -o $(build_dir)/main.lea.o $(build_dir)/main.lea.asm
-	$(CXX) -o main.lea.run $(build_dir)/main.lea.o -lc
+	$(CXX) -o main.lea.run $(build_dir)/main.lea.o -lc -no-pie
 
 run:
-	@echo "-- Executing [main.lea.run]:"
+	@echo "executing [main.lea.run]:"
 	@./main.lea.run
 
 clean:

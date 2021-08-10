@@ -10,3 +10,5 @@ cmake-build-debug/
 lea
 
 test/
+
+main.lea.run
