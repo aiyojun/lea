@@ -2,15 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "lang/grammar.h"
+#include "syntax.h"
 void yyerror(const char* s);
-extern int yylex(void);
-extern int yyparse(void);
-char lea_file[128];
-int is_invoke = -1;
-int args_open = -1;
-int nest_deep = 0;
-char var_name[128];
 %}
 
 %union {
@@ -63,7 +56,7 @@ char var_name[128];
 root: statement;
 
 statement:
-  KW_EOF {printf("Grammar parsed success.\n"); complete(); exit(0);}
+  KW_EOF {leaprintf("Grammar parsed success.\n"); exit(0);}
 | ending statement
 | commentDefine statement
 | variableDefine statement
@@ -98,10 +91,10 @@ baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
 // define variable
 // --------------------------------------------
-variableDefine: variableName COLON basicType;
+variableDefine: variableName COLON basicType {leaprintf(":L%d\n", lealine);};
 variableAssign:
-  variableName COLON basicType ASSIGN leaVal
-| variableName ASSIGN leaVal
+  variableName COLON basicType ASSIGN {leaprintf("=L%d\n", lealine);} leaVal
+| variableName ASSIGN {leaprintf("=L%d\n", lealine);} leaVal
 ;
 variableName: FIELD;
 // --------------------------------------------

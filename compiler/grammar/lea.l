@@ -1,14 +1,11 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "syntax.h"
 #include "lea.tab.h"
-#include "lang/grammar.h"
 extern YYSTYPE yylval;
 %}
-
-field [a-zA-Z_][0-9a-zA-Z_]*
-integer -?[0-9]+
-
 
 %%
 <<EOF>>                 {
@@ -75,7 +72,8 @@ integer -?[0-9]+
 [ \t]                   {;}
 \n                      {
                             _p_lex("[lex] newline\n");
-                            _line_inc();
+                            // _line_inc();
+                            lealine++;
                             return NEWLINE;
                         }
 "->"                    {
