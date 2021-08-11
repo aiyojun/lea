@@ -6,6 +6,9 @@ all: run
 check_build:
 	@if [ ! -d $(build_dir) ]; then mkdir -p $(build_dir); fi
 
+syntax: check_build
+	@$(LEA) ./syntax.lea $(build_dir)/main.lea.asm
+
 assemble: check_build
 	@$(LEA) ./main.lea $(build_dir)/main.lea.asm >/dev/null
 

@@ -19,6 +19,7 @@ void declare(const char* _identifier, const char* context);
 #  define __export_c_begin
 #  define __export_c_end
 extern int yyparse(void);
+
 #endif
 
 /**
@@ -29,6 +30,8 @@ extern int yyparse(void);
 
 extern long lea_line;
 extern char output_file[100];
+extern int n_pro;
+extern int n_com;
 
 __export_c void printf_empty(const char *__restrict __format, ...);
 
@@ -64,5 +67,23 @@ __export_c void _var_def_ass(char* var_name);
 
 __export_c void clean();
 __export_c void complete();
+
+__export_c void add_deep();
+__export_c void rv_enter();
+__export_c void rv_exit();
+__export_c void rv_mul();
+__export_c void rv_div();
+__export_c void rv_add();
+__export_c void rv_sub();
+__export_c void rv_arg_add(char* val, char* type);
+__export_c void rv_boo();
+__export_c void rv_boo_ops(char* op);
+__export_c void rv_cal_com();
+__export_c void rv_cal_pro();
+
+struct RV_ARG {
+    char raw[100];
+    char type[50];
+};
 
 #endif//__grammar_h__

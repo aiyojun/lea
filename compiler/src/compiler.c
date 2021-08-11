@@ -1,5 +1,6 @@
 #include "lang/grammar.h"
 #include <stdio.h>
+#include <string.h>
 
 extern FILE *yyin;
 
@@ -11,5 +12,6 @@ int main(int argc, char **argv)
         yyin = fopen(argv[1], "r");
     }
     yyparse();
+    fclose(yyin);
     return 0;
 }

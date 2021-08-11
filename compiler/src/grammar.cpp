@@ -146,8 +146,11 @@ void _call(int args) {
     declare(buf, var);
     symbolTable.addFunc(lea_line, getScope(), var, FunctionAction::Call);
 
-
+//    printf("_____1\n");
+    if (call_args_str.size() > 0)
     CodeAction::codeAction.D_Def("msg", call_args_str.back());
+
+//    printf("_____2\n");
     std::string func(var);
     if (func == "printf") {
         std::vector<std::string> argv{"msg"};
@@ -158,6 +161,7 @@ void _call(int args) {
 
     call_args.clear();
     call_args_str.clear();
+//    printf("_____8\n");
 }
 
 void _var_def(char* var_name) {

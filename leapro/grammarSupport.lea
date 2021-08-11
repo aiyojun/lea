@@ -58,4 +58,5 @@ def doTask(x: int): int {
 	y: string = "";
 	z: double = 34.321
 
+    pp: bool = true && ("haha" != "casdb") || (12 == 43)
 }

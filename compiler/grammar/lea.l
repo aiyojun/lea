@@ -11,9 +11,16 @@ integer -?[0-9]+
 
 
 %%
-<<EOF>>                 {return KW_EOF;}
-"/*"                    {return COMMENT_BEGIN;}
-"*/"                    {return COMMENT_END;}
+<<EOF>>                 {
+                            _p_lex("[lex] >> : %s\n", yytext);
+                            return KW_EOF;}
+"/*"                    {
+                            _p_lex("[lex] >> : %s\n", yytext);
+                            return COMMENT_BEGIN;
+                        }
+"*/"                    {
+                            _p_lex("[lex] >> : %s\n", yytext);
+                            return COMMENT_END;}
 "//"                    {
                             _p_lex("[lex] single comment : %s\n", yytext);
                             return COMMENT_SINGLE;
@@ -38,6 +45,7 @@ integer -?[0-9]+
                             return COLON;
                         }
 ";"                     {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return SEMI;
                         }
 ","                     {
@@ -45,6 +53,7 @@ integer -?[0-9]+
                             return COMMA;
                         }
 "."                     {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return DOT;
                         }
 "+"                     {
@@ -60,6 +69,7 @@ integer -?[0-9]+
                             return OP_MUL;
                         }
 "/"                     {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return OP_DIV;
                         }
 [ \t]                   {;}
@@ -69,21 +79,27 @@ integer -?[0-9]+
                             return NEWLINE;
                         }
 "->"                    {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return ARROW;
                         }
 "="                     {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return ASSIGN;
                         }
 "byte"                  {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return KW_BYTE;
                         }
 "char"                  {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return KW_CHAR;
                         }
 "int"                   {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return KW_INT;
                         }
 "bool"                  {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return KW_BOOL;
                         }
 "true"                  {
@@ -92,48 +108,62 @@ integer -?[0-9]+
                             return KW_TRUE;
                         }
 "false"                 {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             yylval.ycValueBool = 0;
                             return KW_FALSE;
                         }
 "double"                {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return KW_DOUBLE;
                         }
 "string"                {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             _p_lex("[lex] KW_STRING : %s\n", yytext);
                             return KW_STRING;
                         }
 "&&"                    {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return AND;
                         }
 "||"                    {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return OR;
                         }
 "=="                    {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return EQ;
                         }
 "!="                    {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return NE;
                         }
 ">="                    {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return GE;
                         }
 "<="                    {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return LE;
                         }
 ">"                     {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return GT;
                         }
 "<"                     {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return LT;
                         }
 "!"                     {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return NOT;
                         }
 "def"                   {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             yylval.ycText = yytext;
                             return KW_DEF;
                         }
 "return"                   {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             yylval.ycText = yytext;
                             return KW_RETURN;
                         }
@@ -158,15 +188,19 @@ integer -?[0-9]+
                             return KW_FOR;
                         }
 "while"                 {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return KW_WHILE;
                         }
 "match"                 {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return KW_MATCH;
                         }
 "case"                  {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return KW_CASE;
                         }
 "_"                     {
+                            _p_lex("[lex] >> : %s\n", yytext);
                             return KW__;
                         }
 (')(.|\n|\r)(')         {
