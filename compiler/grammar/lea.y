@@ -24,8 +24,8 @@ void yyerror(const char* s);
 %token KW_INT
 %token KW_DOUBLE
 %token KW_BOOL
-%token <ycBool> KW_TRUE
-%token <ycBool> KW_FALSE
+%token <ycText> KW_TRUE
+%token <ycText> KW_FALSE
 %token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE KW__ KW_CLASS KW_STRUCT
 %token <ycText> KW_DEF
 %token <ycText> KW_RETURN
@@ -41,6 +41,7 @@ void yyerror(const char* s);
 
 %type <ycText> variableName
 %type <ycText> leaVar
+%type <ycText> booBas
 //%type <ycText> leaVal
 //%type <ycText> booExp
 //%type <ycText> booAtom
@@ -91,10 +92,10 @@ baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
 // define variable
 // --------------------------------------------
-variableDefine: variableName COLON basicType {leaprintf(":L%d\n", lealine);};
+variableDefine: variableName COLON basicType;
 variableAssign:
-  variableName COLON basicType ASSIGN {leaprintf("=L%d\n", lealine);} leaVal
-| variableName ASSIGN {leaprintf("=L%d\n", lealine);} leaVal
+  variableName COLON basicType ASSIGN leaVal
+| variableName ASSIGN leaVal
 ;
 variableName: FIELD;
 // --------------------------------------------
@@ -119,9 +120,10 @@ functionBody: ARROW leaVal | codeBlockDefine;
 // --------------------------------------------
 // define function invoke
 // --------------------------------------------
-invokeDefine: variableName LPAREN invokeArgsList;
+invokeDefine: functionName LPAREN invokeArgsList;
 invokeArgsList: invokeArgsLoop | leaVal invokeArgsLoop;
 invokeArgsLoop: COMMA leaVal invokeArgsList | RPAREN;
+functionName: FIELD;
 // --------------------------------------------
 
 // --------------------------------------------
@@ -186,36 +188,40 @@ codeBlockLoop:
 // --------------------------------------------
 // represent variable/function-invoking
 leaVai:
-  leaVar
-| leaVar LPAREN leaInv {};
-leaVar: FIELD;
-leaInv: RPAREN | leaInvOptions;
+  leaVar {vi_end_var();}
+| leaVar LPAREN {} leaInv;
+leaVar: FIELD {vi_register($1);};
+leaInv: RPAREN {vi_end_inv();} | leaInvOptions;
 leaInvOptions: booExp leaInvLoop;
-leaInvLoop: COMMA leaInvOptions | RPAREN;
+leaInvLoop: COMMA {vi_args();} leaInvOptions | RPAREN {vi_args();vi_end_inv();};
 // --------------------------------------------
 
 // --------------------------------------------
 // define bool expression
 // --------------------------------------------
-leaVal: booExp;
+leaVal: booExp {ex_show();ex_close();};
 booExp:
   booExpNot
-| booExp AND booExpNot
-| booExp OR  booExpNot
+| booExp AND booExpNot {ex_calc(2, "&&");}
+| booExp OR  booExpNot {ex_calc(2, "||");}
 ;
 booExpNot:
   booAtom
-| NOT booAtom
+| NOT booAtom {ex_calc(1, "!");}
 ;
 booAtom:
   calExp
-| calExp LT calExp
-| calExp GT calExp
-| calExp LE calExp
-| calExp GE calExp
-| calExp EQ calExp
-| calExp NE calExp
+| calExp LT calExp {ex_calc(2, "<");}
+| calExp GT calExp {ex_calc(2, ">");}
+| calExp LE calExp {ex_calc(2, "<=");}
+| calExp GE calExp {ex_calc(2, ">=");}
+| calExp EQ calExp {ex_calc(2, "==");}
+| calExp NE calExp {ex_calc(2, "!=");}
 | booBas
+;
+booBas: 
+  KW_TRUE {ex_push_i(1);}
+| KW_FALSE  {ex_push_i(0);}
 ;
 // --------------------------------------------
 
@@ -224,20 +230,24 @@ booAtom:
 // --------------------------------------------
 calExp:
   calExpPro
-| calExp OP_ADD calExpPro
-| calExp OP_SUB calExpPro;
+| calExp OP_ADD calExpPro {ex_calc(2, "+");}
+| calExp OP_SUB calExpPro {ex_calc(2, "-");}
+;
 
 calExpPro:
   calExpAtom
-| calExpPro OP_MUL calExpAtom
-| calExpPro OP_DIV calExpAtom
+| calExpPro OP_MUL calExpAtom {ex_calc(2, "*");}
+| calExpPro OP_DIV calExpAtom {ex_calc(2, "/");}
 ;
 
 calExpAtom:
-  leaNum
+  LPAREN booExp RPAREN
+| op_sub INTEGER {ex_push_i(0-$2);}
+| op_sub DOUBLE {ex_push_d(0-$2);}
+| INTEGER {ex_push_i($1);}
+| DOUBLE {ex_push_d($1);}
 | CHAR
 | STRING
-| LPAREN booExp RPAREN
 | leaVai
 ;
 // --------------------------------------------
@@ -245,23 +255,13 @@ calExpAtom:
 // --------------------------------------------
 // common definition
 // --------------------------------------------
-leaBas:
-  CHAR
-| op_sub INTEGER
-| op_sub DOUBLE
-| INTEGER
-| DOUBLE
-| STRING
-| booBas
-;
 op_sub: OP_SUB;
 leaNum:
-  op_sub INTEGER
+  op_sub INTEGER 
 | INTEGER
 | DOUBLE
 | op_sub DOUBLE
 ;
-booBas: KW_TRUE | KW_FALSE;
 basicType: KW_BYTE | KW_CHAR | KW_INT | KW_BOOL | KW_DOUBLE | KW_STRING;
 ending: SEMI | NEWLINE;
 // --------------------------------------------

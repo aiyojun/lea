@@ -34,4 +34,4 @@ clean:
 	@rm -rf $(build_dir)/*
 
 run:
-	$(LEA) ../leapro/grammarSupport.lea
+	$(LEA) ../leapro/syntax.lea

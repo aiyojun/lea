@@ -101,13 +101,15 @@ extern YYSTYPE yylval;
                             return KW_BOOL;
                         }
 "true"                  {
-                            yylval.ycValueBool = 1;
+                            // yylval.ycValueBool = 1;
+                            yylval.ycText = yytext;
                             _p_lex("[lex] TRUE : %s\n", yytext);
                             return KW_TRUE;
                         }
 "false"                 {
                             _p_lex("[lex] >> : %s\n", yytext);
-                            yylval.ycValueBool = 0;
+                            yylval.ycText = yytext;
+                            ; yylval.ycValueBool = 0;
                             return KW_FALSE;
                         }
 "double"                {
