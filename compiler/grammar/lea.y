@@ -48,7 +48,6 @@ void yyerror(const char* s);
 //%type <ycText> calExp
 //%type <ycText> calExpPro
 //%type <ycText> calExpAtom
-//%type <ycText> leaNum
 
 %start root
 
@@ -199,7 +198,7 @@ leaInvLoop: COMMA {vi_args();} leaInvOptions | RPAREN {vi_args();vi_end_inv();};
 // --------------------------------------------
 // define bool expression
 // --------------------------------------------
-leaVal: booExp {ex_show();ex_close();};
+leaVal: booExp {ex_close();};
 booExp:
   booExpNot
 | booExp AND booExpNot {ex_calc(2, "&&");}
@@ -246,8 +245,8 @@ calExpAtom:
 | op_sub DOUBLE {ex_push_d(0-$2);}
 | INTEGER {ex_push_i($1);}
 | DOUBLE {ex_push_d($1);}
-| CHAR
-| STRING
+| CHAR {ex_push_c($1);}
+| STRING {ex_push_s($1);}
 | leaVai
 ;
 // --------------------------------------------
@@ -256,12 +255,6 @@ calExpAtom:
 // common definition
 // --------------------------------------------
 op_sub: OP_SUB;
-leaNum:
-  op_sub INTEGER 
-| INTEGER
-| DOUBLE
-| op_sub DOUBLE
-;
 basicType: KW_BYTE | KW_CHAR | KW_INT | KW_BOOL | KW_DOUBLE | KW_STRING;
 ending: SEMI | NEWLINE;
 // --------------------------------------------

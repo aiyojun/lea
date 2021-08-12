@@ -14,9 +14,10 @@ struct VI_ATOM;
 struct EX_ATOM;
 
 void ex_push(EX_ATOM ea);
-void ex_push_vi(VI_ATOM vi);
-
+void ex_push_v(EX_ATOM ea);
+void ex_push_vi(const VI_ATOM& vi);
 void g_add_i(int i, int j);
+
 #else
 #  define __export_c
 #  define __export_c_begin
@@ -45,7 +46,10 @@ __export_c void ex_open();
 __export_c void ex_close();
 __export_c void ex_push_i(int i);
 __export_c void ex_push_d(double d);
+__export_c void ex_push_c(char c);
+__export_c void ex_push_s(char* s);
 __export_c void ex_calc(int n, char *op);
+__export_c void ex_invoke(int n, char *fun);
 __export_c void ex_show();
 
 #endif//__syntax_h__
