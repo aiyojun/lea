@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "syntax.h"
-void yyerror(const char* s);
 %}
 
 %union {
@@ -42,12 +41,6 @@ void yyerror(const char* s);
 %type <ycText> variableName
 %type <ycText> leaVar
 %type <ycText> booBas
-//%type <ycText> leaVal
-//%type <ycText> booExp
-//%type <ycText> booAtom
-//%type <ycText> calExp
-//%type <ycText> calExpPro
-//%type <ycText> calExpAtom
 
 %start root
 
@@ -201,21 +194,21 @@ leaInvLoop: COMMA {vi_args();} leaInvOptions | RPAREN {vi_args();vi_end_inv();};
 leaVal: booExp {ex_close();};
 booExp:
   booExpNot
-| booExp AND booExpNot {ex_calc(2, "&&");}
-| booExp OR  booExpNot {ex_calc(2, "||");}
+| booExp AND booExpNot {ex_calculate(2, "&&");}
+| booExp OR  booExpNot {ex_calculate(2, "||");}
 ;
 booExpNot:
   booAtom
-| NOT booAtom {ex_calc(1, "!");}
+| NOT booAtom {ex_calculate(1, "!");}
 ;
 booAtom:
   calExp
-| calExp LT calExp {ex_calc(2, "<");}
-| calExp GT calExp {ex_calc(2, ">");}
-| calExp LE calExp {ex_calc(2, "<=");}
-| calExp GE calExp {ex_calc(2, ">=");}
-| calExp EQ calExp {ex_calc(2, "==");}
-| calExp NE calExp {ex_calc(2, "!=");}
+| calExp LT calExp {ex_calculate(2, "<");}
+| calExp GT calExp {ex_calculate(2, ">");}
+| calExp LE calExp {ex_calculate(2, "<=");}
+| calExp GE calExp {ex_calculate(2, ">=");}
+| calExp EQ calExp {ex_calculate(2, "==");}
+| calExp NE calExp {ex_calculate(2, "!=");}
 | booBas
 ;
 booBas: 
@@ -229,14 +222,14 @@ booBas:
 // --------------------------------------------
 calExp:
   calExpPro
-| calExp OP_ADD calExpPro {ex_calc(2, "+");}
-| calExp OP_SUB calExpPro {ex_calc(2, "-");}
+| calExp OP_ADD calExpPro {ex_calculate(2, "+");}
+| calExp OP_SUB calExpPro {ex_calculate(2, "-");}
 ;
 
 calExpPro:
   calExpAtom
-| calExpPro OP_MUL calExpAtom {ex_calc(2, "*");}
-| calExpPro OP_DIV calExpAtom {ex_calc(2, "/");}
+| calExpPro OP_MUL calExpAtom {ex_calculate(2, "*");}
+| calExpPro OP_DIV calExpAtom {ex_calculate(2, "/");}
 ;
 
 calExpAtom:
@@ -261,7 +254,3 @@ ending: SEMI | NEWLINE;
 
 %%
 
-void yyerror(const char* s)
-{
-    printf("Grammar error : %s\n", s);
-}

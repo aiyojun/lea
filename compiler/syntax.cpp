@@ -16,7 +16,13 @@ struct VI_ATOM {
 struct EX_ATOM {
 	char value[512];
 	int type = -1;
+	EX_ATOM();
+	EX_ATOM(int t, char* v);
+	EX_ATOM(int t, const std::string& v);
 };
+EX_ATOM::EX_ATOM() {}
+EX_ATOM::EX_ATOM(int t, char* v) {this->type = t;strcpy(this->value, v);}
+EX_ATOM::EX_ATOM(int t, const std::string& v) {this->type = t;strcpy(this->value, v.c_str());}
 
 class EX_DEEP_ATOM {
 public:
@@ -29,9 +35,6 @@ int lealine = 1;
 int vi_deep = 0;
 std::map<int, VI_ATOM> vis_m;
 std::map<int, EX_DEEP_ATOM> stack_ex_m;
-bool ex_is_open = false;
-// std::vector<EX_ATOM> stack_ex;
-
 std::vector<std::string> asm_data_s;
 std::vector<std::string> asm_text_s;
 #define A(x) asm_text_s.emplace_back(x)
@@ -39,9 +42,7 @@ std::vector<std::string> asm_text_s;
 void printf_empty(const char *__restrict __format, ...) {}
 
 void vi_register(char* name) {
-	// if (vi_deep == -1) 
 	vi_deep++;
-	// printf("[vi] ---- begin { %d %s\n", vi_deep, name);
 	VI_ATOM vi_a;
 	vi_a.deep = vi_deep;
 	strcpy(vi_a.name, name);
@@ -51,30 +52,19 @@ void vi_args() {
 	vis_m[vi_deep].args++;
 }
 void vi_end_var() {
-	// printf("[vi] variable : %s\n", vis_m[vi_deep].name);
 	vis_m[vi_deep].type = 5;
-
 	vi_deep--;
 	ex_push_vi(vis_m[vi_deep+1]);
-
-	// if (vi_deep == -1) printf("[vi] ---- }\n");
 }
 void vi_end_inv() {
-	// printf(">>ncadn\n");
-	// printf("[vi] function : %s, args : %d\n", vis_m[vi_deep].name, vis_m[vi_deep].args);
 	vis_m[vi_deep].type = 6;
-
-	// printf("xxx deep: %d ;  \n", vi_deep);
 	ex_invoke(vis_m[vi_deep].args, vis_m[vi_deep].name);
 	vi_deep--;
 	ex_push_vi(vis_m[vi_deep+1]);
-
-	// if (vi_deep == -1) printf("[vi] ---- }\n");
 }
 
 // 0->int 1->double 2->bool 3->char 4->string 5->variable 6->function invoke 7->asm label
-void ex_open() {if (!ex_is_open) ex_is_open = true;}
-void ex_close() {ex_is_open = false;ex_show();}
+void ex_close() {ex_show();g_print();}
 void ex_push(EX_ATOM ea) {
 	int vi_deep_p = vi_deep == -1 ? 0 : vi_deep;
 	if (stack_ex_m.end() == stack_ex_m.find(vi_deep_p)) {
@@ -94,12 +84,10 @@ void ex_push_v(EX_ATOM ea) {
 	stack_ex_m[vi_deep_p].stack_ex.emplace_back(ea);
 }
 void ex_push_i(int i) {
-	// printf(">>>> %d\n", vi_deep);
 	EX_ATOM ex_a;
 	sprintf(ex_a.value, "%d", i);
 	ex_a.type = 0;
 	ex_push(ex_a);
-	// stack_ex.emplace_back(ex_a);
 	ex_show();
 }
 void ex_push_d(double d) {
@@ -107,9 +95,7 @@ void ex_push_d(double d) {
 	sprintf(ex_a.value, "%f", d);
 	ex_a.type = 1;
 	ex_push(ex_a);
-	// stack_ex.emplace_back(ex_a);
 	ex_show();
-	// printf("push\n");
 }
 void ex_push_s(char* s) {
 	EX_ATOM ex_a;
@@ -130,265 +116,175 @@ void ex_push_vi(const VI_ATOM& vi) {
 	sprintf(ex_a.value, "%s", vi.name);
 	ex_a.type = vi.type;
 	ex_push_v(ex_a);
-	// stack_ex.emplace_back(ex_a);
 	ex_show();
-	// printf("push\n");
 }
 void ex_invoke(int n, char *fun) {
 	// pop args from stack_ex
-	// printf(">> %d\n", (vi_deep <= -1 ? 0 : vi_deep));
 	std::vector<EX_ATOM>& stack_ex = stack_ex_m[vi_deep <= -1 ? 0 : vi_deep].stack_ex;
+	std::string args[n];
 	for (int i = 0; i < n; i++) {
+		args[i] = std::string(stack_ex.back().value);
+		// printf("xx-xx-01 back : %s\n", stack_ex.back().value);
 		stack_ex.pop_back();
 	}
-	EX_ATOM ea;
-	strcpy(ea.value, fun);
-	ea.type = 7;
-	stack_ex.emplace_back();
+	g_invoke(std::string(fun), args, n);
+	// printf("%d ++ x: ", stack_ex.size());
+	// for (auto& s : stack_ex) {
+		// printf("-> %s", s.value);
+	// }
+	// printf("\n");
+	// printf("xx-xx-02 back : %s; %d\n", stack_ex.back().value, (vi_deep <= -1 ? 0 : vi_deep));
+	// EX_ATOM ea;
+	// strcpy(ea.value, fun);
+	// ea.type = 7;
+	// stack_ex.emplace_back(ea);
 }
 void ex_calculate(int n, char *op) {
 	std::vector<EX_ATOM>& stack_ex = stack_ex_m[vi_deep <= -1 ? 0 : vi_deep].stack_ex;
-	if (n == 2) 
-		printf("calc: %s %s %s ", stack_ex[stack_ex.size() - 2].value, op, stack_ex[stack_ex.size() - 1].value);
-	else
-		printf("calc: %s %s ", op, stack_ex[stack_ex.size() - 1].value);
-	// ----------------
-	if (n == 2) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		if (n0.type >= 5) {
-			// printf("tick out : %s - %s\n", n0.value, n1.value);
-			stack_ex.pop_back();
-			stack_ex.pop_back();
-			EX_ATOM n3; strcpy(n3.value, n0.value);
-			n3.type = 7;
-			stack_ex.emplace_back(n3);
+
+	int op_n = n; std::string op_s(op);
+	std::map<std::string, int> support_op {
+		{"*", 0}, {"/", 1}, {"+", 2}, {"-", 3}, 
+		{">", 4}, {"<", 5}, {">=", 6}, {"<=", 7}, 
+		{"==", 8}, {"!=", 9}, {"&&", 10}, {"||", 11}
+	};
+	if (op_n == 1 && op_s == "!") {
+		if (stack_ex.size() < 1)
+			yyerror(std::string("Operator [" + op_s + "] needs two parameters! stack rest : 0").c_str());
+		EX_ATOM p0 = stack_ex[stack_ex.size() - 1];
+		if (p0.type > 4) {
+			EX_ATOM _r(7, p0.value);
+			stack_ex.pop_back(); stack_ex.emplace_back(_r);
+		} else if (p0.type < 4) {
+			int boo = p0.type < 3 ? atoi(p0.value) : (int) p0.value[0];
+			EX_ATOM _r(2, std::to_string(boo == 0 ? 1 : 0));
+			stack_ex.pop_back(); stack_ex.emplace_back(_r);
+		} else {
+			yyerror("Operator [!] don't support string type!");
+		}
+	} else if (op_n == 2 && support_op.find(op_s) != support_op.end()) {
+		if (stack_ex.size() < 2) 
+			yyerror(std::string("Operator [" + op_s + "] needs two parameters! stack rest : " + std::to_string(stack_ex.size())).c_str());
+		EX_ATOM& p0 = stack_ex[stack_ex.size() - 2]; EX_ATOM& p1 = stack_ex[stack_ex.size() - 1];
+		g_asm(op_s, p0, p1);
+		if (p0.type > 4) {
+			EX_ATOM _r(7, p0.value);
+			stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
 			return;
-		} else if (n1.type >= 5) {
-			// printf("tick out : %s - %s\n", n0.value, n1.value);
-			stack_ex.pop_back();
-			stack_ex.pop_back();
-			EX_ATOM n3; strcpy(n3.value, n1.value);
-			n3.type = 7;
-			stack_ex.emplace_back(n3);
+		} else if (p1.type > 4) {
+			EX_ATOM _r(7, p1.value);
+			stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
 			return;
 		}
-	}
-	// ----------------
-	if (strcmp(op, "*") == 0) {
-		printf("-*\n");
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		if (n0.type == 1 || n1.type == 1) {
-			n3.type = 1;
-			double n3_d = atof(n0.value) * atof(n1.value);
-			sprintf(n3.value, "%f", n3_d);
-		} else {
-			n3.type = 0;
-			int n3_i = atoi(n0.value) * atoi(n1.value);
-			printf("i*i : %d\n", n3_i);
-			sprintf(n3.value, "%d", n3_i);
+
+		if (support_op[op_s] == 0) {
+			if (p0.type == 0 && p1.type == 0) {
+				EX_ATOM _r(0, std::to_string(atoi(p0.value) * atoi(p1.value)));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type + p1.type == 1) {
+				EX_ATOM _r(1, std::to_string(atof(p0.value) * atof(p1.value)));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [*]!");}
+		} else if (support_op[op_s] == 1) {
+			if (p0.type == 0 && p1.type == 0) {
+				EX_ATOM _r(0, std::to_string(atoi(p0.value) / atoi(p1.value)));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type + p1.type == 1) {
+				EX_ATOM _r(1, std::to_string(atof(p0.value) / atof(p1.value)));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [/]!");}
+		} else if (support_op[op_s] == 2) {
+			if (p0.type == 0 && p1.type == 0) {
+				EX_ATOM _r(0, std::to_string(atoi(p0.value) + atoi(p1.value)));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type + p1.type == 1) {
+				EX_ATOM _r(1, std::to_string(atof(p0.value) + atof(p1.value)));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [+]!");}
+		} else if (support_op[op_s] == 3) {
+			if (p0.type == 0 && p1.type == 0) {
+				EX_ATOM _r(0, std::to_string(atoi(p0.value) - atoi(p1.value)));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type + p1.type == 1) {
+				EX_ATOM _r(1, std::to_string(atof(p0.value) - atof(p1.value)));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [-]!");}
+		} else if (support_op[op_s] == 4) {
+			if (p0.type == 0 && p1.type == 0) {
+				EX_ATOM _r(2, std::to_string(atoi(p0.value) - atoi(p1.value) > 0 ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type + p1.type == 1) {
+				EX_ATOM _r(2, std::to_string(atof(p0.value) - atof(p1.value) > 0 ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [>]!");}
+		} else if (support_op[op_s] == 5) {
+			if (p0.type == 0 && p1.type == 0) {
+				EX_ATOM _r(2, std::to_string(atoi(p0.value) - atoi(p1.value) < 0 ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type + p1.type == 1) {
+				EX_ATOM _r(2, std::to_string(atof(p0.value) - atof(p1.value) < 0 ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [<]!");}
+		} else if (support_op[op_s] == 6) {
+			if (p0.type == 0 && p1.type == 0) {
+				EX_ATOM _r(2, std::to_string(atoi(p0.value) - atoi(p1.value) >= 0 ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type + p1.type == 1) {
+				EX_ATOM _r(2, std::to_string(atof(p0.value) - atof(p1.value) >= 0 ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [>=]!");}
+		} else if (support_op[op_s] == 7) {
+			if (p0.type == 0 && p1.type == 0) {
+				EX_ATOM _r(2, std::to_string(atoi(p0.value) - atoi(p1.value) <= 0 ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type + p1.type == 1) {
+				EX_ATOM _r(2, std::to_string(atof(p0.value) - atof(p1.value) <= 0 ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [<=]!");}
+		} else if (support_op[op_s] == 8) {
+			if ((p0.type == 0 || p0.type == 2) && (p1.type == 0 || p1.type == 2)) {
+				EX_ATOM _r(2, std::to_string(atoi(p0.value) == atoi(p1.value) ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type == 1 && p1.type == 1) {
+				EX_ATOM _r(2, std::to_string(atof(p0.value) == atof(p1.value) ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type == 3 && p1.type == 3) {
+				EX_ATOM _r(2, std::to_string(p0.value[0] == p1.value[0] ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type == 4 && p1.type == 4) {
+				EX_ATOM _r(2, std::to_string(std::string(p0.value) == std::string(p1.value) ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [==]!");}
+		} else if (support_op[op_s] == 9) {
+			if ((p0.type == 0 || p0.type == 2) && (p1.type == 0 || p1.type == 2)) {
+				EX_ATOM _r(2, std::to_string(atoi(p0.value) != atoi(p1.value) ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type == 1 && p1.type == 1) {
+				EX_ATOM _r(2, std::to_string(atof(p0.value) != atof(p1.value) ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type == 3 && p1.type == 3) {
+				EX_ATOM _r(2, std::to_string(p0.value[0] != p1.value[0] ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else if (p0.type == 4 && p1.type == 4) {
+				EX_ATOM _r(2, std::to_string(std::string(p0.value) != std::string(p1.value) ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [!=]!");}
+		} else if (support_op[op_s] == 10) {
+			if (p0.type == 2 && p1.type == 2) {
+				EX_ATOM _r(2, std::to_string(atoi(p0.value) + atoi(p1.value) >= 2 ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [&&]!");}
+		} else if (support_op[op_s] == 11) {
+			if (p0.type == 2 && p1.type == 2) {
+				EX_ATOM _r(2, std::to_string(atoi(p0.value) + atoi(p1.value) > 0 ? 1 : 0));
+				stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
+			} else {yyerror("Unsupported type of [||]!");}
 		}
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, "/") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		if (n0.type == 1) {
-			n3.type = 1;
-			double n3_d = atof(n0.value) / atof(n1.value);
-			sprintf(n3.value, "%f", n3_d);
-		} else {
-			n3.type = 0;
-			int n3_i = atoi(n0.value) / atof(n1.value);
-			sprintf(n3.value, "%d", n3_i);
-		}
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, "+") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		if (n0.type == 1 || n1.type == 1) {
-			n3.type = 1;
-			double n3_d = atof(n0.value) + atof(n1.value);
-			sprintf(n3.value, "%f", n3_d);
-		} else {
-			n3.type = 0;
-			int n3_i = atoi(n0.value) + atoi(n1.value);
-			sprintf(n3.value, "%d", n3_i);
-		}
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, "-") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		if (n0.type == 1 || n1.type == 1) {
-			n3.type = 1;
-			double n3_d = atof(n0.value) - atof(n1.value);
-			sprintf(n3.value, "%f", n3_d);
-		} else {
-			n3.type = 0;
-			int n3_i = atoi(n0.value) - atoi(n1.value);
-			sprintf(n3.value, "%d", n3_i);
-		}
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, ">") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		if (n0.type == 1 || n1.type == 1) {
-			n3.type = 0;
-			int n3_b;
-			if (atof(n0.value) - atof(n1.value) > 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		} else {
-			n3.type = 0;
-			int n3_b;
-			if (atoi(n0.value) - atoi(n1.value) > 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		}
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, "<") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		if (n0.type == 1 || n1.type == 1) {
-			n3.type = 0;
-			int n3_b;
-			if (atof(n0.value) - atof(n1.value) < 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		} else {
-			n3.type = 0;
-			int n3_b;
-			if (atoi(n0.value) - atoi(n1.value) < 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		}
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, ">=") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		if (n0.type == 1 || n1.type == 1) {
-			n3.type = 0;
-			int n3_b;
-			if (atof(n0.value) - atof(n1.value) >= 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		} else {
-			n3.type = 0;
-			int n3_b;
-			if (atoi(n0.value) - atoi(n1.value) >= 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		}
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, "<=") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		if (n0.type == 1 || n1.type == 1) {
-			n3.type = 0;
-			int n3_b;
-			if (atof(n0.value) - atof(n1.value) <= 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		} else {
-			n3.type = 0;
-			int n3_b;
-			if (atoi(n0.value) - atoi(n1.value) <= 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		}
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, "==") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		if (n0.type == 1 || n1.type == 1) {
-			n3.type = 0;
-			int n3_b;
-			if (atof(n0.value) - atof(n1.value) == 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		} else {
-			n3.type = 0;
-			int n3_b;
-			if (atoi(n0.value) - atoi(n1.value) == 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		}
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, "!=") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		if (n0.type == 1 || n1.type == 1) {
-			n3.type = 0;
-			int n3_b;
-			if (atof(n0.value) - atof(n1.value) != 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		} else {
-			n3.type = 0;
-			int n3_b;
-			if (atoi(n0.value) - atoi(n1.value) != 0) n3_b = 1; else n3_b = 0;
-			sprintf(n3.value, "%d", n3_b);
-		}
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, "&&") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		n3.type = 0;
-		int n3_b;
-		if (atoi(n0.value) == 1 && atoi(n1.value) == 1) n3_b = 1; else n3_b = 0;
-		sprintf(n3.value, "%d", n3_b);
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, "||") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 2];
-		EX_ATOM n1 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		n3.type = 0;
-		int n3_b;
-		if (atoi(n0.value) == 1 || atoi(n1.value) == 1) n3_b = 1; else n3_b = 0;
-		sprintf(n3.value, "%d", n3_b);
-		stack_ex.pop_back();
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
-	} else if (strcmp(op, "!") == 0) {
-		EX_ATOM n0 = stack_ex[stack_ex.size() - 1];
-		EX_ATOM n3;
-		n3.type = 0;
-		int n3_b;
-		if (atoi(n0.value) == 1) n3_b = 0; else n3_b = 1;
-		sprintf(n3.value, "%d", n3_b);
-		stack_ex.pop_back();
-		stack_ex.emplace_back(n3);
 	} else {
-		printf("unknown op %s ???\n", op);
-		return;
+		yyerror(std::string("Unsupported operator " + op_s).c_str());
 	}
-	printf(" = %s\n", stack_ex[stack_ex.size() - 1].value);
 }
 void ex_show() {
-	// printf("---begin %d\n", vi_deep);
-	// printf("all: ");
 	for (const auto& stack : stack_ex_m) {
 		printf("stack#%d#%d: ", stack.first, stack.second.stack_ex.size());
 		for (const auto& item : stack.second.stack_ex) {
@@ -396,10 +292,6 @@ void ex_show() {
 		}
 		printf("\n");
 	}
-	// for (const auto& ex_a : stack_ex) {
-	// 	printf("%s | ", ex_a.value);
-	// }
-	// printf("\n");
 	printf("---\n");
 }
 
@@ -410,14 +302,30 @@ void g_add_i(int i, int j) {
 	A("add %rbx,%rax");
 }
 
+void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j) {
+	// std::string op_s(op);
+	// printf("cmd[%s] %s,%s\n", op.c_str(), i.value, j.value);
+	asm_text_s.emplace_back("cmd["+op+"]\t"+std::string(i.value)+","+std::string(j.value));
+}
+
 void g_invoke(const std::string& fun, std::string args[], int size) {
     if (size > 5) {
         printf("Beyond args limitation!\n");
         exit(1);
     }
 	std::string reg_seq[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+	std::string pargs;
 	for (int i = 0; i < size; i++) {
-		A("mov $" + args[i] + ",%" + reg_seq[i]);
+		pargs.append(args[i]).append(",");
+		// A("mov $" + args[i] + ",%" + reg_seq[i]);
 	}
-	A("call "+fun);
+	// A("call "+fun);
+	A("call "+fun+" ("+pargs+")");
+}
+
+void g_print() {
+	printf(".text:\n");
+	for (auto& s : asm_text_s) {
+		printf("\t%s\n", s.c_str());
+	}
 }
