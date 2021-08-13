@@ -16,6 +16,7 @@ struct VI_ATOM {
 struct EX_ATOM {
 	char value[512];
 	int type = -1;
+	char label[512];
 	EX_ATOM();
 	EX_ATOM(int t, char* v);
 	EX_ATOM(int t, const std::string& v);
@@ -37,6 +38,7 @@ std::map<int, VI_ATOM> vis_m;
 std::map<int, EX_DEEP_ATOM> stack_ex_m;
 std::vector<std::string> asm_data_s;
 std::vector<std::string> asm_text_s;
+
 #define A(x) asm_text_s.emplace_back(x)
 
 void printf_empty(const char *__restrict __format, ...) {}
@@ -166,7 +168,8 @@ void ex_calculate(int n, char *op) {
 		if (stack_ex.size() < 2) 
 			yyerror(std::string("Operator [" + op_s + "] needs two parameters! stack rest : " + std::to_string(stack_ex.size())).c_str());
 		EX_ATOM& p0 = stack_ex[stack_ex.size() - 2]; EX_ATOM& p1 = stack_ex[stack_ex.size() - 1];
-		g_asm(op_s, p0, p1);
+		EX_ATOM _r;
+		g_asm(op_s, p0, p1, _r);
 		if (p0.type > 4) {
 			EX_ATOM _r(7, p0.value);
 			stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
@@ -296,17 +299,89 @@ void ex_show() {
 }
 
 /** data generation */
-void g_add_i(int i, int j) {
-	A("mov -"+std::to_string(i)+"(%rbp),%rax");
-	A("mov -"+std::to_string(j)+"(%rbp),%rbx");
-	A("add %rbx,%rax");
+/** write many of validators */
+/** validators' framework */
+#define VA_DEF(x, y, z) int va_##x(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) \
+{if (y) return 1; z; return 0;}
+#define VA_CALL(x) va_##x(op, p0, p1, _r)
+#define G(x) asm_text_s.emplace_back(x)
+#define S(x) std::string(x)
+
+VA_DEF(add_int, op == "+" && p0.type == 0 && p1.type == 0, {
+	G("movl $"+S(p0.value)+",%eax");
+	G("addl $"+S(p1.value)+",%eax");
+	G("movl %eax,$"+S(_r.value));
+})
+
+VA_DEF(add_double_double, op == "+" && p0.type == 1 && p1.type == 1, {
+	// fadd %st(1),%st(0)
+	// fadd value
+	G("flds "+S(p0.label));
+	G("flds "+S(p1.label));
+	G("faddp %st(1),%st(0)");
+	G("fstpl "+S(_r.value));
+})
+
+VA_DEF(add_double_int, op == "+" && p0.type == 1 && p1.type == 0, {
+	// fadd value
+	G("flds "+S(p0.label));
+	G("fadd "+S(p1.label));
+	G("fstpl "+S(_r.value));
+})
+
+VA_DEF(add_int_double, op == "+" && p0.type == 1 && p1.type == 0, {
+	// fadd value
+	G("flds "+S(p1.label));
+	G("fadd "+S(p0.label));
+	G("fstpl $"+S(_r.value));
+})
+
+VA_DEF(sub_int, op == "-" && p0.type == 0 && p1.type == 0, {
+	G("movl $"+S(p0.value)+",%eax");
+	G("subl $"+S(p1.value)+",%eax");
+	G("movl %eax,$"+S(_r.value));
+})
+
+VA_DEF(sub_double, op == "-" && p0.type == 1 && p1.type == 1, {
+	G("flds "+S(p0.label));
+	G("flds "+S(p1.label));
+	G("fsubp %st(1),%st(0)");
+	G("fstpl "+S(_r.value));
+})
+
+VA_DEF(sub_int_double, op == "-" && p0.type == 0 && p1.type == 1, {
+	G("flds "+S(p0.label));
+	G("flds "+S(p1.label));
+	G("fsubp %st(1),%st(0)");
+	G("fstpl "+S(_r.value));
+})
+
+VA_DEF(sub_double_int, op == "-" && p0.type == 1 && p1.type == 0, {
+	G("flds "+S(p0.label));
+	G("fsub "+S(p1.label));
+	G("fstpl "+S(_r.value));
+})
+
+VA_DEF(gt, op == "-" && p0.type == 0 && p1.type == 0, {
+	G("flds "+S(p0.label));
+})
+
+void g_asm(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) {
+	// asm_text_s.emplace_back("cmd["+op+"]\t"+std::string(p0.value)+","+std::string(p1.value));
+	if (!VA_CALL(add_int)) return;
+	if (!VA_CALL(add_double)) return;
+	if (!VA_CALL(add_int_double)) return;
+	if (!VA_CALL(add_double_int)) return;
+
+	if (!VA_CALL(sub_int)) return;
+	if (!VA_CALL(sub_double)) return;
+	if (!VA_CALL(sub_int_double)) return;
+	if (!VA_CALL(sub_double_int)) return;
+
+
 }
 
-void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j) {
-	// std::string op_s(op);
-	// printf("cmd[%s] %s,%s\n", op.c_str(), i.value, j.value);
-	asm_text_s.emplace_back("cmd["+op+"]\t"+std::string(i.value)+","+std::string(j.value));
-}
+
 
 void g_invoke(const std::string& fun, std::string args[], int size) {
     if (size > 5) {

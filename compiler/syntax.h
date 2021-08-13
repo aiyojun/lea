@@ -18,8 +18,7 @@ struct EX_ATOM;
 void ex_push(EX_ATOM ea);
 void ex_push_v(EX_ATOM ea);
 void ex_push_vi(const VI_ATOM& vi);
-void g_add_i(int i, int j);
-void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j);
+void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j, EX_ATOM& _r);
 void g_invoke(const std::string& fun, std::string args[], int size);
 void g_print();
 
