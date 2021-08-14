@@ -17,12 +17,14 @@
 
 %token KW_EOF
 %token COMMENT_SINGLE COMMENT_BEGIN COMMENT_END
-%token KW_BYTE
-%token KW_CHAR
-%token KW_STRING
-%token KW_INT
-%token KW_DOUBLE
-%token KW_BOOL
+
+%token <ycText> KW_BYTE
+%token <ycText> KW_CHAR
+%token <ycText> KW_STRING
+%token <ycText> KW_INT
+%token <ycText> KW_DOUBLE
+%token <ycText> KW_BOOL
+
 %token <ycText> KW_TRUE
 %token <ycText> KW_FALSE
 %token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE KW__ KW_CLASS KW_STRUCT
@@ -30,7 +32,7 @@
 %token <ycText> KW_RETURN
 %token AND OR NOT EQ NE GT GE LT LE
 %token ARROW ASSIGN LPAREN RPAREN DOT COMMA SEMI NEWLINE BLOCK_BEGIN BLOCK_END
-%token <ycText> COLON
+%token COLON
 %token <ycValueDouble> DOUBLE
 %token <ycValueInt> INTEGER
 %token <ycText> FIELD
@@ -38,6 +40,8 @@
 %token <ycText> STRING
 %token OP_ADD OP_SUB OP_MUL OP_DIV OP_MOD
 
+// %type <ycText> statementV2
+%type <ycText> basicTypeX0
 %type <ycText> variableName
 %type <ycText> leaVar
 %type <ycText> booBas
@@ -46,21 +50,44 @@
 
 %%
 
-root: statement;
+root: statementV2;
 
-statement:
-  KW_EOF {leaprintf("Grammar parsed success.\n"); exit(0);}
-| ending statement
-| commentDefine statement
-| variableDefine statement
-| variableAssign statement
-| invokeDefine statement
-| functionDefine statement
-| stateIfDefine statement
-| stateForDefine statement
-| stateMatchDefine statement
-| codeBlockDefine  statement
+statementV2: statementV2 real | real;
+
+real:
+  KW_EOF {print_symbols(); leaprintf("Grammar parsed success.\n"); exit(0);}
+| ending
+| commentDefine
+| FIELD {bs_variable_name($1);} variableMany;
+| functionDefine
+| stateIfDefine
+| stateForDefine
+| codeBlockDefine
 ;
+
+variableMany:
+  COLON basicTypeX0 {bs_variable_type(1);bs_variable_record();}
+| COLON basicTypeX0 ASSIGN leaVal {bs_variable_type(2);bs_variable_record();}
+| ASSIGN leaVal {bs_variable_type(3);bs_variable_type_judge();bs_variable_record();}
+| LPAREN invokeArgsList
+| KW_MATCH stateMatchBlock
+;
+
+// statement:
+//   KW_EOF {print_symbols(); leaprintf("Grammar parsed success.\n"); exit(0);}
+// | ending statement
+// | commentDefine statement
+// | FIELD COLON basicTypeX0
+// | FIELD COLON basicTypeX0 ASSIGN leaVal
+// | variableDefine statement
+// | variableAssign statement
+// | invokeDefine statement
+// | functionDefine statement
+// | stateIfDefine statement
+// | stateForDefine statement
+// | stateMatchDefine statement
+// | codeBlockDefine  statement
+// ;
 
 
 baseInput: COMMENT_SINGLE|KW_BYTE|KW_CHAR|KW_STRING|KW_INT|KW_DOUBLE|KW_BOOL|
@@ -75,27 +102,35 @@ OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD;
 // --------------------------------------------
 commentDefine: sc | mc;
 sc: COMMENT_SINGLE singleComment;
-mc: COMMENT_BEGIN multiComment;
-singleComment: baseInput singleComment | NEWLINE;
-multiComment: baseInput2 multiComment | COMMENT_END;
+mc: COMMENT_BEGIN multiComment COMMENT_END;
+singleComment: singleComment baseInput | baseInput;
+multiComment: multiComment baseInput2 | baseInput2;
 baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
 
 // --------------------------------------------
 // define variable
 // --------------------------------------------
-variableDefine: variableName COLON basicType;
+// variableDefine: variableName COLON basicTypeX0 {bs_variable_record();};
 variableAssign:
-  variableName COLON basicType ASSIGN leaVal
-| variableName ASSIGN leaVal
+  variableName COLON basicTypeX0 ASSIGN leaVal {bs_variable_record();}
+| variableName ASSIGN leaVal {bs_variable_type_judge();bs_variable_record();}
 ;
-variableName: FIELD;
+variableName: FIELD {$$ = $1;};
+basicTypeX0: 
+  KW_BYTE    {$$ = $1;bs_variable_type_sign("byte");}
+| KW_CHAR    {$$ = $1;bs_variable_type_sign("char");}
+| KW_INT     {$$ = $1;bs_variable_type_sign("int");}
+| KW_BOOL    {$$ = $1;bs_variable_type_sign("bool");}
+| KW_DOUBLE  {$$ = $1;bs_variable_type_sign("double");}
+| KW_STRING  {$$ = $1;bs_variable_type_sign("string");}
+;
 // --------------------------------------------
 
 // --------------------------------------------
 // define function
 // --------------------------------------------
-functionDefine: KW_DEF FIELD functionOptions;
+functionDefine: KW_DEF FIELD {scope_enter($2);} functionOptions {scope_exit();};
 functionOptions:
   functionBody
 | COLON returnType functionBody
@@ -159,19 +194,29 @@ stateCaseTail: codeBlockDefine | leaVal ending;
 // --------------------------------------------
 // define code block
 // --------------------------------------------
-codeBlockDefine: BLOCK_BEGIN codeBlockLoop;
-codeBlockLoop:
-  ending codeBlockLoop
-| variableDefine codeBlockLoop
-| variableAssign codeBlockLoop
-| invokeDefine codeBlockLoop
-| commentDefine codeBlockLoop
-| stateIfDefine codeBlockLoop
-| stateForDefine codeBlockLoop
-| stateMatchDefine statement
-| codeBlockDefine codeBlockLoop
-| BLOCK_END
+codeBlockDefine: BLOCK_BEGIN codeBlockLoop BLOCK_END;
+codeBlockLoop: codeBlockLoop realV2 | realV2;
+realV2: 
+  ending
+| commentDefine
+| FIELD {bs_variable_name($1);} variableMany;
+| stateIfDefine
+| stateForDefine
+| codeBlockDefine
 ;
+// codeBlockDefine: BLOCK_BEGIN codeBlockLoop;
+// codeBlockLoop:
+//   ending codeBlockLoop
+// | variableDefine codeBlockLoop
+// | variableAssign codeBlockLoop
+// | invokeDefine codeBlockLoop
+// | commentDefine codeBlockLoop
+// | stateIfDefine codeBlockLoop
+// | stateForDefine codeBlockLoop
+// | stateMatchDefine statement
+// | codeBlockDefine codeBlockLoop
+// | BLOCK_END
+// ;
 // --------------------------------------------
 
 
@@ -181,11 +226,16 @@ codeBlockLoop:
 // represent variable/function-invoking
 leaVai:
   leaVar {vi_end_var();}
-| leaVar LPAREN {} leaInv;
+| leaVar LPAREN leaInv;
 leaVar: FIELD {vi_register($1);};
-leaInv: RPAREN {vi_end_inv();} | leaInvOptions;
+leaInv:
+  RPAREN {vi_end_inv();}
+| leaInvOptions;
 leaInvOptions: booExp leaInvLoop;
-leaInvLoop: COMMA {vi_args();} leaInvOptions | RPAREN {vi_args();vi_end_inv();};
+leaInvLoop:
+  COMMA leaInvOptions {vi_args();}
+| RPAREN {vi_args();vi_end_inv();}
+;
 // --------------------------------------------
 
 // --------------------------------------------

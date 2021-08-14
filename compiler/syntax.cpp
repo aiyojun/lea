@@ -5,6 +5,9 @@
 #include <string>
 #include <map>
 
+template<typename T, typename _> bool contains(std::map<T, _> map, T key) {return map.find(key) != map.end();}
+
+/** type define */
 struct VI_ATOM {
 	int deep = 0;
 	int type = -1;
@@ -14,8 +17,8 @@ struct VI_ATOM {
 };
 
 struct EX_ATOM {
-	char value[512];
 	int type = -1;
+	char value[512];
 	char label[512];
 	EX_ATOM();
 	EX_ATOM(int t, char* v);
@@ -31,6 +34,33 @@ public:
 	std::vector<EX_ATOM> stack_ex;
 };
 
+struct SYMBOL {
+	bool hasValue = false;
+	int appType = 0;               // 1->variable 2->function
+	std::string name;              // variable name/function name
+	std::string value;             // value of string
+	std::vector<std::string> sign; // variable->type function->ret_type,args_0_type,args_1_type...
+	SYMBOL();
+	SYMBOL(const std::string& n, const std::string& var_type);
+	SYMBOL(const std::string& n, const std::string& var_type, const std::string& v);
+	SYMBOL(const std::string& n, const std::vector<std::string>& sign);
+	void clear();
+};
+SYMBOL::SYMBOL() {}
+SYMBOL::SYMBOL(const std::string& n, const std::string& var_type) {
+	this->appType = 1; this->name = n; this->sign.emplace_back(var_type); this->hasValue = false;
+}
+SYMBOL::SYMBOL(const std::string& n, const std::string& var_type, const std::string& v) {
+	this->appType = 1; this->name = n; this->sign.emplace_back(var_type); this->value = v; this->hasValue = true;
+}
+SYMBOL::SYMBOL(const std::string& n, const std::vector<std::string>& sign) {
+	this->appType = 2; this->name = n; this->sign = sign;
+}
+void SYMBOL::clear() {
+	this->hasValue = false; this->appType = 0; this->name = ""; this->value = ""; this->sign.clear();
+}
+// -------------------------------------------------------------------------------------------
+
 /** place for variable definition */
 int lealine = 1;
 int vi_deep = 0;
@@ -38,11 +68,106 @@ std::map<int, VI_ATOM> vis_m;
 std::map<int, EX_DEEP_ATOM> stack_ex_m;
 std::vector<std::string> asm_data_s;
 std::vector<std::string> asm_text_s;
+std::vector<std::string> scope_stack{"global"};
+// map-map: scope -> (variable_name/function_name, symbol);
+std::map<std::string, std::map<std::string, SYMBOL>> defines_of_scope;
 
 #define A(x) asm_text_s.emplace_back(x)
 
 void printf_empty(const char *__restrict __format, ...) {}
 
+std::string record_scope() {
+	std::string record;
+	for (int i = 0; i < scope_stack.size(); i++) {
+		if (i == scope_stack.size() - 1) {
+			record.append(scope_stack[i]);
+		} else {
+			record.append(scope_stack[i]).append(".");
+		}
+	}
+	return std::move(record);
+}
+/** scope control */
+void scope_enter(char *scope) {
+	scope_stack.emplace_back(std::string(scope));
+}
+
+void scope_exit() {
+	if (scope_stack.back() == "global") 
+		yyerror("Scope pop error!");
+	scope_stack.pop_back();
+}
+/** symbol collect */
+void var_def_end() {
+	// SYMBOL symbol();
+}
+
+void var_ass_end() {
+
+}
+
+/** variable generation process */
+SYMBOL building;
+
+void bs_variable_name(char *name) {
+	building.name = std::string(name);
+	printf(">> building.name : %s\n", building.name.c_str());
+}
+
+void bs_variable_type_sign(char *type) {
+	// building.appType = app_type;
+	building.sign.emplace_back(std::string(type)); 
+}
+
+void bs_variable_type(int app_type) {
+	building.appType = app_type;
+	// building.sign.emplace_back(std::string(type)); 
+}
+
+void bs_variable_type_judge() {
+	// TODO: do judge
+}
+
+void bs_variable_value() {
+	// TODO: take data from stack;
+	//       the last data of stack.
+	//       then -> do judge data type.
+	bs_variable_type_judge();
+}
+
+void bs_variable_record() {
+	// TODO: record and clear <building>
+	std::string scope_sign = record_scope();
+	if (contains(defines_of_scope, scope_sign)) {
+		if (contains(defines_of_scope[scope_sign], building.name)) {
+			yyerror(("Symbol "+building.name+" already exists.").c_str());
+		} else {
+			defines_of_scope[scope_sign][building.name] = building;
+			building.clear();
+		}
+	} else {
+		printf("++record : %s ; scope : %s\n", building.name.c_str(), scope_sign.c_str());
+		defines_of_scope[scope_sign] = std::map<std::string, SYMBOL>();
+		defines_of_scope[scope_sign][building.name] = building;
+		building.clear();
+	}
+}
+
+void print_symbols() {
+	printf("** symbol **\n");
+	printf("%-15s%-15s\n", "name", "scene");
+	std::map<int, std::string> scenes{
+		{1, "declare"}, {2, "declare & assign"}, {3, "assign"}, {4, "variable use"}, {5, "function invoke"},
+	};
+	for (const auto& scope_kv : defines_of_scope) {
+		printf("[scope] %s\n", scope_kv.first.c_str());
+		for (const auto& symbol_kv : scope_kv.second) {
+			printf("%-15s%-20s\n", symbol_kv.first.c_str(), scenes[symbol_kv.second.appType].c_str());
+		}
+	}
+}
+
+/** variable invoking */
 void vi_register(char* name) {
 	vi_deep++;
 	VI_ATOM vi_a;
@@ -54,6 +179,7 @@ void vi_args() {
 	vis_m[vi_deep].args++;
 }
 void vi_end_var() {
+	// SYMBOL symbol(2, std::string(vis_m[vi_deep].name), );
 	vis_m[vi_deep].type = 5;
 	vi_deep--;
 	ex_push_vi(vis_m[vi_deep+1]);
@@ -65,7 +191,7 @@ void vi_end_inv() {
 	ex_push_vi(vis_m[vi_deep+1]);
 }
 
-// 0->int 1->double 2->bool 3->char 4->string 5->variable 6->function invoke 7->asm label
+// -1->byte 0->int 1->double 2->bool 3->char 4->string 5->variable 6->function invoke 7->asm label
 void ex_close() {ex_show();g_print();}
 void ex_push(EX_ATOM ea) {
 	int vi_deep_p = vi_deep == -1 ? 0 : vi_deep;
@@ -126,20 +252,9 @@ void ex_invoke(int n, char *fun) {
 	std::string args[n];
 	for (int i = 0; i < n; i++) {
 		args[i] = std::string(stack_ex.back().value);
-		// printf("xx-xx-01 back : %s\n", stack_ex.back().value);
 		stack_ex.pop_back();
 	}
 	g_invoke(std::string(fun), args, n);
-	// printf("%d ++ x: ", stack_ex.size());
-	// for (auto& s : stack_ex) {
-		// printf("-> %s", s.value);
-	// }
-	// printf("\n");
-	// printf("xx-xx-02 back : %s; %d\n", stack_ex.back().value, (vi_deep <= -1 ? 0 : vi_deep));
-	// EX_ATOM ea;
-	// strcpy(ea.value, fun);
-	// ea.type = 7;
-	// stack_ex.emplace_back(ea);
 }
 void ex_calculate(int n, char *op) {
 	std::vector<EX_ATOM>& stack_ex = stack_ex_m[vi_deep <= -1 ? 0 : vi_deep].stack_ex;
@@ -288,14 +403,14 @@ void ex_calculate(int n, char *op) {
 	}
 }
 void ex_show() {
-	for (const auto& stack : stack_ex_m) {
-		printf("stack#%d#%d: ", stack.first, stack.second.stack_ex.size());
-		for (const auto& item : stack.second.stack_ex) {
-			printf("%s | ", item.value);
-		}
-		printf("\n");
-	}
-	printf("---\n");
+	// for (const auto& stack : stack_ex_m) {
+	// 	printf("stack#%d#%d: ", stack.first, stack.second.stack_ex.size());
+	// 	for (const auto& item : stack.second.stack_ex) {
+	// 		printf("%s | ", item.value);
+	// 	}
+	// 	printf("\n");
+	// }
+	// printf("---\n");
 }
 
 /** data generation */
@@ -305,6 +420,7 @@ void ex_show() {
 {if (y) return 1; z; return 0;}
 #define VA_CALL(x) va_##x(op, p0, p1, _r)
 #define G(x) asm_text_s.emplace_back(x)
+#define D(x) asm_data_s.emplace_back(x)
 #define S(x) std::string(x)
 
 VA_DEF(add_int, op == "+" && p0.type == 0 && p1.type == 0, {
@@ -313,7 +429,7 @@ VA_DEF(add_int, op == "+" && p0.type == 0 && p1.type == 0, {
 	G("movl %eax,$"+S(_r.value));
 })
 
-VA_DEF(add_double_double, op == "+" && p0.type == 1 && p1.type == 1, {
+VA_DEF(add_double, op == "+" && p0.type == 1 && p1.type == 1, {
 	// fadd %st(1),%st(0)
 	// fadd value
 	G("flds "+S(p0.label));
@@ -366,6 +482,11 @@ VA_DEF(gt, op == "-" && p0.type == 0 && p1.type == 0, {
 	G("flds "+S(p0.label));
 })
 
+void g_data_def(const std::string& label, const std::string& asm_type, const std::string& value) {
+	D(label+":");
+	D(asm_type+" "+value);
+}
+
 void g_asm(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) {
 	// asm_text_s.emplace_back("cmd["+op+"]\t"+std::string(p0.value)+","+std::string(p1.value));
 	if (!VA_CALL(add_int)) return;
@@ -377,7 +498,6 @@ void g_asm(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) {
 	if (!VA_CALL(sub_double)) return;
 	if (!VA_CALL(sub_int_double)) return;
 	if (!VA_CALL(sub_double_int)) return;
-
 
 }
 
@@ -399,8 +519,9 @@ void g_invoke(const std::string& fun, std::string args[], int size) {
 }
 
 void g_print() {
-	printf(".text:\n");
-	for (auto& s : asm_text_s) {
-		printf("\t%s\n", s.c_str());
-	}
+	// printf(".text:\n");
+	// for (auto& s : asm_text_s) {
+	// 	printf("\t%s\n", s.c_str());
+	// }
 }
+

@@ -86,18 +86,22 @@ extern YYSTYPE yylval;
                         }
 "byte"                  {
                             _p_lex("[lex] >> : %s\n", yytext);
+                            yylval.ycText = yytext;
                             return KW_BYTE;
                         }
 "char"                  {
                             _p_lex("[lex] >> : %s\n", yytext);
+                            yylval.ycText = yytext;
                             return KW_CHAR;
                         }
 "int"                   {
                             _p_lex("[lex] >> : %s\n", yytext);
+                            yylval.ycText = yytext;
                             return KW_INT;
                         }
 "bool"                  {
                             _p_lex("[lex] >> : %s\n", yytext);
+                            yylval.ycText = yytext;
                             return KW_BOOL;
                         }
 "true"                  {
@@ -114,11 +118,13 @@ extern YYSTYPE yylval;
                         }
 "double"                {
                             _p_lex("[lex] >> : %s\n", yytext);
+                            yylval.ycText = yytext;
                             return KW_DOUBLE;
                         }
 "string"                {
                             _p_lex("[lex] >> : %s\n", yytext);
                             _p_lex("[lex] KW_STRING : %s\n", yytext);
+                            yylval.ycText = yytext;
                             return KW_STRING;
                         }
 "&&"                    {
