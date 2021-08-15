@@ -1,5 +1,6 @@
 # lea
 
+<img src="LEA.png" width="48">
 A utility programming language.
 
 'lea' means 'learn'! I just want to write light-weight programming language to help me complete some simple tasks!
