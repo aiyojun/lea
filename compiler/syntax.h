@@ -20,9 +20,9 @@ void ex_push_v(EX_ATOM ea);
 void ex_push_vi(const VI_ATOM& vi);
 
 /** assemble instruction generation */
-typedef cstring=const std::string&;
+typedef const std::string& cstring;
 void as_globl_variable(EX_ATOM var, cstring name, cstring type, cstring value);
-void as_globl_function(EX_ATOM fun, cstring name);
+void as_globl_function(cstring name);
 void as_variable(EX_ATOM var, cstring name, cstring type, cstring value);
 void as_invoke();
 // void g_data_def(const std::string& label, const std::string& asm_type, const std::string& value);
@@ -88,5 +88,8 @@ __export_c void invoke();
 __export_c void invoke_close();
 __export_c void invoke_move();
 __export_c void invoke_args_push();
+
+__export_c void check_main();
+__export_c void declare_function();
 
 #endif//__syntax_h__

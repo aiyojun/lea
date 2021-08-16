@@ -81,7 +81,7 @@ std::vector<EX_ATOM> invoking_args;
     int stack_p = 0;
     int stack_bp = 0;
     int stack_sp = 0;
-    int rodata_double_allocate = 0;
+    int rodata_allocate = 0;
     std::string scope;
     std::vector<std::string> g_text;
     std::vector<std::string> g_data;
@@ -89,24 +89,26 @@ std::vector<EX_ATOM> invoking_args;
     std::vector<std::string> g_main;
 
 #define G(x) g_text.emplace_back(x)
-#define GA(x, n) g_text.emplace_back(a_align({x}, n))
+// #define GA(n, x...) g_text.emplace_back(a_align(std::string{x}, n))
 #define D(x) g_data.emplace_back(x)
-#define DA(x, n) g_data.emplace_back(a_align({x}, n))
+// #define DA(n, x...) g_data.emplace_back(a_align(std::string{x}, n))
 #define RD(x) g_rodata.emplace_back(x)
-#define RDA(x, n) g_rodata.emplace_back(a_align({x}, n))
+// #define RDA(n, x...) g_rodata.emplace_back(a_align(std::string{x}, n))
 #define M(x) g_main.emplace_back(x)
-#define MA(x, n) g_main.emplace_back(a_align({x}, n))
+// #define MA(n, x...) g_main.emplace_back(a_align(std::string{x}, n))
 
 void as_globl_variable(EX_ATOM var, cstring name, cstring type, cstring value) {
     // g_data, g_text
-    GA(".globl", name, 2);
+    G("  .globl "+name);
     D(name+":");
-    DA("."+type, value, 2);
+    D("."+type+ " "+value);
 }
-void as_globl_function(EX_ATOM fun, cstring name) {
+void as_globl_function(cstring name) {
     // g_text
-    GA(".globl", name, 2);
+    G("  .globl "+ name);
     G(name+":");
+    G("  pushq  %rbp");
+    G("  movq   %rsp, %rbp");
 
     stack_p  = 0;
     stack_bp = 0;
@@ -118,7 +120,7 @@ void as_variable(EX_ATOM var, cstring name, cstring type, cstring value) {
         stack_p += 4;
         std::string mem = "-"+std::to_string(stack_p)+"(%rbp)";
         strcpy(var.label, mem.c_str());
-        GA("movl", "$"+value, ","+mem, 3);
+        G("  movl  $"+value+","+mem);
     } else if (type == "byte") {
         // stack_p += 1;
         // var.label = "-"+std::to_string(stack_p)+"(%rbp)";
@@ -126,19 +128,19 @@ void as_variable(EX_ATOM var, cstring name, cstring type, cstring value) {
         stack_p += 1;
         std::string mem = "-"+std::to_string(stack_p)+"(%rbp)";
         strcpy(var.label, mem.c_str());
-        GA("movl", "$"+std::to_string((int) value[0]), ", "+mem, 3);
+        G("  movl   $"+std::to_string((int) value[0])+", "+mem);
         stack_p += 3; // align
     } else if (type == "double") {
-        int index = ++rodata_double_allocate;
+        int index = ++rodata_allocate;
         stack_p += 8;
-        GA("movsd", ".LC"+std::to_string(index), ", %xmm0", 3);
+        G("  movsd  .LC"+std::to_string(index)+", %xmm0");
         std::string mem = ", -"+std::to_string(stack_p)+"(%rbp)";
         strcpy(var.label, mem.c_str());
-        GA("movsd", "%xmm0", mem, 3);
-        /*movsd .LC0(%rip), %xmm0
-        movsd   %xmm0, -8(%rbp)*/
+        G("  movsd  %xmm0 "+mem);
+        /*  movsd .LC0(%rip), %xmm0
+          movsd   %xmm0, -8(%rbp)*/
         RD(".LC"+std::to_string(index)+":");
-        RDA(".double", value, 2);
+        RD(".double "+value);
     } else if (type == "string") {
         int len = value.length();
 
@@ -151,25 +153,65 @@ void as_variable(EX_ATOM var, cstring name, cstring type, cstring value) {
 void as_invoke() {
     // g_text
     // invoking invoking_args
-    std::string reg_seq[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    int com_i = 0; std::string com_reg_seq[] = {"di", "si", "dx", "cx", "r8", "r9"};
+    int dbl_i = 0; std::string dbl_reg_seq[] = {"xmm0", "xmm1", "xmm2", "xmm3"};
     for (int i = 0; i < invoking_args.size(); i++) {
-        int index = i;//invoking_args.size() - i - 1;
-        int type = invoking_args[index].type;
+        int type = invoking_args[i].type;
+        std::string val = std::string(invoking_args[i].value);
         if (type == 0) {
-            GA("movl", "$"+std::string(invoking_args[index].value), ", "+reg_seq[i], 3);
+            if (com_i < 2) {
+                G("  movl   $"+val+", e"+com_reg_seq[com_i++]);
+            } else if (com_i < 4) {
+                G("  movl   $"+val+", e"+com_reg_seq[com_i++]);
+            } else if (com_i < 6) {
+                G("  movl   $"+val+", "+com_reg_seq[com_i++]+"d");
+            } else {
+                
+            }
         } else if (type == 1) {
-            as_variable(invoking_args[index], "", "long", );
-            /*  movsd   .LC1(%rip), %xmm0
-    movl    $2, %edi
-    call    func02*/
-            GA("movsd", ".");
-            // RDA();
+            int ii = ++rodata_allocate;
+            G("  movsd  " ".LC"+std::to_string(ii)+ ", %xmm"+std::to_string(dbl_i++));
+            RD(".LC"+std::to_string(ii)+":");
+            RD("  .double "+val);
+        } else if (type == 2) { // bool
+            val = atoi(invoking_args[i].value) == 0 ? '0' : '1';
+            if (com_i < 2) {
+                G("  movl   $"+val+", e"+com_reg_seq[com_i++]);
+            } else if (com_i < 4) {
+                G("  movl   $"+val+", e"+com_reg_seq[com_i++]);
+            } else if (com_i < 6) {
+                G("  movl   $"+val+", "+com_reg_seq[com_i++]+"d");
+            } else {
+
+            }
+        } else if (type == 3) { // char
+            val = std::to_string((int) invoking_args[i].value[0]);
+            if (com_i < 2) {
+                G("  movl   $"+val+", e"+com_reg_seq[com_i++]);
+            } else if (com_i < 4) {
+                G("  movl   $"+val+", e"+com_reg_seq[com_i++]);
+            } else if (com_i < 6) {
+                G("  movl   $"+val+", "+com_reg_seq[com_i++]+"d");
+            } else {
+
+            }
+            com_i++;
+        } else if (type == 4) { // string
+            int ii = ++rodata_allocate;
+            if (com_i < 4) {
+                G("  leaq   .LC"+std::to_string(ii)+", r"+com_reg_seq[com_i++]);
+            } else {
+                G("  leaq   .LC"+std::to_string(ii)+", r"+com_reg_seq[com_i++]);
+            }
+            RD(".LC"+std::to_string(ii)+":");
+            RD("  .string "+val);
         }
     }
+    G("  call   "+invoking.name);
 //     std::string pargs;
 //     for (int i = 0; i < size; i++) {
 //         pargs.append(args[i]).append(",");
-//         // A("mov $" + args[i] + ",%" + reg_seq[i]);
+//         // A("  mov $" + args[i] + ",%" + reg_seq[i]);
 //     }
 }
 
@@ -223,8 +265,14 @@ void bs_function_arg_type(char* type) {
 
 void bs_function_name(char* name) {
     building_function.name = std::string(name);
-    
+    // as_globl_function(building_function.name);
 }
+
+
+void declare_function() {
+    as_globl_function(scope_stack.back());
+}
+
 
 void bs_variable_name(char *name) {
     building.name = std::string(name);
@@ -284,11 +332,13 @@ void invoke_args_push() {
 void invoke() {
     const SYMBOL& function = defines_of_scope["global"][invoking.name];
     // TODO: compare return type and args' type
-    printf("invoke : %s = ", function.typeSign.c_str());
-    for (const auto& s_atom : invoking_args) {
-        printf("%s |", s_atom.value);
-    }
-    printf("\n");
+    // printf("invoke : %s = ", function.typeSign.c_str());
+    // for (const auto& s_atom : invoking_args) {
+    //     printf("%s |", s_atom.value);
+    // }
+    // printf("\n");
+    // as_globl_function(invoking.name);
+    as_invoke();
 }
 
 void invoke_close() {
@@ -354,6 +404,7 @@ void print_symbols() {
             );
         }
     }
+    g_print();
 }
 
 /** variable invoking */
@@ -381,7 +432,7 @@ void vi_end_inv() {
 }
 
 // -1->byte 0->int 1->double 2->bool 3->char 4->string 5->variable 6->function invoke 7->asm label
-void ex_close() {ex_show();g_print();ex_clear();}
+void ex_close() {ex_show();ex_clear();}
 void ex_clear() {
     vis_m.clear();stack_ex_m.clear();
 }
@@ -420,14 +471,14 @@ void ex_push_d(double d) {
 void ex_push_s(char* s) {
     EX_ATOM ex_a;
     strcpy(ex_a.value, s);
-    ex_a.type = 1;
+    ex_a.type = 4;
     ex_push(ex_a);
     ex_show();
 }
 void ex_push_c(char c) {
     EX_ATOM ex_a;
     sprintf(ex_a.value, "%c", c);
-    ex_a.type = 1;
+    ex_a.type = 3;
     ex_push(ex_a);
     ex_show();
 }
@@ -616,9 +667,9 @@ void ex_show() {
 // #define S(x) std::string(x)
 
 // VA_DEF(add_int, op == "+" && p0.type == 0 && p1.type == 0, {
-//     G("movl $"+S(p0.value)+",%eax");
+//     G("  movl $"+S(p0.value)+",%eax");
 //     G("addl $"+S(p1.value)+",%eax");
-//     G("movl %eax,$"+S(_r.value));
+//     G("  movl %eax,$"+S(_r.value));
 // })
 
 // VA_DEF(add_double, op == "+" && p0.type == 1 && p1.type == 1, {
@@ -645,9 +696,9 @@ void ex_show() {
 // })
 
 // VA_DEF(sub_int, op == "-" && p0.type == 0 && p1.type == 0, {
-//     G("movl $"+S(p0.value)+",%eax");
+//     G("  movl $"+S(p0.value)+",%eax");
 //     G("subl $"+S(p1.value)+",%eax");
-//     G("movl %eax,$"+S(_r.value));
+//     G("  movl %eax,$"+S(_r.value));
 // })
 
 // VA_DEF(sub_double, op == "-" && p0.type == 1 && p1.type == 1, {
@@ -704,16 +755,41 @@ void ex_show() {
 //     std::string pargs;
 //     for (int i = 0; i < size; i++) {
 //         pargs.append(args[i]).append(",");
-//         // A("mov $" + args[i] + ",%" + reg_seq[i]);
+//         // A("  mov $" + args[i] + ",%" + reg_seq[i]);
 //     }
 //     // A("call "+fun);
 //     A("call "+fun+" ("+pargs+")");
 // }
 
 void g_print() {
-    // printf(".text:\n");
-    // for (auto& s : asm_text_s) {
-    //     printf("\t%s\n", s.c_str());
-    // }
+    printf("\n\n** assemble **\n");
+    printf("  .data:\n");
+    /*    std::vector<std::string> g_text;
+    std::vector<std::string> g_data;
+    std::vector<std::string> g_rodata;
+    std::vector<std::string> g_main;*/
+    for (auto& s : g_data) {
+        printf("%s\n", s.c_str());
+    }
+    printf("  .text:\n");
+    for (auto& s : g_text) {
+        printf("%s\n", s.c_str());
+    }
+    printf("  .globl main\n");
+    printf("main:\n");
+    for (auto& s : g_main) {
+        printf("%s\n", s.c_str());
+    }
+    printf("  .section  .rodata:\n");
+    for (auto& s : g_rodata) {
+        printf("%s\n", s.c_str());
+    }
 }
 
+void check_main() {
+    if (!contains<std::string>(defines_of_scope["global"], "main")) {
+        yyerror("Undefine (main) function.");
+    } /*else if (defines_of_scope["global"]["main"].appType == 5) {
+
+    }*/
+}
