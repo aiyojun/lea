@@ -1,11 +1,22 @@
 #include "syntax.h"
 #include <stdio.h>
 #include <string.h>
+#include <iostream>
+#include <fstream>
 #include <vector>
 #include <string>
 #include <map>
 
 template<typename T, typename _> bool contains(std::map<T, _> map, T key) {return map.find(key) != map.end();}
+
+class FileWriter {
+public:
+    void open(std::string s) {fd.open(s);};
+    void write(std::string s) {fd << s;};
+    void close() {fd.close();};
+private:
+    std::ofstream fd;
+};
 
 /** type define */
 struct VI_ATOM {
@@ -62,6 +73,7 @@ void SYMBOL::clear() {
 }
 // -------------------------------------------------------------------------------------------
 
+std::string outputFile;
 /** place for variable definition */
 int lealine = 1;
 int vi_deep = 0;
@@ -199,9 +211,9 @@ void as_invoke() {
         } else if (type == 4) { // string
             int ii = ++rodata_allocate;
             if (com_i < 4) {
-                G("  leaq   .LC"+std::to_string(ii)+", r"+com_reg_seq[com_i++]);
+                G("  leaq   .LC"+std::to_string(ii)+", %r"+com_reg_seq[com_i++]);
             } else {
-                G("  leaq   .LC"+std::to_string(ii)+", r"+com_reg_seq[com_i++]);
+                G("  leaq   .LC"+std::to_string(ii)+", %r"+com_reg_seq[com_i++]);
             }
             RD(".LC"+std::to_string(ii)+":");
             RD("  .string "+val);
@@ -271,6 +283,15 @@ void bs_function_name(char* name) {
 
 void declare_function() {
     as_globl_function(scope_stack.back());
+}
+
+void return_function() {
+    if (building_function.typeSign == "void") {
+        G("popq   %rbp");
+        G("  ret");
+    } else if (building_function.typeSign == "int") {
+
+    }
 }
 
 
@@ -404,7 +425,7 @@ void print_symbols() {
             );
         }
     }
-    g_print();
+    // g_print();
 }
 
 /** variable invoking */
@@ -761,29 +782,38 @@ void ex_show() {
 //     A("call "+fun+" ("+pargs+")");
 // }
 
-void g_print() {
+std::string g_print() {
+    std::string _r;
     printf("\n\n** assemble **\n");
-    printf("  .data:\n");
+    printf("  .data\n");
+    _r += "  .data\n";
     /*    std::vector<std::string> g_text;
     std::vector<std::string> g_data;
     std::vector<std::string> g_rodata;
     std::vector<std::string> g_main;*/
     for (auto& s : g_data) {
+        _r += s + "\n";
         printf("%s\n", s.c_str());
     }
-    printf("  .text:\n");
+    printf("  .text\n");
+    _r += "  .text\n";
     for (auto& s : g_text) {
+        _r += s + "\n";
         printf("%s\n", s.c_str());
     }
-    printf("  .globl main\n");
-    printf("main:\n");
+    // printf("  .globl main\n");
+    // printf("main:\n");
     for (auto& s : g_main) {
+        _r += s + "\n";
         printf("%s\n", s.c_str());
     }
-    printf("  .section  .rodata:\n");
+    printf("  .section  .rodata\n");
+    _r += "  .section  .rodata\n";
     for (auto& s : g_rodata) {
+        _r += s + "\n";
         printf("%s\n", s.c_str());
     }
+    return std::move(_r);
 }
 
 void check_main() {
@@ -792,4 +822,13 @@ void check_main() {
     } /*else if (defines_of_scope["global"]["main"].appType == 5) {
 
     }*/
+}
+
+void write_file() {
+    if (outputFile != "") {   
+        FileWriter fp;
+        fp.open(outputFile);
+        fp.write(g_print());
+        fp.close();
+    }
 }

@@ -98,7 +98,7 @@ DOUBLE|INTEGER|FIELD|CHAR|STRING|
 OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD;
 
 real:
-  KW_EOF {print_symbols(); check_main(); leaprintf("Grammar parsed success.\n"); exit(0);}
+  KW_EOF {print_symbols(); check_main(); leaprintf("Grammar parsed success.\n"); write_file(); exit(0);}
 | ending
 | commentDefine
 | FIELD {bs_variable_name($1);} variableMany {ex_close();}
@@ -167,7 +167,7 @@ functionArgs:
 argDefine: FIELD COLON paramType;
 functionBody: 
   ARROW {declare_function();} leaVal
-| BLOCK_BEGIN {declare_function();} codeBlockLoop BLOCK_END;
+| BLOCK_BEGIN {declare_function();} codeBlockLoop BLOCK_END {return_function();};
 
 paramType:
   KW_BYTE   {bs_function_arg_type("byte");}

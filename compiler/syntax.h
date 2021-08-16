@@ -15,6 +15,8 @@ struct EX_ATOM;
 
 #include <string>
 
+extern std::string outputFile;
+
 void ex_push(EX_ATOM ea);
 void ex_push_v(EX_ATOM ea);
 void ex_push_vi(const VI_ATOM& vi);
@@ -28,7 +30,7 @@ void as_invoke();
 // void g_data_def(const std::string& label, const std::string& asm_type, const std::string& value);
 // void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j, EX_ATOM& _r);
 // void g_invoke(const std::string& fun, std::string args[], int size);
-void g_print();
+std::string g_print();
 
 #else
 #  define __export_c
@@ -91,5 +93,7 @@ __export_c void invoke_args_push();
 
 __export_c void check_main();
 __export_c void declare_function();
+__export_c void return_function();
+__export_c void write_file();
 
 #endif//__syntax_h__

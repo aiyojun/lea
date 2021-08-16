@@ -1,3 +1,5 @@
-def main {
+def printf: void;
+
+def main: void {
     printf("Hello lea!\n")
 }

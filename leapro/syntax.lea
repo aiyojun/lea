@@ -24,4 +24,8 @@ def task_2(x: int, y: int): void {
 	task_4(12, 13, "haha");
 }
 
+def printf: void
 
+def main: void {
+	printf("Hello lea!")
+}

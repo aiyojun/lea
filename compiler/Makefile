@@ -35,3 +35,10 @@ clean:
 
 run:
 	$(LEA) ../leapro/syntax.lea
+
+main:
+	@$(LEA) ../leapro/main.lea $(build_dir)/main.lea.asm >/dev/null
+	$(ASM) -o $(build_dir)/main.lea.o $(build_dir)/main.lea.asm
+	$(CXX) -o ../leapro/main.lea.run $(build_dir)/main.lea.o -lc -no-pie
+
+# 	$(LEA) ../leapro/main.lea ../leapro/main.lea.as
