@@ -5,7 +5,7 @@
 
 void yyerror(const char* s)
 {
-    printf("Grammar error : %s\n", s);
+    printf("\033[31;1mGrammar error : %s\033[0m\n", s);
     exit(1);
 }
 

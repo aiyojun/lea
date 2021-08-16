@@ -84,6 +84,11 @@ extern YYSTYPE yylval;
                             _p_lex("[lex] >> : %s\n", yytext);
                             return ASSIGN;
                         }
+"void"                  {
+                            _p_lex("[lex] >> : %s\n", yytext);
+                            yylval.ycText = yytext;
+                            return KW_VOID;
+                        }
 "byte"                  {
                             _p_lex("[lex] >> : %s\n", yytext);
                             yylval.ycText = yytext;

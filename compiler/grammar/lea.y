@@ -16,8 +16,11 @@
 }
 
 %token KW_EOF
-%token COMMENT_SINGLE COMMENT_BEGIN COMMENT_END
+%token COMMENT_SINGLE
+%token COMMENT_BEGIN
+%token COMMENT_END
 
+%token <ycText> KW_VOID
 %token <ycText> KW_BYTE
 %token <ycText> KW_CHAR
 %token <ycText> KW_STRING
@@ -25,22 +28,55 @@
 %token <ycText> KW_DOUBLE
 %token <ycText> KW_BOOL
 
-%token <ycText> KW_TRUE
-%token <ycText> KW_FALSE
-%token KW_IF KW_ELSE KW_FOR KW_WHILE KW_MATCH KW_CASE KW__ KW_CLASS KW_STRUCT
+%token KW_IF
+%token KW_ELSE
+%token KW_FOR
+%token KW_WHILE
+%token KW_MATCH
+%token KW_CASE
+%token KW__
+%token KW_CLASS
+%token KW_STRUCT
 %token <ycText> KW_DEF
 %token <ycText> KW_RETURN
-%token AND OR NOT EQ NE GT GE LT LE
-%token ARROW ASSIGN LPAREN RPAREN DOT COMMA SEMI NEWLINE BLOCK_BEGIN BLOCK_END
-%token COLON
-%token <ycValueDouble> DOUBLE
-%token <ycValueInt> INTEGER
-%token <ycText> FIELD
-%token <ycValueChar> CHAR
-%token <ycText> STRING
-%token OP_ADD OP_SUB OP_MUL OP_DIV OP_MOD
 
-// %type <ycText> statementV2
+%token EQ
+%token NE
+%token GT
+%token GE
+%token LT
+%token LE
+%token OR
+%token AND
+%token NOT
+%token <ycText> KW_TRUE
+%token <ycText> KW_FALSE
+
+%token ARROW
+%token ASSIGN
+%token LPAREN
+%token RPAREN
+%token DOT
+%token COMMA
+%token COLON
+%token SEMI
+%token NEWLINE
+%token BLOCK_BEGIN
+%token BLOCK_END
+
+%token <ycText> FIELD
+%token <ycText> STRING
+%token <ycValueChar> CHAR
+%token <ycValueInt> INTEGER
+%token <ycValueDouble> DOUBLE
+
+%token OP_ADD
+%token OP_SUB
+%token OP_MUL
+%token OP_DIV
+%token OP_MOD
+
+// %type <ycText> statement
 %type <ycText> basicTypeX0
 %type <ycText> variableName
 %type <ycText> leaVar
@@ -50,52 +86,34 @@
 
 %%
 
-root: statementV2;
+root: statement;
 
-statementV2: statementV2 real | real;
+statement: statement real | real;
+
+baseInput: COMMENT_SINGLE|KW_VOID|KW_BYTE|KW_CHAR|KW_STRING|KW_INT|KW_DOUBLE|KW_BOOL|
+KW_TRUE|KW_FALSE|KW_IF|KW_ELSE|KW_FOR|KW_WHILE|KW_MATCH|KW_CASE|KW_DEF|KW__|KW_STRUCT|KW_CLASS|KW_RETURN|
+AND|OR|NOT|EQ|NE|GT|GE|LT|LE|
+ARROW|ASSIGN|LPAREN|RPAREN|DOT|COMMA|SEMI|COLON|BLOCK_BEGIN|BLOCK_END|
+DOUBLE|INTEGER|FIELD|CHAR|STRING|
+OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD;
 
 real:
   KW_EOF {print_symbols(); leaprintf("Grammar parsed success.\n"); exit(0);}
 | ending
 | commentDefine
-| FIELD {bs_variable_name($1);} variableMany;
-| functionDefine
+| FIELD {bs_variable_name($1);} variableMany {ex_close();}
+| functionDefineV2
 | stateIfDefine
 | stateForDefine
-| codeBlockDefine
+| codeBlockDefine {ex_close();}
 ;
 
 variableMany:
   COLON basicTypeX0 {bs_variable_type(1);bs_variable_record();}
 | COLON basicTypeX0 ASSIGN leaVal {bs_variable_type(2);bs_variable_record();}
 | ASSIGN leaVal {bs_variable_type(3);bs_variable_type_judge();bs_variable_record();}
-| LPAREN invokeArgsList
 | KW_MATCH stateMatchBlock
 ;
-
-// statement:
-//   KW_EOF {print_symbols(); leaprintf("Grammar parsed success.\n"); exit(0);}
-// | ending statement
-// | commentDefine statement
-// | FIELD COLON basicTypeX0
-// | FIELD COLON basicTypeX0 ASSIGN leaVal
-// | variableDefine statement
-// | variableAssign statement
-// | invokeDefine statement
-// | functionDefine statement
-// | stateIfDefine statement
-// | stateForDefine statement
-// | stateMatchDefine statement
-// | codeBlockDefine  statement
-// ;
-
-
-baseInput: COMMENT_SINGLE|KW_BYTE|KW_CHAR|KW_STRING|KW_INT|KW_DOUBLE|KW_BOOL|
-KW_TRUE|KW_FALSE|KW_IF|KW_ELSE|KW_FOR|KW_WHILE|KW_MATCH|KW_CASE|KW_DEF|KW__|KW_STRUCT|KW_CLASS|KW_RETURN|
-AND|OR|NOT|EQ|NE|GT|GE|LT|LE|
-ARROW|ASSIGN|LPAREN|RPAREN|DOT|COMMA|SEMI|COLON|BLOCK_BEGIN|BLOCK_END|
-DOUBLE|INTEGER|FIELD|CHAR|STRING|
-OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD;
 
 // --------------------------------------------
 // define comment
@@ -111,7 +129,6 @@ baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
 // define variable
 // --------------------------------------------
-// variableDefine: variableName COLON basicTypeX0 {bs_variable_record();};
 variableAssign:
   variableName COLON basicTypeX0 ASSIGN leaVal {bs_variable_record();}
 | variableName ASSIGN leaVal {bs_variable_type_judge();bs_variable_record();}
@@ -130,27 +147,55 @@ basicTypeX0:
 // --------------------------------------------
 // define function
 // --------------------------------------------
-functionDefine: KW_DEF FIELD {scope_enter($2);} functionOptions {scope_exit();};
-functionOptions:
-  functionBody
-| COLON returnType functionBody
-| lparen argsList functionBody
-| lparen argsList COLON returnType functionBody
+functionDefineV2: KW_DEF FIELD {bs_function_name($2);scope_enter($2);} functionMany {scope_exit();bs_function_record();};
+functionMany:
+  returnDefine
+| LPAREN functionArgsApp returnDefine
 ;
-lparen: LPAREN;
-argsList: RPAREN | FIELD COLON basicType argsLoop;
-argsLoop: COMMA FIELD COLON basicType argsList | RPAREN;
-returnType: basicType;
+returnDefine:
+  COLON returnType {bs_function_type(6);}
+| COLON returnType functionBody {bs_function_type(5);}
+;
+functionArgsApp:
+  RPAREN
+| functionArgs RPAREN
+;
+functionArgs: 
+  functionArgs COMMA argDefine
+| argDefine
+;
+argDefine: FIELD COLON paramType;
 functionBody: ARROW leaVal | codeBlockDefine;
+
+paramType:
+  KW_BYTE   {bs_function_arg_type("byte");}
+| KW_CHAR   {bs_function_arg_type("char");}
+| KW_INT    {bs_function_arg_type("int");}
+| KW_BOOL   {bs_function_arg_type("bool");}
+| KW_DOUBLE {bs_function_arg_type("double");}
+| KW_STRING {bs_function_arg_type("string");}
+| KW_VOID   {bs_function_arg_type("void");}
+;
+
+returnType:
+  KW_BYTE   {bs_function_return_type("byte");}
+| KW_CHAR   {bs_function_return_type("char");}
+| KW_INT    {bs_function_return_type("int");}
+| KW_BOOL   {bs_function_return_type("bool");}
+| KW_DOUBLE {bs_function_return_type("double");}
+| KW_STRING {bs_function_return_type("string");}
+| KW_VOID   {bs_function_return_type("void");}
+;
+
 // --------------------------------------------
 
 // --------------------------------------------
 // define function invoke
 // --------------------------------------------
-invokeDefine: functionName LPAREN invokeArgsList;
-invokeArgsList: invokeArgsLoop | leaVal invokeArgsLoop;
-invokeArgsLoop: COMMA leaVal invokeArgsList | RPAREN;
-functionName: FIELD;
+// invokeDefine: functionName LPAREN invokeArgsList;
+// invokeArgsList: invokeArgsLoop | leaVal invokeArgsLoop;
+// invokeArgsLoop: COMMA leaVal invokeArgsList | RPAREN;
+// functionName: FIELD;
 // --------------------------------------------
 
 // --------------------------------------------
@@ -199,24 +244,26 @@ codeBlockLoop: codeBlockLoop realV2 | realV2;
 realV2: 
   ending
 | commentDefine
-| FIELD {bs_variable_name($1);} variableMany;
+| FIELD {bs_variable_name($1);} variableManyV2 {ex_close();}
 | stateIfDefine
 | stateForDefine
-| codeBlockDefine
+| codeBlockDefine {ex_close();}
 ;
-// codeBlockDefine: BLOCK_BEGIN codeBlockLoop;
-// codeBlockLoop:
-//   ending codeBlockLoop
-// | variableDefine codeBlockLoop
-// | variableAssign codeBlockLoop
-// | invokeDefine codeBlockLoop
-// | commentDefine codeBlockLoop
-// | stateIfDefine codeBlockLoop
-// | stateForDefine codeBlockLoop
-// | stateMatchDefine statement
-// | codeBlockDefine codeBlockLoop
-// | BLOCK_END
-// ;
+variableManyV2:
+  COLON basicTypeX0 {bs_variable_type(1);bs_variable_record();}
+| COLON basicTypeX0 ASSIGN leaVal {bs_variable_type(2);bs_variable_record();}
+| ASSIGN leaVal {bs_variable_type(3);bs_variable_type_judge();bs_variable_assign();}
+| LPAREN {invoke_move();} invokeArgsDefine {invoke();invoke_close();}
+| KW_MATCH stateMatchBlock
+;
+invokeArgsDefine:
+  RPAREN
+| invokeArgsLoop RPAREN
+;
+invokeArgsLoop:
+  invokeArgsLoop COMMA leaVal {invoke_args_push();}
+| leaVal {invoke_args_push();}
+;
 // --------------------------------------------
 
 
@@ -241,7 +288,7 @@ leaInvLoop:
 // --------------------------------------------
 // define bool expression
 // --------------------------------------------
-leaVal: booExp {ex_close();};
+leaVal: booExp;
 booExp:
   booExpNot
 | booExp AND booExpNot {ex_calculate(2, "&&");}

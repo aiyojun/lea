@@ -15,7 +15,7 @@ struct VI_ATOM {
     char name[512];
     /* record execute info */
 };
-
+// -1->byte 0->int 1->double 2->bool 3->char 4->string 5->variable 6->function invoke 7->asm label
 struct EX_ATOM {
     int type = -1;
     char value[512];
@@ -39,6 +39,7 @@ struct SYMBOL {
     int appType = 0;               // 1->variable 2->function
     std::string name;              // variable name/function name
     std::string value;             // value of string
+    std::string typeSign;          // return type
     std::vector<std::string> sign; // variable->type function->ret_type,args_0_type,args_1_type...
     SYMBOL();
     SYMBOL(const std::string& n, const std::string& var_type);
@@ -66,13 +67,113 @@ int lealine = 1;
 int vi_deep = 0;
 std::map<int, VI_ATOM> vis_m;
 std::map<int, EX_DEEP_ATOM> stack_ex_m;
-std::vector<std::string> asm_data_s;
-std::vector<std::string> asm_text_s;
+// std::vector<std::string> asm_data_s;
+// std::vector<std::string> asm_text_s;
 std::vector<std::string> scope_stack{"global"};
 // map-map: scope -> (variable_name/function_name, symbol);
 std::map<std::string, std::map<std::string, SYMBOL>> defines_of_scope;
 
-#define A(x) asm_text_s.emplace_back(x)
+SYMBOL building;
+SYMBOL building_function;
+SYMBOL invoking;
+std::vector<EX_ATOM> invoking_args;
+
+    int stack_p = 0;
+    int stack_bp = 0;
+    int stack_sp = 0;
+    int rodata_double_allocate = 0;
+    std::string scope;
+    std::vector<std::string> g_text;
+    std::vector<std::string> g_data;
+    std::vector<std::string> g_rodata;
+    std::vector<std::string> g_main;
+
+#define G(x) g_text.emplace_back(x)
+#define GA(x, n) g_text.emplace_back(a_align({x}, n))
+#define D(x) g_data.emplace_back(x)
+#define DA(x, n) g_data.emplace_back(a_align({x}, n))
+#define RD(x) g_rodata.emplace_back(x)
+#define RDA(x, n) g_rodata.emplace_back(a_align({x}, n))
+#define M(x) g_main.emplace_back(x)
+#define MA(x, n) g_main.emplace_back(a_align({x}, n))
+
+void as_globl_variable(EX_ATOM var, cstring name, cstring type, cstring value) {
+    // g_data, g_text
+    GA(".globl", name, 2);
+    D(name+":");
+    DA("."+type, value, 2);
+}
+void as_globl_function(EX_ATOM fun, cstring name) {
+    // g_text
+    GA(".globl", name, 2);
+    G(name+":");
+
+    stack_p  = 0;
+    stack_bp = 0;
+    stack_sp = 0;
+}
+void as_variable(EX_ATOM var, cstring name, cstring type, cstring value) {
+    // g_text
+    if (type == "int") {
+        stack_p += 4;
+        std::string mem = "-"+std::to_string(stack_p)+"(%rbp)";
+        strcpy(var.label, mem.c_str());
+        GA("movl", "$"+value, ","+mem, 3);
+    } else if (type == "byte") {
+        // stack_p += 1;
+        // var.label = "-"+std::to_string(stack_p)+"(%rbp)";
+    } else if (type == "char") {
+        stack_p += 1;
+        std::string mem = "-"+std::to_string(stack_p)+"(%rbp)";
+        strcpy(var.label, mem.c_str());
+        GA("movl", "$"+std::to_string((int) value[0]), ", "+mem, 3);
+        stack_p += 3; // align
+    } else if (type == "double") {
+        int index = ++rodata_double_allocate;
+        stack_p += 8;
+        GA("movsd", ".LC"+std::to_string(index), ", %xmm0", 3);
+        std::string mem = ", -"+std::to_string(stack_p)+"(%rbp)";
+        strcpy(var.label, mem.c_str());
+        GA("movsd", "%xmm0", mem, 3);
+        /*movsd .LC0(%rip), %xmm0
+        movsd   %xmm0, -8(%rbp)*/
+        RD(".LC"+std::to_string(index)+":");
+        RDA(".double", value, 2);
+    } else if (type == "string") {
+        int len = value.length();
+
+    } else if (type == "bool") {
+        // stack_p += 1;
+
+    }
+
+}
+void as_invoke() {
+    // g_text
+    // invoking invoking_args
+    std::string reg_seq[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+    for (int i = 0; i < invoking_args.size(); i++) {
+        int index = i;//invoking_args.size() - i - 1;
+        int type = invoking_args[index].type;
+        if (type == 0) {
+            GA("movl", "$"+std::string(invoking_args[index].value), ", "+reg_seq[i], 3);
+        } else if (type == 1) {
+            as_variable(invoking_args[index], "", "long", );
+            /*  movsd   .LC1(%rip), %xmm0
+    movl    $2, %edi
+    call    func02*/
+            GA("movsd", ".");
+            // RDA();
+        }
+    }
+//     std::string pargs;
+//     for (int i = 0; i < size; i++) {
+//         pargs.append(args[i]).append(",");
+//         // A("mov $" + args[i] + ",%" + reg_seq[i]);
+//     }
+}
+
+// #define A(x) asm_text_s.emplace_back(x)
 
 void printf_empty(const char *__restrict __format, ...) {}
 
@@ -107,7 +208,23 @@ void var_ass_end() {
 }
 
 /** variable generation process */
-SYMBOL building;
+
+void bs_function_return_type(char* name) {
+    building_function.typeSign = std::string(name);
+}
+
+void bs_function_type(int type) {
+    building_function.appType = type;
+}
+
+void bs_function_arg_type(char* type) {
+    building_function.sign.emplace_back(std::string(type));
+}
+
+void bs_function_name(char* name) {
+    building_function.name = std::string(name);
+    
+}
 
 void bs_variable_name(char *name) {
     building.name = std::string(name);
@@ -135,12 +252,18 @@ void bs_variable_value() {
     bs_variable_type_judge();
 }
 
+void bs_variable_assign() {
+    // assign
+    // printf(">> assign\n");
+    building.clear();
+}
+
 void bs_variable_record() {
     // TODO: record and clear <building>
     std::string scope_sign = record_scope();
     if (contains(defines_of_scope, scope_sign)) {
         if (contains(defines_of_scope[scope_sign], building.name)) {
-            yyerror(("Symbol "+building.name+" already exists.").c_str());
+            yyerror(("Variable ("+building.name+") already exists.").c_str());
         } else {
             defines_of_scope[scope_sign][building.name] = building;
             building.clear();
@@ -153,17 +276,82 @@ void bs_variable_record() {
     }
 }
 
+void invoke_args_push() {
+    std::vector<EX_ATOM>& stack_ex = stack_ex_m[vi_deep <= -1 ? 0 : vi_deep].stack_ex;
+    invoking_args.emplace_back(stack_ex.back());
+}
+
+void invoke() {
+    const SYMBOL& function = defines_of_scope["global"][invoking.name];
+    // TODO: compare return type and args' type
+    printf("invoke : %s = ", function.typeSign.c_str());
+    for (const auto& s_atom : invoking_args) {
+        printf("%s |", s_atom.value);
+    }
+    printf("\n");
+}
+
+void invoke_close() {
+    invoking.clear();
+    invoking_args.clear();
+}
+
+void invoke_move() {
+    invoking.name = building.name;
+    building.clear();
+    if (!contains(defines_of_scope["global"], invoking.name)) {
+        print_symbols();
+        yyerror(("Undefined function ("+invoking.name+")!").c_str());
+    }
+    int appType = defines_of_scope["global"][invoking.name].appType;
+    if (appType != 5 && appType != 6) {
+        print_symbols();
+        yyerror(("Variable ("+invoking.name+") already exists!").c_str());
+    }
+}
+
+void bs_function_record() {
+    // TODO: record and clear <building_function>
+    std::string scope_sign = record_scope();
+    // std::string functionName = scope_stack.back();
+    if (contains(defines_of_scope, scope_sign)) {
+        if (contains(defines_of_scope[scope_sign], building_function.name)) {
+            yyerror(("Function "+building_function.name+" already exists.").c_str());
+        } else {
+            defines_of_scope[scope_sign][building_function.name] = building_function;
+            building_function.clear();
+        }
+    } else {
+        // printf("++record : %s ; scope : %s\n", building.name.c_str(), scope_sign.c_str());
+        defines_of_scope[scope_sign] = std::map<std::string, SYMBOL>();
+        defines_of_scope[scope_sign][building_function.name] = building_function;
+        building_function.clear();
+    }
+}
+
 void print_symbols() {
     printf("** symbol **\n");
-    printf("\033[32;1m%-15s%-15s\033[0m\n", "Name", "Scene");
-    printf("\033[32;1m%-15s%-15s\033[0m\n", "----", "-----");
+    printf("\033[32;1m%-15s%-20s%-15s\033[0m\n", "Name", "Scene", "sign");
+    printf("\033[32;1m%-15s%-20s%-15s\033[0m\n", "----", "-----", "----");
     std::map<int, std::string> scenes{
-        {1, "declare"}, {2, "declare & assign"}, {3, "assign"}, {4, "variable use"}, {5, "function invoke"},
+        {1, "declare"}, {2, "declare & assign"}, {3, "assign"}, {4, "variable use"},
+        {5, "function define"}, {6, "function declare"}, {7, "function invoke"}
     };
     for (const auto& scope_kv : defines_of_scope) {
         printf("[scope] %s\n", scope_kv.first.c_str());
         for (const auto& symbol_kv : scope_kv.second) {
-            printf("%-15s%-20s\n", symbol_kv.first.c_str(), scenes[symbol_kv.second.appType].c_str());
+            std::string signs = symbol_kv.second.typeSign;
+            if (symbol_kv.second.appType == 5 || symbol_kv.second.appType == 6) {
+                signs.append(": ");
+                for (const auto& si : symbol_kv.second.sign) {
+                    signs.append(si).append(" ");
+                }
+            }
+            printf("%-15s%-20s%-15s\n", 
+                symbol_kv.first.c_str(), 
+                scenes[symbol_kv.second.appType].c_str(),
+                signs.c_str()// symbol_kv.second.typeSign.c_str()
+            );
         }
     }
 }
@@ -193,7 +381,10 @@ void vi_end_inv() {
 }
 
 // -1->byte 0->int 1->double 2->bool 3->char 4->string 5->variable 6->function invoke 7->asm label
-void ex_close() {ex_show();g_print();}
+void ex_close() {ex_show();g_print();ex_clear();}
+void ex_clear() {
+    vis_m.clear();stack_ex_m.clear();
+}
 void ex_push(EX_ATOM ea) {
     int vi_deep_p = vi_deep == -1 ? 0 : vi_deep;
     if (stack_ex_m.end() == stack_ex_m.find(vi_deep_p)) {
@@ -255,7 +446,7 @@ void ex_invoke(int n, char *fun) {
         args[i] = std::string(stack_ex.back().value);
         stack_ex.pop_back();
     }
-    g_invoke(std::string(fun), args, n);
+    // g_invoke(std::string(fun), args, n);
 }
 void ex_calculate(int n, char *op) {
     std::vector<EX_ATOM>& stack_ex = stack_ex_m[vi_deep <= -1 ? 0 : vi_deep].stack_ex;
@@ -285,7 +476,7 @@ void ex_calculate(int n, char *op) {
             yyerror(std::string("Operator [" + op_s + "] needs two parameters! stack rest : " + std::to_string(stack_ex.size())).c_str());
         EX_ATOM& p0 = stack_ex[stack_ex.size() - 2]; EX_ATOM& p1 = stack_ex[stack_ex.size() - 1];
         EX_ATOM _r;
-        g_asm(op_s, p0, p1, _r);
+        // g_asm(op_s, p0, p1, _r);
         if (p0.type > 4) {
             EX_ATOM _r(7, p0.value);
             stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
@@ -417,107 +608,107 @@ void ex_show() {
 /** data generation */
 /** write many of validators */
 /** validators' framework */
-#define VA_DEF(x, y, z) int va_##x(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) \
-{if (y) return 1; z; return 0;}
-#define VA_CALL(x) va_##x(op, p0, p1, _r)
-#define G(x) asm_text_s.emplace_back(x)
-#define D(x) asm_data_s.emplace_back(x)
-#define S(x) std::string(x)
+// #define VA_DEF(x, y, z) int va_##x(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) \
+// {if (y) return 1; z; return 0;}
+// #define VA_CALL(x) va_##x(op, p0, p1, _r)
+// #define G(x) asm_text_s.emplace_back(x)
+// #define D(x) asm_data_s.emplace_back(x)
+// #define S(x) std::string(x)
 
-VA_DEF(add_int, op == "+" && p0.type == 0 && p1.type == 0, {
-    G("movl $"+S(p0.value)+",%eax");
-    G("addl $"+S(p1.value)+",%eax");
-    G("movl %eax,$"+S(_r.value));
-})
+// VA_DEF(add_int, op == "+" && p0.type == 0 && p1.type == 0, {
+//     G("movl $"+S(p0.value)+",%eax");
+//     G("addl $"+S(p1.value)+",%eax");
+//     G("movl %eax,$"+S(_r.value));
+// })
 
-VA_DEF(add_double, op == "+" && p0.type == 1 && p1.type == 1, {
-    // fadd %st(1),%st(0)
-    // fadd value
-    G("flds "+S(p0.label));
-    G("flds "+S(p1.label));
-    G("faddp %st(1),%st(0)");
-    G("fstpl "+S(_r.value));
-})
+// VA_DEF(add_double, op == "+" && p0.type == 1 && p1.type == 1, {
+//     // fadd %st(1),%st(0)
+//     // fadd value
+//     G("flds "+S(p0.label));
+//     G("flds "+S(p1.label));
+//     G("faddp %st(1),%st(0)");
+//     G("fstpl "+S(_r.value));
+// })
 
-VA_DEF(add_double_int, op == "+" && p0.type == 1 && p1.type == 0, {
-    // fadd value
-    G("flds "+S(p0.label));
-    G("fadd "+S(p1.label));
-    G("fstpl "+S(_r.value));
-})
+// VA_DEF(add_double_int, op == "+" && p0.type == 1 && p1.type == 0, {
+//     // fadd value
+//     G("flds "+S(p0.label));
+//     G("fadd "+S(p1.label));
+//     G("fstpl "+S(_r.value));
+// })
 
-VA_DEF(add_int_double, op == "+" && p0.type == 1 && p1.type == 0, {
-    // fadd value
-    G("flds "+S(p1.label));
-    G("fadd "+S(p0.label));
-    G("fstpl $"+S(_r.value));
-})
+// VA_DEF(add_int_double, op == "+" && p0.type == 1 && p1.type == 0, {
+//     // fadd value
+//     G("flds "+S(p1.label));
+//     G("fadd "+S(p0.label));
+//     G("fstpl $"+S(_r.value));
+// })
 
-VA_DEF(sub_int, op == "-" && p0.type == 0 && p1.type == 0, {
-    G("movl $"+S(p0.value)+",%eax");
-    G("subl $"+S(p1.value)+",%eax");
-    G("movl %eax,$"+S(_r.value));
-})
+// VA_DEF(sub_int, op == "-" && p0.type == 0 && p1.type == 0, {
+//     G("movl $"+S(p0.value)+",%eax");
+//     G("subl $"+S(p1.value)+",%eax");
+//     G("movl %eax,$"+S(_r.value));
+// })
 
-VA_DEF(sub_double, op == "-" && p0.type == 1 && p1.type == 1, {
-    G("flds "+S(p0.label));
-    G("flds "+S(p1.label));
-    G("fsubp %st(1),%st(0)");
-    G("fstpl "+S(_r.value));
-})
+// VA_DEF(sub_double, op == "-" && p0.type == 1 && p1.type == 1, {
+//     G("flds "+S(p0.label));
+//     G("flds "+S(p1.label));
+//     G("fsubp %st(1),%st(0)");
+//     G("fstpl "+S(_r.value));
+// })
 
-VA_DEF(sub_int_double, op == "-" && p0.type == 0 && p1.type == 1, {
-    G("flds "+S(p0.label));
-    G("flds "+S(p1.label));
-    G("fsubp %st(1),%st(0)");
-    G("fstpl "+S(_r.value));
-})
+// VA_DEF(sub_int_double, op == "-" && p0.type == 0 && p1.type == 1, {
+//     G("flds "+S(p0.label));
+//     G("flds "+S(p1.label));
+//     G("fsubp %st(1),%st(0)");
+//     G("fstpl "+S(_r.value));
+// })
 
-VA_DEF(sub_double_int, op == "-" && p0.type == 1 && p1.type == 0, {
-    G("flds "+S(p0.label));
-    G("fsub "+S(p1.label));
-    G("fstpl "+S(_r.value));
-})
+// VA_DEF(sub_double_int, op == "-" && p0.type == 1 && p1.type == 0, {
+//     G("flds "+S(p0.label));
+//     G("fsub "+S(p1.label));
+//     G("fstpl "+S(_r.value));
+// })
 
-VA_DEF(gt, op == "-" && p0.type == 0 && p1.type == 0, {
-    G("flds "+S(p0.label));
-})
-
-void g_data_def(const std::string& label, const std::string& asm_type, const std::string& value) {
-    D(label+":");
-    D(asm_type+" "+value);
-}
-
-void g_asm(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) {
+// VA_DEF(gt, op == "-" && p0.type == 0 && p1.type == 0, {
+//     G("flds "+S(p0.label));
+// })
+// 
+// void g_data_def(const std::string& label, const std::string& asm_type, const std::string& value) {
+//     D(label+":");
+//     D(asm_type+" "+value);
+// }
+// 
+// void g_asm(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) {
     // asm_text_s.emplace_back("cmd["+op+"]\t"+std::string(p0.value)+","+std::string(p1.value));
-    if (!VA_CALL(add_int)) return;
-    if (!VA_CALL(add_double)) return;
-    if (!VA_CALL(add_int_double)) return;
-    if (!VA_CALL(add_double_int)) return;
+//     if (!VA_CALL(add_int)) return;
+//     if (!VA_CALL(add_double)) return;
+//     if (!VA_CALL(add_int_double)) return;
+//     if (!VA_CALL(add_double_int)) return;
 
-    if (!VA_CALL(sub_int)) return;
-    if (!VA_CALL(sub_double)) return;
-    if (!VA_CALL(sub_int_double)) return;
-    if (!VA_CALL(sub_double_int)) return;
+//     if (!VA_CALL(sub_int)) return;
+//     if (!VA_CALL(sub_double)) return;
+//     if (!VA_CALL(sub_int_double)) return;
+//     if (!VA_CALL(sub_double_int)) return;
 
-}
+// }
 
 
 
-void g_invoke(const std::string& fun, std::string args[], int size) {
-    if (size > 5) {
-        printf("Beyond args limitation!\n");
-        exit(1);
-    }
-    std::string reg_seq[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
-    std::string pargs;
-    for (int i = 0; i < size; i++) {
-        pargs.append(args[i]).append(",");
-        // A("mov $" + args[i] + ",%" + reg_seq[i]);
-    }
-    // A("call "+fun);
-    A("call "+fun+" ("+pargs+")");
-}
+// void g_invoke(const std::string& fun, std::string args[], int size) {
+//     if (size > 5) {
+//         printf("Beyond args limitation!\n");
+//         exit(1);
+//     }
+//     std::string reg_seq[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+//     std::string pargs;
+//     for (int i = 0; i < size; i++) {
+//         pargs.append(args[i]).append(",");
+//         // A("mov $" + args[i] + ",%" + reg_seq[i]);
+//     }
+//     // A("call "+fun);
+//     A("call "+fun+" ("+pargs+")");
+// }
 
 void g_print() {
     // printf(".text:\n");

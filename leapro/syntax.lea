@@ -3,14 +3,25 @@
 // p2 = t0(12, t1("aaa", t2()), t3())
 // p3 = 1 + 2 + 4
 // p4 = true && (aa == -12) && true && true
-p5 = (43 < 24) || (p0 <= pp0( p1, 12 + 32 + 43, "haha"  ))
+// p5 = (43 < 24) || (p0 <= pp0( p1, 12 + 32 + 43, "haha"  ))
+
 p2: int = 12
 
 p4 : int
 
-def task_01 -> 12
+def task_1: int -> 12
+def task_3: void;
 
-def task_2 {
+def task_4(x: int, y : int, s: string): void;
+
+def task_2(x: int, y: int): void {
 	p3: int = 10
 	p4: string = "10"
+
+	p3 = 12;
+
+	task_3();
+	task_4(12, 13, "haha");
 }
+
+

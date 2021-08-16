@@ -20,9 +20,14 @@ void ex_push_v(EX_ATOM ea);
 void ex_push_vi(const VI_ATOM& vi);
 
 /** assemble instruction generation */
-void g_data_def(const std::string& label, const std::string& asm_type, const std::string& value);
-void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j, EX_ATOM& _r);
-void g_invoke(const std::string& fun, std::string args[], int size);
+typedef cstring=const std::string&;
+void as_globl_variable(EX_ATOM var, cstring name, cstring type, cstring value);
+void as_globl_function(EX_ATOM fun, cstring name);
+void as_variable(EX_ATOM var, cstring name, cstring type, cstring value);
+void as_invoke();
+// void g_data_def(const std::string& label, const std::string& asm_type, const std::string& value);
+// void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j, EX_ATOM& _r);
+// void g_invoke(const std::string& fun, std::string args[], int size);
 void g_print();
 
 #else
@@ -50,6 +55,7 @@ __export_c void vi_args();
 __export_c void vi_end_var();
 __export_c void vi_end_inv();
 // ex: expression
+__export_c void ex_clear();
 __export_c void ex_close();
 __export_c void ex_push_i(int i);
 __export_c void ex_push_d(double d);
@@ -64,12 +70,23 @@ __export_c void scope_exit();
 __export_c void var_def_end();
 __export_c void var_ass_end();
 // bs: build symbol
+__export_c void bs_function_name(char* name);
+__export_c void bs_function_type(int type);
+__export_c void bs_function_arg_type(char* type);
+__export_c void bs_function_return_type(char* name);
+__export_c void bs_function_record();
 __export_c void bs_variable_name(char *name);
 __export_c void bs_variable_type(int type);
 __export_c void bs_variable_type_sign(char *type);
 __export_c void bs_variable_type_judge();
 __export_c void bs_variable_value();
+__export_c void bs_variable_assign();
 __export_c void bs_variable_record();
 __export_c void print_symbols();
+
+__export_c void invoke();
+__export_c void invoke_close();
+__export_c void invoke_move();
+__export_c void invoke_args_push();
 
 #endif//__syntax_h__
