@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "walker.h"
+#include "syntax.h"
 %}
 
 %union {
@@ -97,7 +97,13 @@ DOUBLE|INTEGER|FIELD|CHAR|STRING|
 OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD;
 
 real:
-  KW_EOF {print_symbols(); check_main(); leaprintf("Grammar parsed success.\n"); write_file(); exit(0);}
+  KW_EOF {
+    print_symbols();
+    check_main();
+    leaprintf("Grammar parsed success.\n");
+    write_file();
+    exit(0);
+  }
 | ending
 | commentDefine
 | FIELD {bs_variable_name($1);} variableMany {ex_close();}
@@ -108,9 +114,19 @@ real:
 ;
 
 variableMany:
-  COLON basicTypeX0 {bs_variable_type(1);bs_variable_record();}
-| COLON basicTypeX0 ASSIGN leaVal {bs_variable_type(2);bs_variable_record();}
-| ASSIGN leaVal {bs_variable_type(3);bs_variable_type_judge();bs_variable_record();}
+  COLON basicTypeX0 {
+    bs_variable_type(1);
+    bs_variable_record();
+  }
+| COLON basicTypeX0 ASSIGN leaVal {
+    bs_variable_type(2);
+    bs_variable_record();
+  }
+| ASSIGN leaVal {
+    bs_variable_type(3);
+    bs_variable_type_judge();
+    bs_variable_record();
+  }
 | KW_MATCH stateMatchBlock
 ;
 
@@ -130,7 +146,10 @@ baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // --------------------------------------------
 variableAssign:
   variableName COLON basicTypeX0 ASSIGN leaVal {bs_variable_record();}
-| variableName ASSIGN leaVal {bs_variable_type_judge();bs_variable_record();}
+| variableName ASSIGN leaVal {
+    bs_variable_type_judge();
+    bs_variable_record();
+  }
 ;
 variableName: FIELD {$$ = $1;};
 basicTypeX0: 
@@ -147,16 +166,28 @@ basicTypeX0:
 // define function
 // --------------------------------------------
 functionDefine:
-  KW_DEF functionName {bs_function_type(6);bs_function_return_type("void");scope_exit();bs_function_record();}
-| KW_DEF functionName functionMany {scope_exit();bs_function_record();}
+  KW_DEF functionName {
+    bs_function_type(6);
+    bs_function_return_type("void");
+    scope_exit();
+    bs_function_record();
+  }
+| KW_DEF functionName functionMany {
+    scope_exit();
+    bs_function_record();
+  }
 ;
-functionName: FIELD {bs_function_name($1);scope_enter($1);};
+functionName: FIELD {
+  bs_function_name($1);
+  scope_enter($1);
+}
+;
 functionMany:
   returnDefine
 | LPAREN functionArgsApp returnDefine
 ;
 returnDefine:
-  COLON returnType {bs_function_type(6);}
+  COLON returnType              {bs_function_type(6);}
 | COLON returnType functionBody {bs_function_type(5);}
 | functionBody
 ;
@@ -245,10 +276,26 @@ realV2:
 | codeBlockDefine {ex_close();}
 ;
 variableManyV2:
-  COLON basicTypeX0 {bs_variable_type(1);variable_declare();bs_variable_record();}
-| COLON basicTypeX0 ASSIGN leaVal {bs_variable_type(2);variable_declare();variable_assign();bs_variable_record();}
-| ASSIGN leaVal {bs_variable_type(3);bs_variable_type_judge();bs_variable_assign();}
-| LPAREN {invoke_move();} invokeArgsDefine {invoke();invoke_close();}
+  COLON basicTypeX0 {
+    bs_variable_type(1);
+    variable_declare();
+    bs_variable_record();
+  }
+| COLON basicTypeX0 ASSIGN leaVal {
+    bs_variable_type(2);
+    variable_declare();
+    variable_assign();
+    bs_variable_record();
+  }
+| ASSIGN leaVal {
+    bs_variable_type(3);
+    bs_variable_type_judge();
+    bs_variable_assign();
+  }
+| LPAREN {invoke_move();} invokeArgsDefine {
+    invoke();
+    invoke_close();
+  }
 | KW_MATCH stateMatchBlock
 ;
 invokeArgsDefine:
@@ -257,7 +304,7 @@ invokeArgsDefine:
 ;
 invokeArgsLoop:
   invokeArgsLoop COMMA leaVal {invoke_args_push();}
-| leaVal {invoke_args_push();}
+| leaVal                      {invoke_args_push();}
 ;
 // --------------------------------------------
 
@@ -275,17 +322,10 @@ leaInv:
   RPAREN {vi_end_inv();}
 | leaInvOptions RPAREN {vi_end_inv();}
 ;
-
 leaInvOptions:
   leaInvOptions COMMA booExp {vi_args();}
 | booExp {vi_args();}
 ;
-
-//leaInvOptions: booExp leaInvLoop;
-//leaInvLoop:
-//  COMMA leaInvOptions {vi_args();}
-//| RPAREN {vi_args();vi_end_inv();printf("++01 over\n");}
-//;
 // --------------------------------------------
 
 // --------------------------------------------
@@ -312,8 +352,8 @@ booAtom:
 | booBas
 ;
 booBas: 
-  KW_TRUE {ex_push_i(1);}
-| KW_FALSE  {ex_push_i(0);}
+  KW_TRUE  {ex_push_i(1);}
+| KW_FALSE {ex_push_i(0);}
 ;
 // --------------------------------------------
 
@@ -335,11 +375,11 @@ calExpPro:
 calExpAtom:
   LPAREN booExp RPAREN
 | op_sub INTEGER {ex_push_i(0-$2);}
-| op_sub DOUBLE {ex_push_d(0-$2);}
-| INTEGER {ex_push_i($1);}
-| DOUBLE {ex_push_d($1);}
-| CHAR {ex_push_c($1);}
-| STRING {ex_push_s($1);}
+| op_sub DOUBLE  {ex_push_d(0-$2);}
+| INTEGER        {ex_push_i($1);}
+| DOUBLE         {ex_push_d($1);}
+| CHAR           {ex_push_c($1);}
+| STRING         {ex_push_s($1);}
 | leaVai
 ;
 // --------------------------------------------

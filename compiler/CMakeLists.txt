@@ -12,9 +12,6 @@ include_directories(${EXECUTABLE_OUTPUT_PATH}/)
 
 add_executable(lea
         main.cpp
-#        leaval.cpp
-#        declare.cpp
-#        assemble.cpp
         build/lea.tab.c
         build/lex.yy.c
         syntax.cpp

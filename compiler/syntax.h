@@ -39,8 +39,9 @@ std::string g_print();
 #  define __export_c_end
 #endif
 
-#define _p_lex printf
+#define _p_lex printf_empty
 #define leaprintf printf
+__export_c void printf_empty(const char *__restrict __format, ...);
 
 #include <stdio.h>
 
@@ -51,7 +52,6 @@ __export_c void yyerror(const char* s);
 
 extern int lealine;
 
-__export_c void printf_empty(const char *__restrict __format, ...);
 // vi: variable invoking
 __export_c void vi_register(char* name);
 __export_c void vi_args();
