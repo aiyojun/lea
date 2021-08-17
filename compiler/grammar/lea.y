@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "syntax.h"
+#include "walker.h"
 %}
 
 %union {
@@ -245,8 +245,8 @@ realV2:
 | codeBlockDefine {ex_close();}
 ;
 variableManyV2:
-  COLON basicTypeX0 {bs_variable_type(1);bs_variable_record();}
-| COLON basicTypeX0 ASSIGN leaVal {bs_variable_type(2);bs_variable_record();}
+  COLON basicTypeX0 {bs_variable_type(1);variable_declare();bs_variable_record();}
+| COLON basicTypeX0 ASSIGN leaVal {bs_variable_type(2);variable_declare();variable_assign();bs_variable_record();}
 | ASSIGN leaVal {bs_variable_type(3);bs_variable_type_judge();bs_variable_assign();}
 | LPAREN {invoke_move();} invokeArgsDefine {invoke();invoke_close();}
 | KW_MATCH stateMatchBlock
@@ -268,16 +268,24 @@ invokeArgsLoop:
 // represent variable/function-invoking
 leaVai:
   leaVar {vi_end_var();}
-| leaVar LPAREN leaInv;
+| leaVar LPAREN leaInv
+;
 leaVar: FIELD {vi_register($1);};
 leaInv:
   RPAREN {vi_end_inv();}
-| leaInvOptions;
-leaInvOptions: booExp leaInvLoop;
-leaInvLoop:
-  COMMA leaInvOptions {vi_args();}
-| RPAREN {vi_args();vi_end_inv();}
+| leaInvOptions RPAREN {vi_end_inv();}
 ;
+
+leaInvOptions:
+  leaInvOptions COMMA booExp {vi_args();}
+| booExp {vi_args();}
+;
+
+//leaInvOptions: booExp leaInvLoop;
+//leaInvLoop:
+//  COMMA leaInvOptions {vi_args();}
+//| RPAREN {vi_args();vi_end_inv();printf("++01 over\n");}
+//;
 // --------------------------------------------
 
 // --------------------------------------------

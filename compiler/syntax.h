@@ -12,6 +12,7 @@
  */
 struct VI_ATOM;
 struct EX_ATOM;
+struct SYMBOL;
 
 #include <string>
 
@@ -25,10 +26,10 @@ void ex_push_vi(const VI_ATOM& vi);
 typedef const std::string& cstring;
 void as_globl_variable(EX_ATOM var, cstring name, cstring type, cstring value);
 void as_globl_function(cstring name);
-void as_variable(EX_ATOM var, cstring name, cstring type, cstring value);
+void as_variable(SYMBOL symbol);
 void as_invoke();
 // void g_data_def(const std::string& label, const std::string& asm_type, const std::string& value);
-// void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j, EX_ATOM& _r);
+void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j, EX_ATOM& _r);
 // void g_invoke(const std::string& fun, std::string args[], int size);
 std::string g_print();
 
@@ -38,7 +39,7 @@ std::string g_print();
 #  define __export_c_end
 #endif
 
-#define _p_lex printf_empty
+#define _p_lex printf
 #define leaprintf printf
 
 #include <stdio.h>
@@ -86,6 +87,7 @@ __export_c void bs_variable_assign();
 __export_c void bs_variable_record();
 __export_c void print_symbols();
 
+// __export_c void nested_invoke();
 __export_c void invoke();
 __export_c void invoke_close();
 __export_c void invoke_move();
@@ -95,5 +97,8 @@ __export_c void check_main();
 __export_c void declare_function();
 __export_c void return_function();
 __export_c void write_file();
+
+__export_c void variable_declare();
+__export_c void variable_assign();
 
 #endif//__syntax_h__

@@ -11,8 +11,8 @@ template<typename T, typename _> bool contains(std::map<T, _> map, T key) {retur
 
 class FileWriter {
 public:
-    void open(std::string s) {fd.open(s);};
-    void write(std::string s) {fd << s;};
+    void open(const std::string& s) {fd.open(s);};
+    void write(const std::string& s) {fd << s;};
     void close() {fd.close();};
 private:
     std::ofstream fd;
@@ -23,14 +23,15 @@ struct VI_ATOM {
     int deep = 0;
     int type = -1;
     int args = 0;
-    char name[512];
+    char name[512] {0};
     /* record execute info */
 };
 // -1->byte 0->int 1->double 2->bool 3->char 4->string 5->variable 6->function invoke 7->asm label
 struct EX_ATOM {
     int type = -1;
-    char value[512];
-    char label[512];
+    char value[512] {0};
+    char label[512] {0};
+    int openLabel = 0;
     EX_ATOM();
     EX_ATOM(int t, char* v);
     EX_ATOM(int t, const std::string& v);
@@ -52,6 +53,7 @@ struct SYMBOL {
     std::string value;             // value of string
     std::string typeSign;          // return type
     std::vector<std::string> sign; // variable->type function->ret_type,args_0_type,args_1_type...
+    std::string space;             // reg/mem
     SYMBOL();
     SYMBOL(const std::string& n, const std::string& var_type);
     SYMBOL(const std::string& n, const std::string& var_type, const std::string& v);
@@ -76,11 +78,9 @@ void SYMBOL::clear() {
 std::string outputFile;
 /** place for variable definition */
 int lealine = 1;
-int vi_deep = 0;
+int vi_deep = -1;
 std::map<int, VI_ATOM> vis_m;
 std::map<int, EX_DEEP_ATOM> stack_ex_m;
-// std::vector<std::string> asm_data_s;
-// std::vector<std::string> asm_text_s;
 std::vector<std::string> scope_stack{"global"};
 // map-map: scope -> (variable_name/function_name, symbol);
 std::map<std::string, std::map<std::string, SYMBOL>> defines_of_scope;
@@ -90,24 +90,22 @@ SYMBOL building_function;
 SYMBOL invoking;
 std::vector<EX_ATOM> invoking_args;
 
-    int stack_p = 0;
-    int stack_bp = 0;
-    int stack_sp = 0;
-    int rodata_allocate = 0;
-    std::string scope;
-    std::vector<std::string> g_text;
-    std::vector<std::string> g_data;
-    std::vector<std::string> g_rodata;
-    // std::vector<std::string> g_main;
+int stack_p = 0;
+int stack_bp = 0;
+int stack_sp = 0;
+int rodata_allocate = 0;
+std::string scope;
+std::vector<std::string> g_text;
+std::vector<std::string> g_data;
+std::vector<std::string> g_rodata;
 
 #define G(x) g_text.emplace_back(x)
-// #define GA(n, x...) g_text.emplace_back(a_align(std::string{x}, n))
 #define D(x) g_data.emplace_back(x)
-// #define DA(n, x...) g_data.emplace_back(a_align(std::string{x}, n))
 #define RD(x) g_rodata.emplace_back(x)
-// #define RDA(n, x...) g_rodata.emplace_back(a_align(std::string{x}, n))
-// #define M(x) g_main.emplace_back(x)
-// #define MA(n, x...) g_main.emplace_back(a_align(std::string{x}, n))
+
+void obtain_symbol_sign(SYMBOL symbol) {
+
+}
 
 void as_globl_variable(EX_ATOM var, cstring name, cstring type, cstring value) {
     // g_data, g_text
@@ -126,39 +124,77 @@ void as_globl_function(cstring name) {
     stack_bp = 0;
     stack_sp = 0;
 }
-void as_variable(EX_ATOM var, cstring name, cstring type, cstring value) {
+
+int string_type_to_number(cstring type) {
+    //-1->byte 0->int 1->double 2->bool 3->char 4->string 5->variable 6->function invoke 7->asm label
+    std::map<std::string, int> table{
+        {"byte", -1}, {"int", 0}, {"double", 1}, {"bool", 2}, {"char", 3}, {"string", 4}
+    };
+    if (!contains(table, type)) {
+        yyerror("Type error!");
+        return -100;
+    }
+    return table[type];
+}
+
+void as_allocate_array_string(cstring str) {
+    int len = str.length() + 1;
+    int a_len = len % 4 != 0 ? ((len / 4) + 1) * 4 : len;
+    if (len <= 4) {
+        unsigned int _r = 0;
+        for (int i = 0; i < len; i++) {
+            char c = str[i];
+            _r = _r & ((unsigned int) c << (i * 8));
+        }
+    } else if (len <= 8) {
+        unsigned long _r = 0;
+        for (int i = 0; i < len; i++) {
+            char c = str[i];
+            _r = _r & ((unsigned int) c << (i * 8));
+        }
+    } else {
+
+    }
+}
+
+void as_variable(SYMBOL symbol) {
     // g_text
+    std::string type = symbol.typeSign;
     if (type == "int") {
         stack_p += 4;
         std::string mem = "-"+std::to_string(stack_p)+"(%rbp)";
-        strcpy(var.label, mem.c_str());
-        G("  movl  $"+value+","+mem);
+        symbol.space = mem;
+        G("  movl  $"+symbol.value+","+mem);
     } else if (type == "byte") {
-        // stack_p += 1;
-        // var.label = "-"+std::to_string(stack_p)+"(%rbp)";
+
     } else if (type == "char") {
         stack_p += 1;
         std::string mem = "-"+std::to_string(stack_p)+"(%rbp)";
-        strcpy(var.label, mem.c_str());
-        G("  movl   $"+std::to_string((int) value[0])+", "+mem);
+        G("  movl   $"+std::to_string((int) symbol.value[0])+", "+mem);
+        symbol.space = mem;
         stack_p += 3; // align
     } else if (type == "double") {
         int index = ++rodata_allocate;
         stack_p += 8;
         G("  movsd  .LC"+std::to_string(index)+", %xmm0");
-        std::string mem = ", -"+std::to_string(stack_p)+"(%rbp)";
-        strcpy(var.label, mem.c_str());
-        G("  movsd  %xmm0 "+mem);
-        /*  movsd .LC0(%rip), %xmm0
-          movsd   %xmm0, -8(%rbp)*/
+        std::string mem = "-"+std::to_string(stack_p)+"(%rbp)";
+        G("  movsd  %xmm0, "+mem);
         RD(".LC"+std::to_string(index)+":");
-        RD(".double "+value);
+        RD(".double "+symbol.value);
+        symbol.space = mem;
     } else if (type == "string") {
-        int len = value.length();
-
+        int index = ++rodata_allocate;
+        stack_p += 8;
+        std::string mem = "-"+std::to_string(stack_p)+"(%rbp)";
+        G("  movq $.LC"+std::to_string(index)+", "+mem);
+        RD(".LC"+std::to_string(index)+":");
+        RD(".string "+symbol.value);
+        symbol.space = mem;
     } else if (type == "bool") {
-        // stack_p += 1;
-
+        stack_p += 1;
+        std::string mem = "-"+std::to_string(stack_p)+"(%rbp)";
+        G("  movl   $"+std::to_string((int) symbol.value[0])+", "+mem);
+        symbol.space = mem;
     }
 
 }
@@ -167,6 +203,7 @@ void as_invoke() {
     // invoking invoking_args
     int com_i = 0; std::string com_reg_seq[] = {"di", "si", "dx", "cx", "r8", "r9"};
     int dbl_i = 0; std::string dbl_reg_seq[] = {"xmm0", "xmm1", "xmm2", "xmm3"};
+    printf("## invoking fun: %s, args: %d\n", invoking.name.c_str(), invoking_args.size());
     for (int i = 0; i < invoking_args.size(); i++) {
         int type = invoking_args[i].type;
         std::string val = std::string(invoking_args[i].value);
@@ -248,6 +285,7 @@ void scope_enter(char *scope) {
 }
 
 void scope_exit() {
+    printf("scope_exit");
     if (scope_stack.back() == "global") 
         yyerror("Scope pop error!");
     scope_stack.pop_back();
@@ -280,12 +318,25 @@ void bs_function_name(char* name) {
     // as_globl_function(building_function.name);
 }
 
+void variable_declare() {
+    as_variable(building);
+}
+
+void variable_assign() {
+    // printf();
+    ex_show();
+    // mov 
+    std::vector<EX_ATOM>& stack_ex = stack_ex_m[vi_deep <= -1 ? 0 : vi_deep].stack_ex;
+    printf("extract : %s ; type : %d\n", stack_ex[0].value, stack_ex[0].type);
+}
+
 
 void declare_function() {
     as_globl_function(scope_stack.back());
 }
 
 void return_function() {
+    printf("return_function");
     if (building_function.typeSign == "void") {
         G("popq   %rbp");
         G("  ret");
@@ -323,13 +374,15 @@ void bs_variable_value() {
 
 void bs_variable_assign() {
     // assign
-    // printf(">> assign\n");
+    printf(">> assign\n");
     building.clear();
+    printf(">> assign over\n");
 }
 
 void bs_variable_record() {
     // TODO: record and clear <building>
     std::string scope_sign = record_scope();
+
     if (contains(defines_of_scope, scope_sign)) {
         if (contains(defines_of_scope[scope_sign], building.name)) {
             yyerror(("Variable ("+building.name+") already exists.").c_str());
@@ -343,12 +396,39 @@ void bs_variable_record() {
         defines_of_scope[scope_sign][building.name] = building;
         building.clear();
     }
+
 }
 
 void invoke_args_push() {
     std::vector<EX_ATOM>& stack_ex = stack_ex_m[vi_deep <= -1 ? 0 : vi_deep].stack_ex;
     invoking_args.emplace_back(stack_ex.back());
 }
+
+// void nested_invoke(cstring fun, std::string& args[], int n) {
+//     printf("nested invoke ...\n");
+//     ex_show();
+    // invoking.clear();
+    // invoking.name = fun;
+    // for (int i = 0; i < n; i++) {
+    //     EX_ATOM ea();
+    //     invoking_args.emplace_back(ea);
+    // }
+// }
+
+//(const std::string& fun, std::string args[], int size) {
+//     if (size > 5) {
+//         printf("Beyond args limitation!\n");
+//         exit(1);
+//     }
+//     std::string reg_seq[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+//     std::string pargs;
+//     for (int i = 0; i < size; i++) {
+//         pargs.append(args[i]).append(",");
+//         // A("  mov $" + args[i] + ",%" + reg_seq[i]);
+//     }
+//     // A("call "+fun);
+//     A("call "+fun+" ("+pargs+")");
+// }
 
 void invoke() {
     const SYMBOL& function = defines_of_scope["global"][invoking.name];
@@ -382,6 +462,7 @@ void invoke_move() {
 }
 
 void bs_function_record() {
+    printf("bs_function_record\n");
     // TODO: record and clear <building_function>
     std::string scope_sign = record_scope();
     // std::string functionName = scope_stack.back();
@@ -438,6 +519,7 @@ void vi_register(char* name) {
 }
 void vi_args() {
     vis_m[vi_deep].args++;
+    // printf("args+1\n");
 }
 void vi_end_var() {
     // SYMBOL symbol(2, std::string(vis_m[vi_deep].name), );
@@ -453,9 +535,15 @@ void vi_end_inv() {
 }
 
 // -1->byte 0->int 1->double 2->bool 3->char 4->string 5->variable 6->function invoke 7->asm label
-void ex_close() {ex_show();ex_clear();}
+void ex_close() {printf("ex_close\n");ex_clear();}
 void ex_clear() {
-    vis_m.clear();stack_ex_m.clear();
+    printf("ex_clear %d ; %d\n", vis_m.size(), stack_ex_m.size());
+    ex_show();
+    vis_m = std::map<int, VI_ATOM>();
+    stack_ex_m = std::map<int, EX_DEEP_ATOM>();
+    printf("ex_clear %d ; %d\n", vis_m.size(), stack_ex_m.size());
+    // if (vis_m.size() > 0) vis_m.clear();if (stack_ex_m.size() > 0) stack_ex_m.clear();
+    printf("ex_clear over\n");
 }
 void ex_push(EX_ATOM ea) {
     int vi_deep_p = vi_deep == -1 ? 0 : vi_deep;
@@ -480,45 +568,76 @@ void ex_push_i(int i) {
     sprintf(ex_a.value, "%d", i);
     ex_a.type = 0;
     ex_push(ex_a);
-    ex_show();
+    // ex_show();
 }
 void ex_push_d(double d) {
     EX_ATOM ex_a;
     sprintf(ex_a.value, "%f", d);
     ex_a.type = 1;
     ex_push(ex_a);
-    ex_show();
+    // ex_show();
 }
 void ex_push_s(char* s) {
     EX_ATOM ex_a;
     strcpy(ex_a.value, s);
     ex_a.type = 4;
     ex_push(ex_a);
-    ex_show();
+    // ex_show();
 }
 void ex_push_c(char c) {
     EX_ATOM ex_a;
     sprintf(ex_a.value, "%c", c);
     ex_a.type = 3;
     ex_push(ex_a);
-    ex_show();
+    // ex_show();
 }
 void ex_push_vi(const VI_ATOM& vi) {
     EX_ATOM ex_a;
     sprintf(ex_a.value, "%s", vi.name);
     ex_a.type = vi.type;
     ex_push_v(ex_a);
-    ex_show();
+    // ex_show();
 }
 void ex_invoke(int n, char *fun) {
+    printf("## invoking fun: %s, args: %d\n", fun, n);
     // pop args from stack_ex
     std::vector<EX_ATOM>& stack_ex = stack_ex_m[vi_deep <= -1 ? 0 : vi_deep].stack_ex;
-    std::string args[n];
+    // std::string args[n];
+    invoking.clear();
+    invoking.name = fun;
+
     for (int i = 0; i < n; i++) {
-        args[i] = std::string(stack_ex.back().value);
+        // args[i] = std::string(stack_ex.back().value);
+        invoking_args.emplace_back(stack_ex.back());
+
         stack_ex.pop_back();
     }
     // g_invoke(std::string(fun), args, n);
+
+    std::vector<EX_ATOM> invoking_args_tmp = invoking_args;
+    invoking_args.clear();
+    for (int i = 0; i < n; i++) {
+        invoking_args.emplace_back(invoking_args_tmp[n - 1 - i]);
+    }
+
+    as_invoke();
+
+    printf("===> 001\n");
+    if (defines_of_scope["global"][invoking.name].typeSign != "void") {
+        int last_deep = vi_deep - 1 < 0 ? 0 : vi_deep - 1;
+        printf("===> 002 last_deep : %d ;\n", last_deep);
+        // for (auto& p : stack_ex_m) {printf("===> 002.5 - %d\n", p.first);}
+        stack_ex_m[last_deep].stack_ex.back().type = string_type_to_number(defines_of_scope["global"][invoking.name].typeSign);
+        printf("===> 003\n");
+        stack_ex_m[last_deep].stack_ex.back().openLabel = 1;
+        printf("===> 004\n");
+        strcpy(stack_ex_m[last_deep].stack_ex.back().label, "%rax");
+        // TODO: rax??? type-> int / double? ? bool
+    }
+
+    printf("===> 005\n");
+
+    // nested_invoke();
 }
 void ex_calculate(int n, char *op) {
     std::vector<EX_ATOM>& stack_ex = stack_ex_m[vi_deep <= -1 ? 0 : vi_deep].stack_ex;
@@ -548,7 +667,7 @@ void ex_calculate(int n, char *op) {
             yyerror(std::string("Operator [" + op_s + "] needs two parameters! stack rest : " + std::to_string(stack_ex.size())).c_str());
         EX_ATOM& p0 = stack_ex[stack_ex.size() - 2]; EX_ATOM& p1 = stack_ex[stack_ex.size() - 1];
         EX_ATOM _r;
-        // g_asm(op_s, p0, p1, _r);
+        g_asm(op_s, p0, p1, _r);
         if (p0.type > 4) {
             EX_ATOM _r(7, p0.value);
             stack_ex.pop_back(); stack_ex.pop_back(); stack_ex.emplace_back(_r);
@@ -667,25 +786,33 @@ void ex_calculate(int n, char *op) {
     }
 }
 void ex_show() {
-    // for (const auto& stack : stack_ex_m) {
-    //     printf("stack#%d#%d: ", stack.first, stack.second.stack_ex.size());
-    //     for (const auto& item : stack.second.stack_ex) {
-    //         printf("%s | ", item.value);
-    //     }
-    //     printf("\n");
-    // }
-    // printf("---\n");
+    for (const auto& stack : stack_ex_m) {
+        printf("stack#%d#%d: ", stack.first, stack.second.stack_ex.size());
+        for (const auto& item : stack.second.stack_ex) {
+            printf("%s | ", item.value);
+        }
+        printf("\n");
+    }
+    printf("---\n");
 }
 
 /** data generation */
 /** write many of validators */
 /** validators' framework */
-// #define VA_DEF(x, y, z) int va_##x(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) \
-// {if (y) return 1; z; return 0;}
-// #define VA_CALL(x) va_##x(op, p0, p1, _r)
+#define VA_DEF(x, y, z) int va_##x(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) \
+{if (y) return 1; z; return 0;}
+#define VA_CALL(x) va_##x(op, p0, p1, _r)
 // #define G(x) asm_text_s.emplace_back(x)
 // #define D(x) asm_data_s.emplace_back(x)
-// #define S(x) std::string(x)
+#define S(x) std::string(x)
+
+VA_DEF(add_01, op == "+" && (p0.openLabel == 1 && p1.openLabel == 0) && (p0.type == 0 && p1.type == 0), {
+    G("  addl $"+S(p1.value)+", %eax");
+    _r.type = 0;
+    _r.openLabel = 1;
+    strcpy(_r.label, "%eax");
+    // G("  movl %eax,$"+S(_r.value))
+})
 
 // VA_DEF(add_int, op == "+" && p0.type == 0 && p1.type == 0, {
 //     G("  movl $"+S(p0.value)+",%eax");
@@ -722,6 +849,14 @@ void ex_show() {
 //     G("  movl %eax,$"+S(_r.value));
 // })
 
+VA_DEF(sub_01, op == "-" && (p0.openLabel == 1 && p1.openLabel == 0) && p0.type == 0 && p1.type == 0, {
+    G("subl $"+S(p1.value)+",%eax");
+    _r.type = 0;
+    _r.openLabel = 1;
+    strcpy(_r.label, "%eax");
+    // G("  movl %eax,$"+S(_r.value))
+})
+
 // VA_DEF(sub_double, op == "-" && p0.type == 1 && p1.type == 1, {
 //     G("flds "+S(p0.label));
 //     G("flds "+S(p1.label));
@@ -751,19 +886,20 @@ void ex_show() {
 //     D(asm_type+" "+value);
 // }
 // 
-// void g_asm(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) {
+void g_asm(const std::string& op, EX_ATOM& p0, EX_ATOM& p1, EX_ATOM& _r) {
     // asm_text_s.emplace_back("cmd["+op+"]\t"+std::string(p0.value)+","+std::string(p1.value));
-//     if (!VA_CALL(add_int)) return;
-//     if (!VA_CALL(add_double)) return;
-//     if (!VA_CALL(add_int_double)) return;
-//     if (!VA_CALL(add_double_int)) return;
+    if (!VA_CALL(add_01)) return;
+    if (!VA_CALL(sub_01)) return;
+    // if (!VA_CALL(add_double)) return;
+    // if (!VA_CALL(add_int_double)) return;
+    // if (!VA_CALL(add_double_int)) return;
 
-//     if (!VA_CALL(sub_int)) return;
-//     if (!VA_CALL(sub_double)) return;
-//     if (!VA_CALL(sub_int_double)) return;
-//     if (!VA_CALL(sub_double_int)) return;
+    // if (!VA_CALL(sub_int)) return;
+    // if (!VA_CALL(sub_double)) return;
+    // if (!VA_CALL(sub_int_double)) return;
+    // if (!VA_CALL(sub_double_int)) return;
 
-// }
+}
 
 
 
@@ -803,10 +939,10 @@ std::string g_print() {
     }
     // printf("  .globl main\n");
     // printf("main:\n");
-    for (auto& s : g_main) {
-        _r += s + "\n";
-        printf("%s\n", s.c_str());
-    }
+    // for (auto& s : g_main) {
+    //     _r += s + "\n";
+    //     printf("%s\n", s.c_str());
+    // }
     printf("  .section  .rodata\n");
     _r += "  .section  .rodata\n";
     for (auto& s : g_rodata) {
@@ -830,5 +966,7 @@ void write_file() {
         fp.open(outputFile);
         fp.write(g_print());
         fp.close();
+    } else {
+        printf("%s\n", g_print().c_str());
     }
 }
