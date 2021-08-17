@@ -76,7 +76,6 @@
 %token OP_DIV
 %token OP_MOD
 
-// %type <ycText> statement
 %type <ycText> basicTypeX0
 %type <ycText> variableName
 %type <ycText> leaVar
@@ -102,7 +101,7 @@ real:
 | ending
 | commentDefine
 | FIELD {bs_variable_name($1);} variableMany {ex_close();}
-| functionDefineV2
+| functionDefine
 | stateIfDefine
 | stateForDefine
 | codeBlockDefine {ex_close();}
@@ -147,7 +146,11 @@ basicTypeX0:
 // --------------------------------------------
 // define function
 // --------------------------------------------
-functionDefineV2: KW_DEF FIELD {bs_function_name($2);scope_enter($2);} functionMany {scope_exit();bs_function_record();};
+functionDefine:
+  KW_DEF functionName {bs_function_type(6);bs_function_return_type("void");scope_exit();bs_function_record();}
+| KW_DEF functionName functionMany {scope_exit();bs_function_record();}
+;
+functionName: FIELD {bs_function_name($1);scope_enter($1);};
 functionMany:
   returnDefine
 | LPAREN functionArgsApp returnDefine
@@ -155,6 +158,7 @@ functionMany:
 returnDefine:
   COLON returnType {bs_function_type(6);}
 | COLON returnType functionBody {bs_function_type(5);}
+| functionBody
 ;
 functionArgsApp:
   RPAREN
@@ -167,8 +171,8 @@ functionArgs:
 argDefine: FIELD COLON paramType;
 functionBody: 
   ARROW {declare_function();} leaVal
-| BLOCK_BEGIN {declare_function();} codeBlockLoop BLOCK_END {return_function();};
-
+| BLOCK_BEGIN {declare_function();} codeBlockLoop BLOCK_END {return_function();}
+;
 paramType:
   KW_BYTE   {bs_function_arg_type("byte");}
 | KW_CHAR   {bs_function_arg_type("char");}
@@ -178,7 +182,6 @@ paramType:
 | KW_STRING {bs_function_arg_type("string");}
 | KW_VOID   {bs_function_arg_type("void");}
 ;
-
 returnType:
   KW_BYTE   {bs_function_return_type("byte");}
 | KW_CHAR   {bs_function_return_type("char");}
@@ -188,16 +191,6 @@ returnType:
 | KW_STRING {bs_function_return_type("string");}
 | KW_VOID   {bs_function_return_type("void");}
 ;
-
-// --------------------------------------------
-
-// --------------------------------------------
-// define function invoke
-// --------------------------------------------
-// invokeDefine: functionName LPAREN invokeArgsList;
-// invokeArgsList: invokeArgsLoop | leaVal invokeArgsLoop;
-// invokeArgsLoop: COMMA leaVal invokeArgsList | RPAREN;
-// functionName: FIELD;
 // --------------------------------------------
 
 // --------------------------------------------

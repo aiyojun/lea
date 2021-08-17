@@ -98,7 +98,7 @@ std::vector<EX_ATOM> invoking_args;
     std::vector<std::string> g_text;
     std::vector<std::string> g_data;
     std::vector<std::string> g_rodata;
-    std::vector<std::string> g_main;
+    // std::vector<std::string> g_main;
 
 #define G(x) g_text.emplace_back(x)
 // #define GA(n, x...) g_text.emplace_back(a_align(std::string{x}, n))
@@ -106,7 +106,7 @@ std::vector<EX_ATOM> invoking_args;
 // #define DA(n, x...) g_data.emplace_back(a_align(std::string{x}, n))
 #define RD(x) g_rodata.emplace_back(x)
 // #define RDA(n, x...) g_rodata.emplace_back(a_align(std::string{x}, n))
-#define M(x) g_main.emplace_back(x)
+// #define M(x) g_main.emplace_back(x)
 // #define MA(n, x...) g_main.emplace_back(a_align(std::string{x}, n))
 
 void as_globl_variable(EX_ATOM var, cstring name, cstring type, cstring value) {
