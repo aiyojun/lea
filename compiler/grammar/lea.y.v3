@@ -315,18 +315,18 @@ invokeArgsLoop:
 // --------------------------------------------
 // represent variable/function-invoking
 leaVai:
-  leaVar                     {heap_var();}
-| leaVar LPAREN {heap_inv();heap_deep_inc();} leaInv
+  leaVar                     {vi_end_var();}
+| leaVar LPAREN leaInv
 ;
-leaVar: FIELD                {val_register($1);}
+leaVar: FIELD                {vi_register($1);}
 ;
 leaInv:
-  RPAREN                     {heap_deep_dec();}
-| leaInvOptions RPAREN       {heap_deep_dec();}
+  RPAREN                     {vi_end_inv();}
+| leaInvOptions RPAREN       {vi_end_inv();}
 ;
 leaInvOptions:
-  leaInvOptions COMMA booExp {heap_inv_args_inc();}
-| booExp                     {heap_inv_args_inc();}
+  leaInvOptions COMMA booExp {vi_args();}
+| booExp                     {vi_args();}
 ;
 // --------------------------------------------
 
@@ -354,8 +354,8 @@ booAtom:
 | booBas
 ;
 booBas: 
-  KW_TRUE              {heap_value("", "1", "bool");}
-| KW_FALSE             {heap_value("", "0", "bool");}
+  KW_TRUE              {ex_push_i(1);}
+| KW_FALSE             {ex_push_i(0);}
 ;
 // --------------------------------------------
 
@@ -376,12 +376,12 @@ calExpPro:
 
 calExpAtom:
   LPAREN booExp RPAREN
-| OP_SUB INTEGER {heap_value("-", $2, "int");}
-| OP_SUB DOUBLE  {heap_value("-", $2, "double");}
-| INTEGER        {heap_value("", $2, "int");}
-| DOUBLE         {heap_value("", $2, "double");}
-| CHAR           {heap_value("", $2, "char");}
-| STRING         {heap_value("", $2, "string");}
+| OP_SUB INTEGER {ex_push_i(0-$2);}
+| OP_SUB DOUBLE  {ex_push_d(0-$2);}
+| INTEGER        {ex_push_i($1);}
+| DOUBLE         {ex_push_d($1);}
+| CHAR           {ex_push_c($1);}
+| STRING         {ex_push_s($1);}
 | leaVai
 ;
 // --------------------------------------------

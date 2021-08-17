@@ -101,4 +101,12 @@ __export_c void write_file();
 __export_c void variable_declare();
 __export_c void variable_assign();
 
+__export_c void heap_value(char*, char*, char*);
+__export_c void heap_var();
+__export_c void heap_inv();
+__export_c void heap_inv_args_inc();
+__export_c void val_register(char*);
+__export_c void heap_deep_inc();
+__export_c void heap_deep_dec();
+
 #endif//__syntax_h__
