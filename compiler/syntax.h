@@ -101,12 +101,49 @@ __export_c void write_file();
 __export_c void variable_declare();
 __export_c void variable_assign();
 
+__export_c void symbol_print();
+__export_c void stack_clear();
 __export_c void heap_value(char*, char*, char*);
+__export_c void heap_print();
+__export_c void heap_var_validate();
+__export_c void heap_inv_validate();
 __export_c void heap_var();
 __export_c void heap_inv();
+__export_c void heap_inv2();
 __export_c void heap_inv_args_inc();
 __export_c void val_register(char*);
+__export_c void val_register2(char*);
 __export_c void heap_deep_inc();
 __export_c void heap_deep_dec();
+
+__export_c void heap_inv_exe();
+__export_c void calc_mul();
+__export_c void calc_div();
+__export_c void calc_add();
+__export_c void calc_sub();
+__export_c void comp_gt();
+__export_c void comp_gte();
+__export_c void comp_lt();
+__export_c void comp_lte();
+__export_c void comp_eq();
+__export_c void comp_ne();
+__export_c void comp_and();
+__export_c void comp_or();
+__export_c void comp_not();
+
+__export_c void variable_register(int mode);
+__export_c void variable_type(char* type);
+__export_c void variable_record();
+__export_c void variable_assign_v2();
+__export_c void variable_already_exist();
+//__export_c void invoking_register();
+//__export_c void invoking_exe();
+//__export_c void invoking_type(char* type);
+
+__export_c void function_record();
+__export_c void function_name(char*);
+__export_c void function_type(int);
+__export_c void function_push_args_type(char*);
+__export_c void function_return(char*);
 
 #endif//__syntax_h__

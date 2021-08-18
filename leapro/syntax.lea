@@ -5,7 +5,7 @@
 // p4 = true && (aa == -12) && true && true
 // p5 = (43 < 24) || (p0 <= pp0( p1, 12 + 32 + 43, "haha"  ))
 
-//p2: int = 12
+p2: int = 12
 
 //p4 : int
 /*
@@ -33,7 +33,12 @@ def main: void {
 }*/
 
 def add_01: int;
+def add_02: int;
 
 def main {
-	x: int = add_01(2, 3) + 2;
+	x: int = 43+43 * 2+add_01(2, 'b', 12.12, "haha") + 2;
+	add_01(2, 'b', add_02("que", 43), "haha")
+	x = 12;
+
+	add_x()
 }

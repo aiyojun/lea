@@ -99,36 +99,35 @@ OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD;
 
 real:
   KW_EOF {
-    print_symbols();
-    check_main();
+    heap_print();
+    symbol_print();
     leaprintf("Grammar parsed success.\n");
-    write_file();
     exit(0);
   }
 | ending
 | commentDefine
-| FIELD {bs_variable_name($1);} variableMany {ex_close();}
+| FIELD {val_register2($1);} variableMany {stack_clear();}
 | functionDefine
 | stateIfDefine
 | stateForDefine
-| codeBlockDefine {ex_close();}
+| codeBlockDefine {}
 ;
 
 variableMany:
   COLON basicTypeX0 {
-    bs_variable_type(1);
-    bs_variable_record();
+    variable_register(0);
+    variable_record();
   }
 | COLON basicTypeX0 ASSIGN leaVal {
-    bs_variable_type(2);
-    bs_variable_record();
+    variable_register(0);
+    variable_record();
+    variable_assign_v2();
   }
 | ASSIGN leaVal {
-    bs_variable_type(3);
-    bs_variable_type_judge();
-    bs_variable_record();
+    variable_register(1);
+    variable_already_exist();
+    variable_assign_v2();
   }
-| KW_MATCH stateMatchBlock
 ;
 
 // --------------------------------------------
@@ -146,20 +145,21 @@ baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // define variable
 // --------------------------------------------
 variableAssign:
-  variableName COLON basicTypeX0 ASSIGN leaVal {bs_variable_record();}
+  variableName COLON basicTypeX0 ASSIGN leaVal {
+
+  }
 | variableName ASSIGN leaVal {
-    bs_variable_type_judge();
-    bs_variable_record();
+
   }
 ;
-variableName: FIELD {$$ = $1;};
+variableName: FIELD {};
 basicTypeX0: 
-  KW_BYTE    {$$ = $1;bs_variable_type_sign("byte");}
-| KW_CHAR    {$$ = $1;bs_variable_type_sign("char");}
-| KW_INT     {$$ = $1;bs_variable_type_sign("int");}
-| KW_BOOL    {$$ = $1;bs_variable_type_sign("bool");}
-| KW_DOUBLE  {$$ = $1;bs_variable_type_sign("double");}
-| KW_STRING  {$$ = $1;bs_variable_type_sign("string");}
+  KW_BYTE    {variable_type("byte");}
+| KW_CHAR    {variable_type("char");}
+| KW_INT     {variable_type("int");}
+| KW_BOOL    {variable_type("bool");}
+| KW_DOUBLE  {variable_type("double");}
+| KW_STRING  {variable_type("string");}
 ;
 // --------------------------------------------
 
@@ -168,19 +168,14 @@ basicTypeX0:
 // --------------------------------------------
 functionDefine:
   KW_DEF functionName {
-    bs_function_type(6);
-    bs_function_return_type("void");
-    scope_exit();
-    bs_function_record();
+    function_record();
   }
 | KW_DEF functionName functionMany {
-    scope_exit();
-    bs_function_record();
+    function_record();
   }
 ;
 functionName: FIELD {
-  bs_function_name($1);
-  scope_enter($1);
+    function_name($1);
 }
 ;
 functionMany:
@@ -188,9 +183,9 @@ functionMany:
 | LPAREN functionArgsApp returnDefine
 ;
 returnDefine:
-  COLON returnType              {bs_function_type(6);}
-| COLON returnType functionBody {bs_function_type(5);}
-| functionBody
+  COLON returnType              {}
+| COLON returnType functionBody {function_type(5);}
+| functionBody                  {function_type(5);}
 ;
 functionArgsApp:
   RPAREN
@@ -202,26 +197,26 @@ functionArgs:
 ;
 argDefine: FIELD COLON paramType;
 functionBody: 
-  ARROW {declare_function();} leaVal
-| BLOCK_BEGIN {declare_function();} codeBlockLoop BLOCK_END {return_function();}
+  ARROW {} leaVal
+| BLOCK_BEGIN {} codeBlockLoop BLOCK_END {}
 ;
 paramType:
-  KW_BYTE   {bs_function_arg_type("byte");}
-| KW_CHAR   {bs_function_arg_type("char");}
-| KW_INT    {bs_function_arg_type("int");}
-| KW_BOOL   {bs_function_arg_type("bool");}
-| KW_DOUBLE {bs_function_arg_type("double");}
-| KW_STRING {bs_function_arg_type("string");}
-| KW_VOID   {bs_function_arg_type("void");}
+  KW_BYTE   {function_push_args_type("type");}
+| KW_CHAR   {function_push_args_type("char");}
+| KW_INT    {function_push_args_type("int");}
+| KW_BOOL   {function_push_args_type("bool");}
+| KW_DOUBLE {function_push_args_type("double");}
+| KW_STRING {function_push_args_type("string");}
+| KW_VOID   {function_push_args_type("void");}
 ;
 returnType:
-  KW_BYTE   {bs_function_return_type("byte");}
-| KW_CHAR   {bs_function_return_type("char");}
-| KW_INT    {bs_function_return_type("int");}
-| KW_BOOL   {bs_function_return_type("bool");}
-| KW_DOUBLE {bs_function_return_type("double");}
-| KW_STRING {bs_function_return_type("string");}
-| KW_VOID   {bs_function_return_type("void");}
+  KW_BYTE   {function_return("byte");}
+| KW_CHAR   {function_return("char");}
+| KW_INT    {function_return("int");}
+| KW_BOOL   {function_return("bool");}
+| KW_DOUBLE {function_return("double");}
+| KW_STRING {function_return("string");}
+| KW_VOID   {function_return("void");}
 ;
 // --------------------------------------------
 
@@ -271,42 +266,40 @@ codeBlockLoop: codeBlockLoop realV2 | realV2;
 realV2: 
   ending
 | commentDefine
-| FIELD {bs_variable_name($1);} variableManyV2 {ex_close();}
+| FIELD {val_register2($1);} variableManyV2 {stack_clear();}
 | stateIfDefine
 | stateForDefine
-| codeBlockDefine {ex_close();}
+| codeBlockDefine {}
 ;
 variableManyV2:
   COLON basicTypeX0 {
-    bs_variable_type(1);
-    variable_declare();
-    bs_variable_record();
+    variable_register(0);
+    variable_record();
   }
-| COLON basicTypeX0 ASSIGN leaVal {
-    bs_variable_type(2);
-    variable_declare();
-    variable_assign();
-    bs_variable_record();
+| COLON basicTypeX0 ASSIGN {} leaVal {
+    variable_register(0);
+    variable_record();
+    variable_assign_v2();
   }
 | ASSIGN leaVal {
-    bs_variable_type(3);
-    bs_variable_type_judge();
-    bs_variable_assign();
+    variable_register(1);
+    variable_already_exist();
+    variable_assign_v2();
   }
-| LPAREN {invoke_move();} invokeArgsDefine {
-    invoke();
-    invoke_close();
-  }
-| KW_MATCH stateMatchBlock
+| LPAREN {heap_inv2();heap_deep_inc();} leaInv
+//| LPAREN {invoking_register();} invokeArgsDefine {
+//    invoking_exe();
+//  }
+| KW_MATCH {} stateMatchBlock
 ;
-invokeArgsDefine:
-  RPAREN
-| invokeArgsLoop RPAREN
-;
-invokeArgsLoop:
-  invokeArgsLoop COMMA leaVal {invoke_args_push();}
-| leaVal                      {invoke_args_push();}
-;
+//invokeArgsDefine:
+//  RPAREN
+//| invokeArgsLoop RPAREN
+//;
+//invokeArgsLoop:
+//  invokeArgsLoop COMMA leaVal {}
+//| leaVal                      {}
+//;
 // --------------------------------------------
 
 
@@ -315,17 +308,17 @@ invokeArgsLoop:
 // --------------------------------------------
 // represent variable/function-invoking
 leaVai:
-  leaVar                     {heap_var();}
+  leaVar                     {heap_var_validate();heap_var();}
 | leaVar LPAREN {heap_inv();heap_deep_inc();} leaInv
 ;
 leaVar: FIELD                {val_register($1);}
 ;
 leaInv:
-  RPAREN                     {heap_deep_dec();}
-| leaInvOptions RPAREN       {heap_deep_dec();}
+  RPAREN                     {heap_inv_validate();heap_inv_exe();heap_deep_dec();}
+| leaInvOptions RPAREN       {heap_inv_validate();heap_inv_exe();heap_deep_dec();}
 ;
 leaInvOptions:
-  leaInvOptions COMMA booExp {heap_inv_args_inc();}
+  leaInvOptions COMMA {heap_inv_args_inc();} booExp
 | booExp                     {heap_inv_args_inc();}
 ;
 // --------------------------------------------
@@ -336,21 +329,21 @@ leaInvOptions:
 leaVal: booExp;
 booExp:
   booExpNot
-| booExp AND booExpNot {ex_calculate(2, "&&");}
-| booExp OR  booExpNot {ex_calculate(2, "||");}
+| booExp AND booExpNot {comp_and();}
+| booExp OR  booExpNot {comp_or();}
 ;
 booExpNot:
   booAtom
-| NOT booAtom          {ex_calculate(1, "!");}
+| NOT booAtom          {comp_not();}
 ;
 booAtom:
   calExp
-| calExp LT calExp     {ex_calculate(2, "<");}
-| calExp GT calExp     {ex_calculate(2, ">");}
-| calExp LE calExp     {ex_calculate(2, "<=");}
-| calExp GE calExp     {ex_calculate(2, ">=");}
-| calExp EQ calExp     {ex_calculate(2, "==");}
-| calExp NE calExp     {ex_calculate(2, "!=");}
+| calExp LT calExp     {comp_lt();}
+| calExp GT calExp     {comp_gt();}
+| calExp LE calExp     {comp_lte();}
+| calExp GE calExp     {comp_gte();}
+| calExp EQ calExp     {comp_eq();}
+| calExp NE calExp     {comp_ne();}
 | booBas
 ;
 booBas: 
@@ -364,24 +357,24 @@ booBas:
 // --------------------------------------------
 calExp:
   calExpPro
-| calExp OP_ADD calExpPro {ex_calculate(2, "+");}
-| calExp OP_SUB calExpPro {ex_calculate(2, "-");}
+| calExp OP_ADD calExpPro {calc_add();}
+| calExp OP_SUB calExpPro {calc_sub();}
 ;
 
 calExpPro:
   calExpAtom
-| calExpPro OP_MUL calExpAtom {ex_calculate(2, "*");}
-| calExpPro OP_DIV calExpAtom {ex_calculate(2, "/");}
+| calExpPro OP_MUL calExpAtom {calc_mul();}
+| calExpPro OP_DIV calExpAtom {calc_div();}
 ;
 
 calExpAtom:
   LPAREN booExp RPAREN
 | OP_SUB INTEGER {heap_value("-", $2, "int");}
 | OP_SUB DOUBLE  {heap_value("-", $2, "double");}
-| INTEGER        {heap_value("", $2, "int");}
-| DOUBLE         {heap_value("", $2, "double");}
-| CHAR           {heap_value("", $2, "char");}
-| STRING         {heap_value("", $2, "string");}
+| INTEGER        {heap_value("", $1, "int");}
+| DOUBLE         {heap_value("", $1, "double");}
+| CHAR           {heap_value("", $1, "char");}
+| STRING         {heap_value("", $1, "string");}
 | leaVai
 ;
 // --------------------------------------------

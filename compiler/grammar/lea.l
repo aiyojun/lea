@@ -215,7 +215,7 @@ extern YYSTYPE yylval;
                             return KW__;
                         }
 (')(.|\n|\r)(')         {
-                            yylval.ycText = yytext[0];
+                            yylval.ycText = yytext;
                             _p_lex("[lex] CHAR : %s\n", yytext);
                             return CHAR;
                         }
@@ -225,12 +225,12 @@ extern YYSTYPE yylval;
                             return STRING;
                         }
 [0-9]+                  {
-                            yylval.ycText = atoi(yytext);
+                            yylval.ycText = yytext;
                             _p_lex("[lex] POS_INT : %s\n", yytext);
                             return INTEGER;
                         }
 [0-9]+"."[0-9]+         {
-                            yylval.ycText = atof(yytext);
+                            yylval.ycText = yytext;
                             _p_lex("[lex] DOUBLE : %s\n", yytext);
                             return DOUBLE;
                         }
