@@ -113,6 +113,9 @@ void function_type(int usage) {
     factor::function.usage = usage; // 5: function declare + implement
 }
 
+void g_function_imp() {call_enter(factor::function.name);}
+void g_function_over() {call_exit();}
+
 void function_push_args_type(char* type) {
     factor::function.args_sign.emplace_back(std::string(type));
 }
@@ -273,6 +276,9 @@ void heap_inv_exe() {
     std::vector<factor>& stack_p = factor::deep_stack[factor::value_deep];
     factor& fun = factor::invoke_stack[factor::value_deep-1];
     debug_printf("** exec fun: %s ; deep: %d ; args: %d\n", fun.name.c_str(), factor::value_deep, fun.args_size);
+
+
+
     for (int i = 0; i < fun.args_size; i++) {
         stack_p.pop_back();
     }

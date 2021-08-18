@@ -33,6 +33,25 @@ void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j, EX_ATOM& _r);
 // void g_invoke(const std::string& fun, std::string args[], int size);
 std::string g_print();
 
+std::string ptr(cstring label);
+std::string rt(int i);  // right number
+std::string st(int i);  // stack space
+std::string r1(cstring r);  //  low 8 bits / 1 byte
+std::string rh(cstring r);  // high 8 bits
+std::string r4(cstring r);  // 4 bytes => integer
+std::string r8(cstring r);  // 8 bytes => long/double/pointer
+std::string declare_ro_data(cstring type, cstring v);
+void double2stack(cstring ro_, int i);
+void ptr2stack(cstring ro_, int i);
+void int2stack(int x, int i);
+void byte2stack(int x, int i);
+void mov4byte(cstring src, cstring dest);
+void mov8byte(cstring src, cstring dest);
+
+void call_enter(cstring);
+void call_exit();
+
+
 #else
 #  define __export_c
 #  define __export_c_begin
@@ -145,5 +164,8 @@ __export_c void function_name(char*);
 __export_c void function_type(int);
 __export_c void function_push_args_type(char*);
 __export_c void function_return(char*);
+
+__export_c void g_function_imp();
+__export_c void g_function_over();
 
 #endif//__syntax_h__

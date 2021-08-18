@@ -15,6 +15,7 @@ add_executable(lea
         build/lea.tab.c
         build/lex.yy.c
         val.cpp
+        gas.cpp
         syntax.cpp
         )
 

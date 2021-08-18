@@ -197,8 +197,8 @@ functionArgs:
 ;
 argDefine: FIELD COLON paramType;
 functionBody: 
-  ARROW {} leaVal
-| BLOCK_BEGIN {} codeBlockLoop BLOCK_END {}
+  ARROW {g_function_imp();} leaVal {g_function_over();}
+| BLOCK_BEGIN {g_function_imp();} codeBlockLoop BLOCK_END {g_function_over();}
 ;
 paramType:
   KW_BYTE   {function_push_args_type("type");}
