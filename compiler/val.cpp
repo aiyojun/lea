@@ -9,7 +9,7 @@
 #include <exception>
 #include <map>
 
-#define debug_printf printf
+#define debug_printf printf_empty
 
 using cstring=const std::string&;
 

@@ -40,8 +40,12 @@ def main: int {
 	//x: int = 43+43 * 2+add_01(2, 'b', 12.12, "haha") + 2;
 	//add_01(2, 'b', add_02("que", 43), "haha")
 	//x = 12;
-
 	//add_x()
-	printf("hello lea! %d\n", 2);
+	//printf("hello lea! %d\n", 2);
+	if (0) {
+        x: int = 1;
+	} else {
+
+	}
 	return 0;
 }

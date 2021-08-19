@@ -60,10 +60,12 @@ public:
     static int allocate_ro_data;
     static int xmm_i;
     static int arg_i;
+    static int g_branch_i;
 };
 int gas::allocate_ro_data = 0;
 int gas::xmm_i = 0;
 int gas::arg_i = 0;
+int gas::g_branch_i = 0;
 std::vector<std::string> gas::g_text{".text"};
 std::vector<std::string> gas::g_data{".data"};
 std::vector<std::string> gas::g_ro_data{".section .rodata"};
@@ -157,6 +159,8 @@ void function_exit()
 gas::g_text.emplace_back("ret");}
 void function_call(cstring fun_name)
 {gas::g_text.emplace_back("call "+fun_name);}
+
+
 
 std::string format_gas(cstring stmt) {
     std::vector<std::string> separators{" ", ","};

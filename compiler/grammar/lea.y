@@ -109,9 +109,9 @@ real:
 | commentDefine
 | FIELD {val_register2($1);} variableMany {stack_clear();}
 | functionDefine
-| stateIfDefine
-| stateForDefine
-| codeBlockDefine {}
+//| stateIfDefine
+//| stateForDefine
+//| codeBlockDefine {}
 ;
 
 variableMany:
@@ -198,7 +198,7 @@ functionArgs:
 ;
 argDefine: FIELD COLON paramType;
 functionBody: 
-  ARROW {g_function_imp();} leaVal {g_function_over();}
+  ARROW {g_function_imp();} leaVal {g_function_return();g_function_over();}
 | BLOCK_BEGIN {g_function_imp();} codeBlockLoopV3 BLOCK_END {g_function_over();}
 ;
 codeBlockLoopV3: codeBlockLoopV3 realV3 | realV3;
@@ -234,13 +234,12 @@ returnType:
 // --------------------------------------------
 // define if-else if-else
 // --------------------------------------------
-stateIfDefine: stateIf stateElse;
-stateIf: KW_IF LPAREN leaVal RPAREN codeBlockDefine;
-stateElse: ending | stateElseApp;
-stateElseApp: ending | KW_ELSE stateElseLoop;
-stateElseLoop:
-  KW_IF LPAREN leaVal RPAREN codeBlockDefine stateElseApp
-| codeBlockDefine
+stateIfDefine:
+  stateIf
+| stateIf KW_ELSE codeBlockDefine {printf("## 03\n");}
+stateIf:
+  stateIf KW_ELSE KW_IF LPAREN leaVal RPAREN codeBlockDefine {printf("## 02\n");}
+| KW_IF LPAREN leaVal RPAREN codeBlockDefine {printf("## 01\n");}
 ;
 // --------------------------------------------
 
