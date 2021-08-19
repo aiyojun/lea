@@ -101,6 +101,7 @@ real:
   KW_EOF {
     heap_print();
     symbol_print();
+    print_gas();
     leaprintf("Grammar parsed success.\n");
     exit(0);
   }
@@ -198,7 +199,17 @@ functionArgs:
 argDefine: FIELD COLON paramType;
 functionBody: 
   ARROW {g_function_imp();} leaVal {g_function_over();}
-| BLOCK_BEGIN {g_function_imp();} codeBlockLoop BLOCK_END {g_function_over();}
+| BLOCK_BEGIN {g_function_imp();} codeBlockLoopV3 BLOCK_END {g_function_over();}
+;
+codeBlockLoopV3: codeBlockLoopV3 realV3 | realV3;
+realV3:
+  ending
+| commentDefine
+| FIELD {val_register2($1);} variableManyV2 {stack_clear();}
+| KW_RETURN leaVal {g_function_return();}
+| stateIfDefine
+| stateForDefine
+| codeBlockDefine {}
 ;
 paramType:
   KW_BYTE   {function_push_args_type("type");}

@@ -15,6 +15,7 @@ struct EX_ATOM;
 struct SYMBOL;
 
 #include <string>
+#include <fstream>
 
 extern std::string outputFile;
 
@@ -33,6 +34,16 @@ void g_asm(const std::string& op, EX_ATOM& i, EX_ATOM& j, EX_ATOM& _r);
 // void g_invoke(const std::string& fun, std::string args[], int size);
 std::string g_print();
 
+class file_writer {
+public:
+    void open(const std::string& s) {ostream.open(s);};
+    void write(const std::string& s) {ostream << s;};
+    void close() {ostream.close();};
+    static std::string out;
+private:
+    std::ofstream ostream;
+};
+
 std::string ptr(cstring label);
 std::string rt(int i);  // right number
 std::string st(int i);  // stack space
@@ -40,16 +51,26 @@ std::string r1(cstring r);  //  low 8 bits / 1 byte
 std::string rh(cstring r);  // high 8 bits
 std::string r4(cstring r);  // 4 bytes => integer
 std::string r8(cstring r);  // 8 bytes => long/double/pointer
+std::string rx4(int r);  // 8 bytes => long/double/pointer
+std::string rx8(int r);  // 8 bytes => long/double/pointer
 std::string declare_ro_data(cstring type, cstring v);
 void double2stack(cstring ro_, int i);
 void ptr2stack(cstring ro_, int i);
 void int2stack(int x, int i);
 void byte2stack(int x, int i);
+void args_clear();
+void mov2xmm(cstring src);
 void mov4byte(cstring src, cstring dest);
 void mov8byte(cstring src, cstring dest);
+void mov4byte2arg(cstring src);
+void mov8byte2arg(cstring src);
 
-void call_enter(cstring);
-void call_exit();
+void function_enter(cstring);
+void function_exit();
+void function_call(cstring);
+
+std::string format_gas(cstring stmt);
+std::string generate_gas();
 
 
 #else
@@ -167,5 +188,7 @@ __export_c void function_return(char*);
 
 __export_c void g_function_imp();
 __export_c void g_function_over();
+__export_c void g_function_return();
+__export_c void print_gas();;
 
 #endif//__syntax_h__

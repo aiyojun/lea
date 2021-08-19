@@ -15,6 +15,7 @@ int main(int argc, char **argv)
     if (argc >= 3){
         strcpy(output_file, argv[2]);
         outputFile = std::string(output_file);
+        file_writer::out = std::string(output_file);
         yyin = fopen(argv[1], "r");
     } else if (argc == 2) {
         yyin = fopen(argv[1], "r");

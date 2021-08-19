@@ -113,8 +113,20 @@ void function_type(int usage) {
     factor::function.usage = usage; // 5: function declare + implement
 }
 
-void g_function_imp() {call_enter(factor::function.name);}
-void g_function_over() {call_exit();}
+void g_function_imp() {function_enter(factor::function.name);}
+void g_function_return() {
+    factor& fa = factor::deep_stack[factor::value_deep][0];
+    if (fa.usage==2&&fa.type=="int") {
+        mov4byte(rt(atoi(fa.value.c_str())), r4("a"));
+    } else if (fa.usage==2&&fa.type=="string") {
+        mov8byte(ptr(declare_ro_data("string", fa.value)), r8("a"));
+    } else if (fa.usage==2&&fa.type=="char") {
+        mov8byte(rt((int) fa.value[0]), r4("a"));
+    } else {
+        yyerror("unimplemented");
+    }
+}
+void g_function_over() {function_exit();}
 
 void function_push_args_type(char* type) {
     factor::function.args_sign.emplace_back(std::string(type));
@@ -253,7 +265,6 @@ void heap_var() {
 
 void heap_inv() {
     factor fa(factor::name_tmp, 1);
-
     // TODO: query symbol table to get type sign
     factor::invoke_stack[factor::value_deep] = fa;
     factor::deep_stack[factor::value_deep].emplace_back(fa);
@@ -265,19 +276,40 @@ void heap_inv() {
 void heap_inv2() {
     factor::name_tmp = factor::name_tmp2;
 //    debug_printf("## -> %d\n", factor::value_deep);
-    factor fa(factor::name_tmp2, 1);
-    // TODO: query symbol table to get type sign
-    factor::invoke_stack[factor::value_deep] = fa;
-    factor::deep_stack[factor::value_deep].emplace_back(fa);
-    heap_print();
+//    factor fa(factor::name_tmp2, 1);
+//    // TODO: query symbol table to get type sign
+//    factor::invoke_stack[factor::value_deep] = fa;
+//    factor::deep_stack[factor::value_deep].emplace_back(fa);
+//    heap_print();
+    heap_inv();
 }
 
 void heap_inv_exe() {
     std::vector<factor>& stack_p = factor::deep_stack[factor::value_deep];
     factor& fun = factor::invoke_stack[factor::value_deep-1];
     debug_printf("** exec fun: %s ; deep: %d ; args: %d\n", fun.name.c_str(), factor::value_deep, fun.args_size);
-
-
+//    int hasDouble = 0;
+    for (int i = 0; i < fun.args_size; i++) {
+        unsigned int j = stack_p.size() - (fun.args_size - i);
+        factor p = stack_p[j];
+        if (p.usage == 2) {
+            args_clear();
+            if (p.type == "double") {
+                mov2xmm(declare_ro_data("double", p.value));
+            } else if (p.type == "string") {
+                mov8byte2arg(ptr(declare_ro_data("string", p.value)));
+            } else if (p.type == "int") {
+                mov4byte2arg(rt(atoi(p.value.c_str())));
+            } else if (p.type == "char") {
+                mov4byte2arg(rt((int) p.value[0]));
+            } else {
+                yyerror("unsupported type at present.");
+            }
+        } else {
+            yyerror("non-support now.");
+        }
+    }
+    function_call(fun.name);
 
     for (int i = 0; i < fun.args_size; i++) {
         stack_p.pop_back();
