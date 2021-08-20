@@ -17,7 +17,6 @@ add_executable(lea
         val.cpp
         gas.cpp
         boo.cpp
-        syntax.cpp
         )
 
 target_link_libraries(lea c stdc++)

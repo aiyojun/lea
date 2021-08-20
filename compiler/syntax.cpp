@@ -266,7 +266,7 @@ void as_invoke() {
 
 // #define A(x) asm_text_s.emplace_back(x)
 
-void printf_empty(const char *__restrict __format, ...) {}
+
 
 std::string record_scope() {
     std::string record;

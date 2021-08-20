@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "syntax.h"
+#include "grammar.h"
+
+int lealine = 1;
 
 void yyerror(const char* s)
 {
@@ -9,12 +11,14 @@ void yyerror(const char* s)
     exit(1);
 }
 
+void printf_empty(const char *__restrict __format, ...) {}
+
 int main(int argc, char **argv)
 {
     char output_file[512];
     if (argc >= 3){
         strcpy(output_file, argv[2]);
-        outputFile = std::string(output_file);
+//        outputFile = std::string(output_file);
         file_writer::out = std::string(output_file);
         yyin = fopen(argv[1], "r");
     } else if (argc == 2) {
