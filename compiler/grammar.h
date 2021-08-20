@@ -9,11 +9,14 @@
 /**
  * Just prepared for C++!
  */
+#include <vector>
 #include <string>
 #include <fstream>
 
 /** assemble instruction generation */
 typedef const std::string& cstring;
+
+std::string join(cstring c, const std::vector<std::string>& v);
 
 class file_writer {
 public:
@@ -35,6 +38,7 @@ std::string r8(cstring r);  // 8 bytes => long/double/pointer
 std::string rx4(int r);  // 8 bytes => long/double/pointer
 std::string rx8(int r);  // 8 bytes => long/double/pointer
 std::string declare_ro_data(cstring type, cstring v);
+
 void double2stack(cstring ro_, int i);
 void ptr2stack(cstring ro_, int i);
 void int2stack(int x, int i);
@@ -122,8 +126,16 @@ __export_c void print_gas();
 __export_c void tree_init();
 __export_c void tree_release();
 __export_c void tree_append(int);
+__export_c void tree_node_append(int);
 __export_c void tree_print();
 __export_c void bo_deep_inc();
 __export_c void bo_deep_dec();
+
+__export_c void tree_node_stack_push(char*, char*, char*);
+
+__export_c void paren_deep_inc();
+__export_c void paren_deep_dec();
+__export_c void paren_push(char* prefix, char* value, char* type);
+__export_c void paren_pop();
 
 #endif//__grammar_h__

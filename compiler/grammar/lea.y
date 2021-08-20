@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "syntax.h"
+#include "grammar.h"
 %}
 
 %union {
@@ -236,7 +236,7 @@ returnType:
 // --------------------------------------------
 stateIfDefine:
   stateIf
-| stateIf KW_ELSE codeBlockDefine {printf("## 03\n");}
+| stateIf KW_ELSE codeBlockDefine {}
 stateIf:
   stateIf KW_ELSE KW_IF LPAREN {tree_init();} leaVal RPAREN {tree_print();} codeBlockDefine {}
 | KW_IF LPAREN {tree_init();} leaVal RPAREN {tree_print();} codeBlockDefine {}
@@ -271,7 +271,9 @@ stateCaseTail: codeBlockDefine | leaVal ending;
 // --------------------------------------------
 // define code block
 // --------------------------------------------
-codeBlockDefine: BLOCK_BEGIN codeBlockLoop BLOCK_END;
+codeBlockDefine:
+  BLOCK_BEGIN BLOCK_END
+| BLOCK_BEGIN codeBlockLoop BLOCK_END;
 codeBlockLoop: codeBlockLoop realV2 | realV2;
 realV2: 
   ending
@@ -338,11 +340,11 @@ leaInvOptions:
 // --------------------------------------------
 leaVal: booOrExp {tree_release();};
 booOrExp:
-  booOrExp OR {printf("#or\n");} booAndExp {}
+  booOrExp OR {tree_node_stack_push("", "||", "operator");} booAndExp {}
 | booAndExp {}
 ;
 booAndExp:
-  booAndExp AND {printf("#and\n");} booExpNot {}
+  booAndExp AND {tree_node_stack_push("", "&&", "operator");} booExpNot {}
 | booExpNot {}
 ;
 //leaVal: booExp;
@@ -353,21 +355,21 @@ booAndExp:
 //;
 booExpNot:
   booAtom              {tree_append(4);}
-| NOT booAtom          {comp_not();}
+| NOT {tree_node_stack_push("", "!", "operator");} booAtom          {comp_not();}
 ;
 booAtom:
   calExp
-| calExp LT calExp     {comp_lt();}
-| calExp GT calExp     {comp_gt();}
-| calExp LE calExp     {comp_lte();}
-| calExp GE calExp     {comp_gte();}
-| calExp EQ calExp     {comp_eq();}
-| calExp NE calExp     {comp_ne();}
+| calExp LT {tree_node_stack_push("", "<", "operator");} calExp     {comp_lt();}
+| calExp GT {tree_node_stack_push("", ">", "operator");} calExp     {comp_gt();}
+| calExp LE {tree_node_stack_push("", "<=", "operator");} calExp     {comp_lte();}
+| calExp GE {tree_node_stack_push("", ">=", "operator");} calExp     {comp_gte();}
+| calExp EQ {tree_node_stack_push("", "==", "operator");} calExp     {comp_eq();}
+| calExp NE {tree_node_stack_push("", "!=", "operator");} calExp     {comp_ne();}
 | booBas
 ;
 booBas: 
-  KW_TRUE              {heap_value("", "1", "bool");}
-| KW_FALSE             {heap_value("", "0", "bool");}
+  KW_TRUE              {heap_value("", "1", "bool"); tree_node_stack_push("", "true", "bool");}
+| KW_FALSE             {heap_value("", "0", "bool"); tree_node_stack_push("", "false", "bool");}
 ;
 // --------------------------------------------
 
@@ -376,24 +378,35 @@ booBas:
 // --------------------------------------------
 calExp:
   calExpPro
-| calExp OP_ADD calExpPro {calc_add();}
-| calExp OP_SUB calExpPro {calc_sub();}
+| calExp OP_ADD {tree_node_stack_push("", "+", "operator");} calExpPro {calc_add();}
+| calExp OP_SUB {tree_node_stack_push("", "-", "operator");} calExpPro {calc_sub();}
 ;
 
 calExpPro:
   calExpAtom
-| calExpPro OP_MUL calExpAtom {calc_mul();}
-| calExpPro OP_DIV calExpAtom {calc_div();}
+| calExpPro OP_MUL {tree_node_stack_push("", "*", "operator");} calExpAtom {calc_mul();}
+| calExpPro OP_DIV {tree_node_stack_push("", "/", "operator");} calExpAtom {calc_div();}
 ;
 
 calExpAtom:
-  LPAREN {printf("(\n");bo_deep_inc();tree_append(3);} booOrExp RPAREN {printf(")\n");bo_deep_dec();}
-| OP_SUB INTEGER {heap_value("-", $2, "int");}
-| OP_SUB DOUBLE  {heap_value("-", $2, "double");}
-| INTEGER        {heap_value("", $1, "int");}
-| DOUBLE         {heap_value("", $1, "double");}
-| CHAR           {heap_value("", $1, "char");}
-| STRING         {heap_value("", $1, "string");}
+  LPAREN {
+    bo_deep_inc();
+    tree_append(3);
+    paren_deep_inc();
+//    tree_node_stack_push("", "(", "");
+  }
+  booOrExp RPAREN {
+    bo_deep_dec();
+    paren_pop();
+    paren_deep_dec();
+//    tree_node_stack_push("", ")", "");
+  }
+| OP_SUB INTEGER {heap_value("-", $2, "int");    tree_node_stack_push("-", $2, "int");}
+| OP_SUB DOUBLE  {heap_value("-", $2, "double"); tree_node_stack_push("-", $2, "double");}
+| INTEGER        {heap_value("", $1, "int");     tree_node_stack_push("", $1, "int");}
+| DOUBLE         {heap_value("", $1, "double");  tree_node_stack_push("", $1, "double");}
+| CHAR           {heap_value("", $1, "char");    tree_node_stack_push("", $1, "char");}
+| STRING         {heap_value("", $1, "string");  tree_node_stack_push("", $1, "string");}
 | leaVai
 ;
 // --------------------------------------------
