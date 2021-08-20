@@ -189,6 +189,15 @@ __export_c void function_return(char*);
 __export_c void g_function_imp();
 __export_c void g_function_over();
 __export_c void g_function_return();
-__export_c void print_gas();;
+__export_c void print_gas();
+
+__export_c void tree_init();
+__export_c void tree_release();
+__export_c void tree_append_occupy();
+__export_c void tree_append_brother();
+__export_c void tree_print();
+__export_c void bo_deep_inc();
+__export_c void bo_deep_dec();
+__export_c void tree_append(int);
 
 #endif//__syntax_h__

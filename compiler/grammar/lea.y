@@ -238,8 +238,8 @@ stateIfDefine:
   stateIf
 | stateIf KW_ELSE codeBlockDefine {printf("## 03\n");}
 stateIf:
-  stateIf KW_ELSE KW_IF LPAREN leaVal RPAREN codeBlockDefine {printf("## 02\n");}
-| KW_IF LPAREN leaVal RPAREN codeBlockDefine {printf("## 01\n");}
+  stateIf KW_ELSE KW_IF LPAREN {tree_init();} leaVal RPAREN {tree_print();} codeBlockDefine {}
+| KW_IF LPAREN {tree_init();} leaVal RPAREN {tree_print();} codeBlockDefine {}
 ;
 // --------------------------------------------
 
@@ -328,22 +328,31 @@ leaInv:
 | leaInvOptions RPAREN       {heap_inv_validate();heap_inv_exe();heap_deep_dec();}
 ;
 leaInvOptions:
-  leaInvOptions COMMA {heap_inv_args_inc();} booExp
-| booExp                     {heap_inv_args_inc();}
+  leaInvOptions COMMA {heap_inv_args_inc();} booOrExp
+| booOrExp                   {heap_inv_args_inc();}
 ;
 // --------------------------------------------
 
 // --------------------------------------------
 // define bool expression
 // --------------------------------------------
-leaVal: booExp;
-booExp:
-  booExpNot
-| booExp AND booExpNot {comp_and();}
-| booExp OR  booExpNot {comp_or();}
+leaVal: booOrExp {tree_release();};
+booOrExp:
+  booOrExp OR {printf("#or\n");} booAndExp {}
+| booAndExp {}
 ;
+booAndExp:
+  booAndExp AND {printf("#and\n");} booExpNot {}
+| booExpNot {}
+;
+//leaVal: booExp;
+//booExp:
+//  booExpNot
+//| booExp AND booExpNot {comp_and();}
+//| booExp OR  booExpNot {comp_or();}
+//;
 booExpNot:
-  booAtom
+  booAtom              {tree_append(4);}
 | NOT booAtom          {comp_not();}
 ;
 booAtom:
@@ -378,7 +387,7 @@ calExpPro:
 ;
 
 calExpAtom:
-  LPAREN booExp RPAREN
+  LPAREN {printf("(\n");bo_deep_inc();tree_append(3);} booOrExp RPAREN {printf(")\n");bo_deep_dec();}
 | OP_SUB INTEGER {heap_value("-", $2, "int");}
 | OP_SUB DOUBLE  {heap_value("-", $2, "double");}
 | INTEGER        {heap_value("", $1, "int");}

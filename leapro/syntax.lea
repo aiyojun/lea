@@ -42,9 +42,7 @@ def main: int {
 	//x = 12;
 	//add_x()
 	//printf("hello lea! %d\n", 2);
-	if (0) {
-        x: int = 1;
-	} else {
+	if (12 > 23 && 12 != 23) {
 
 	}
 	return 0;
