@@ -8,6 +8,12 @@ execute_process(COMMAND mkdir -p ${EXECUTABLE_OUTPUT_PATH}/build)
 execute_process(COMMAND flex -o ${EXECUTABLE_OUTPUT_PATH}/build/lex.yy.c ${EXECUTABLE_OUTPUT_PATH}/grammar/lea.l)
 execute_process(COMMAND bison -o ${EXECUTABLE_OUTPUT_PATH}/build/lea.tab.c -d ${EXECUTABLE_OUTPUT_PATH}/grammar/lea.y -v)
 
+#add_custom_command(TARGET
+#        PRE_BUILD
+#        COMMAND flex -o ${EXECUTABLE_OUTPUT_PATH}/build/lex.yy.c ${EXECUTABLE_OUTPUT_PATH}/grammar/lea.l
+#        COMMAND bison -o ${EXECUTABLE_OUTPUT_PATH}/build/lea.tab.c -d ${EXECUTABLE_OUTPUT_PATH}/grammar/lea.y -v
+#        )
+
 include_directories(${EXECUTABLE_OUTPUT_PATH}/)
 
 add_executable(lea
