@@ -10,13 +10,13 @@
 #include <map>
 #include <iostream>
 
-bool find(const std::vector<std::string>& vec, cstring s) {
-//    std::find_if(vec.begin(), vec.end(), s);
-    for (cstring ss : vec) {
-        if (ss == s) return true;
-    }
-    return false;
-}
+//bool find(const std::vector<std::string>& vec, cstring s) {
+////    std::find_if(vec.begin(), vec.end(), s);
+//    for (cstring ss : vec) {
+//        if (ss == s) return true;
+//    }
+//    return false;
+//}
 
 class Atom {
 public:
@@ -52,8 +52,8 @@ bool boo_node::paren_is_boo = false;
 int boo_node::paren_just_deep = 0;
 std::map<int, std::vector<std::string>> boo_node::paren_stacks;
 
-void paren_deep_inc() {boo_node::paren_just_deep++;}
-void paren_deep_dec() {
+void paren_deep_inc() {debug_printf("paren_deep_inc\n");boo_node::paren_just_deep++;}
+void paren_deep_dec() {debug_printf("paren_deep_dec\n");
     printf("has"); for (auto& ps : boo_node::paren_stacks) { printf(" ; %d", ps.first);} printf("\n");
     if (boo_node::paren_stacks.find(boo_node::paren_just_deep) != boo_node::paren_stacks.end()) {
         printf("%d => ", boo_node::paren_just_deep);
@@ -65,7 +65,7 @@ void paren_deep_dec() {
     }
     boo_node::paren_just_deep--;
 }
-void paren_push(char* prefix, char* value, char* type) {
+void paren_push(char* prefix, char* value, char* type) {debug_printf("paren_push\n");
     if (boo_node::paren_just_deep <= 0) {return;}
     if (boo_node::paren_stacks.find(boo_node::paren_just_deep) == boo_node::paren_stacks.end()) {
         boo_node::paren_stacks[boo_node::paren_just_deep] = std::vector<std::string>();
@@ -74,7 +74,7 @@ void paren_push(char* prefix, char* value, char* type) {
         boo_node::paren_stacks[boo_node::paren_just_deep].emplace_back(std::string(prefix) + value);
     }
 }
-void paren_pop() {
+void paren_pop() {debug_printf("paren_pop\n");
     if (boo_node::paren_just_deep == 0) {return;}
     std::vector<std::string>& stack = boo_node::paren_stacks[boo_node::paren_just_deep];
     if (std::find(stack.begin(), stack.end(), "&&") == stack.end() &&
@@ -116,12 +116,12 @@ void tree_release() {
     printf("tree release\n");
 }
 
-void tree_node_append(int t) {
+void tree_node_append(int t) {debug_printf("tree_node_append\n");
     tree_append(t);
 }
 
-void tree_append(int t) {
-    if (boo_node::paren_open) {boo_node::paren_open = false; return;}
+void tree_append(int t) {debug_printf("tree_append\n");
+    if (boo_node::paren_open) {boo_node::paren_open = false; debug_printf("tree_append 01\n");return;}
     if (t != 3 && t != 4) throw std::runtime_error("type error");
     boo_node* ptr = new boo_node;
     ptr->type = t;
@@ -155,6 +155,7 @@ void tree_append(int t) {
         throw std::runtime_error("wrapper error");
     }
     boo_node::ptr = ptr;
+    debug_printf("tree_append end\n");
 }
 //std::map<boo_node*, int> printed;
 void _print(boo_node* ptr) {
@@ -244,6 +245,7 @@ void write_into_block(char ptr[5][15], cstring data) {
 void out_into_frame() {
     if (x_node_max_n * x_len + (x_node_max_n - 1) * x_gap > 800) throw std::runtime_error("[frame] x > edge");
     if (y_node_max_n * y_len + (y_node_max_n - 1) * y_gap > 800) throw std::runtime_error("[frame] y > edge");
+
 
 
 }

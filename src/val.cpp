@@ -9,7 +9,7 @@
 #include <exception>
 #include <map>
 
-#define debug_printf printf_empty
+
 
 using cstring=const std::string&;
 
@@ -318,14 +318,16 @@ void heap_inv_exe() {
 }
 
 void heap_inv_args_inc() {
+    printf("-- -- 01\n");
     factor::invoke_stack[factor::value_deep-1].args_size++;
 }
 
 void heap_value(char* prefix, char* value, char* type) {
-//    debug_printf("--01 deep: %d\n", factor::value_deep);
+    debug_printf("--01 deep: %d\n", factor::value_deep);
     factor::deep_stack[factor::value_deep]
         .emplace_back(factor(std::string(prefix)+std::string(value),std::string(type)));
     heap_print();
+    debug_printf("--00\n");
 }
 
 void heap_deep_inc() {factor::value_deep++;}

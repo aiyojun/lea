@@ -109,9 +109,6 @@ real:
 | commentDefine
 | FIELD {val_register2($1);} variableMany {stack_clear();}
 | functionDefine
-//| stateIfDefine
-//| stateForDefine
-//| codeBlockDefine {}
 ;
 
 variableMany:
@@ -255,17 +252,17 @@ stateForUpdate: RPAREN | variableAssign RPAREN;
 // --------------------------------------------
 // define match-case
 // --------------------------------------------
-stateMatchDefine: variableName KW_MATCH stateMatchBlock;
-stateMatchBlock: BLOCK_BEGIN stateCase;
-stateCase:
-  wordCase KW__ ARROW stateCaseTail stateCaseLoop
-| wordCase basicType ARROW stateCaseTail stateCaseLoop
-| wordCase leaVal ARROW stateCaseTail stateCaseLoop
-| ending stateCaseLoop
-;
-stateCaseLoop: stateCase | BLOCK_END;
-wordCase: KW_CASE;
-stateCaseTail: codeBlockDefine | leaVal ending;
+//stateMatchDefine: variableName KW_MATCH stateMatchBlock;
+//stateMatchBlock: BLOCK_BEGIN stateCase;
+//stateCase:
+//  wordCase KW__ ARROW stateCaseTail stateCaseLoop
+//| wordCase basicType ARROW stateCaseTail stateCaseLoop
+//| wordCase leaVal ARROW stateCaseTail stateCaseLoop
+//| ending stateCaseLoop
+//;
+//stateCaseLoop: stateCase | BLOCK_END;
+//wordCase: KW_CASE;
+//stateCaseTail: codeBlockDefine | leaVal ending;
 // --------------------------------------------
 
 // --------------------------------------------
@@ -299,19 +296,8 @@ variableManyV2:
     variable_assign_v2();
   }
 | LPAREN {heap_inv2();heap_deep_inc();} leaInv
-//| LPAREN {invoking_register();} invokeArgsDefine {
-//    invoking_exe();
-//  }
-| KW_MATCH {} stateMatchBlock
+//| KW_MATCH {} stateMatchBlock
 ;
-//invokeArgsDefine:
-//  RPAREN
-//| invokeArgsLoop RPAREN
-//;
-//invokeArgsLoop:
-//  invokeArgsLoop COMMA leaVal {}
-//| leaVal                      {}
-//;
 // --------------------------------------------
 
 
@@ -347,14 +333,8 @@ booAndExp:
   booAndExp AND {tree_node_stack_push("", "&&", "operator");} booExpNot {}
 | booExpNot {}
 ;
-//leaVal: booExp;
-//booExp:
-//  booExpNot
-//| booExp AND booExpNot {comp_and();}
-//| booExp OR  booExpNot {comp_or();}
-//;
 booExpNot:
-  booAtom              {tree_append(4);}
+  booAtom              {/*tree_append(4);*/}
 | NOT {tree_node_stack_push("", "!", "operator");} booAtom          {comp_not();}
 ;
 booAtom:
@@ -391,15 +371,13 @@ calExpPro:
 calExpAtom:
   LPAREN {
     bo_deep_inc();
-    tree_append(3);
+//    tree_append(3);
     paren_deep_inc();
-//    tree_node_stack_push("", "(", "");
   }
   booOrExp RPAREN {
     bo_deep_dec();
     paren_pop();
     paren_deep_dec();
-//    tree_node_stack_push("", ")", "");
   }
 | OP_SUB INTEGER {heap_value("-", $2, "int");    tree_node_stack_push("-", $2, "int");}
 | OP_SUB DOUBLE  {heap_value("-", $2, "double"); tree_node_stack_push("-", $2, "double");}
@@ -414,7 +392,7 @@ calExpAtom:
 // --------------------------------------------
 // common definition
 // --------------------------------------------
-basicType: KW_BYTE | KW_CHAR | KW_INT | KW_BOOL | KW_DOUBLE | KW_STRING;
+//basicType: KW_BYTE | KW_CHAR | KW_INT | KW_BOOL | KW_DOUBLE | KW_STRING;
 ending: SEMI | NEWLINE;
 // --------------------------------------------
 

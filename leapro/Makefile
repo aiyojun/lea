@@ -1,5 +1,5 @@
 ASM        =as
-LEA        =../compiler/lea
+LEA        =../lea
 
 all: run
 

@@ -1,6 +1,5 @@
 def printf: void;
 
-def main: int {
+def main {
     printf("Hello lea! %d ~\n", 3)
-    return 0;
 }
