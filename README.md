@@ -19,10 +19,3 @@ If the compiler/interpreter program is finished, I will update the abstract of t
 **08.10.2021 update** Now, you can compile the simple "lea" program - main.lea.
 
 **08.22.2021 update** Added assemble language generating. And replaced makefile by cmake.
-
-```shell
-cd compiler   # enter lea compiler directory
-make          # build parsing program - lea
-cd ../leapro  # enter lea project directory
-make          # build & run main.lea
-```
