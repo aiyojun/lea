@@ -7,7 +7,9 @@ int lealine = 1;
 
 void yyerror(const char* s)
 {
-    printf("\033[31;1mGrammar error : %s; line : %d.\033[0m\n", s, lealine);
+    char buf[512];
+    get_expects_back(0, buf);
+    printf("\033[31;1mGrammar error : %s; Token : %s; Line : %d.\033[0m\n", s, buf, lealine);
     exit(1);
 }
 

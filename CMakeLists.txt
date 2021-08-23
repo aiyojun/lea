@@ -52,6 +52,8 @@ add_executable(
         src/val.cpp
         src/gas.cpp
         src/boo.cpp
+        src/tree.cpp
+        src/parsing.cpp
 )
 
 target_link_libraries(lea c stdc++)

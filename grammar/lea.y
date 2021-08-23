@@ -15,10 +15,10 @@
     char* ycOther;
 }
 
-%token KW_EOF
-%token COMMENT_SINGLE
-%token COMMENT_BEGIN
-%token COMMENT_END
+%token <ycText> KW_EOF
+%token <ycText> COMMENT_SINGLE
+%token <ycText> COMMENT_BEGIN
+%token <ycText> COMMENT_END
 
 %token <ycText> KW_VOID
 %token <ycText> KW_BYTE
@@ -28,41 +28,41 @@
 %token <ycText> KW_DOUBLE
 %token <ycText> KW_BOOL
 
-%token KW_IF
-%token KW_ELSE
-%token KW_FOR
-%token KW_WHILE
-%token KW_MATCH
-%token KW_CASE
-%token KW__
-%token KW_CLASS
-%token KW_STRUCT
+%token <ycText> KW_IF
+%token <ycText> KW_ELSE
+%token <ycText> KW_FOR
+%token <ycText> KW_WHILE
+%token <ycText> KW_MATCH
+%token <ycText> KW_CASE
+%token <ycText> KW__
+%token <ycText> KW_CLASS
+%token <ycText> KW_STRUCT
 %token <ycText> KW_DEF
 %token <ycText> KW_RETURN
 
-%token EQ
-%token NE
-%token GT
-%token GE
-%token LT
-%token LE
-%token OR
-%token AND
-%token NOT
+%token <ycText> EQ
+%token <ycText> NE
+%token <ycText> GT
+%token <ycText> GE
+%token <ycText> LT
+%token <ycText> LE
+%token <ycText> OR
+%token <ycText> AND
+%token <ycText> NOT
 %token <ycText> KW_TRUE
 %token <ycText> KW_FALSE
 
-%token ARROW
-%token ASSIGN
-%token LPAREN
-%token RPAREN
-%token DOT
-%token COMMA
-%token COLON
-%token SEMI
-%token NEWLINE
-%token BLOCK_BEGIN
-%token BLOCK_END
+%token <ycText> ARROW
+%token <ycText> ASSIGN
+%token <ycText> LPAREN
+%token <ycText> RPAREN
+%token <ycText> DOT
+%token <ycText> COMMA
+%token <ycText> COLON
+%token <ycText> SEMI
+%token <ycText> NEWLINE
+%token <ycText> BLOCK_BEGIN
+%token <ycText> BLOCK_END
 
 %token <ycText> FIELD
 %token <ycText> STRING
@@ -70,11 +70,11 @@
 %token <ycText> INTEGER
 %token <ycText> DOUBLE
 
-%token OP_ADD
-%token OP_SUB
-%token OP_MUL
-%token OP_DIV
-%token OP_MOD
+%token <ycText> OP_ADD
+%token <ycText> OP_SUB
+%token <ycText> OP_MUL
+%token <ycText> OP_DIV
+%token <ycText> OP_MOD
 
 %type <ycText> basicTypeX0
 %type <ycText> variableName
@@ -235,8 +235,8 @@ stateIfDefine:
   stateIf
 | stateIf KW_ELSE codeBlockDefine {}
 stateIf:
-  stateIf KW_ELSE KW_IF LPAREN {tree_init();} leaVal RPAREN {tree_print();} codeBlockDefine {}
-| KW_IF LPAREN {tree_init();} leaVal RPAREN {tree_print();} codeBlockDefine {}
+  stateIf KW_ELSE KW_IF LPAREN {} leaVal RPAREN {} codeBlockDefine {}
+| KW_IF LPAREN {} leaVal RPAREN {} codeBlockDefine {}
 ;
 // --------------------------------------------
 
@@ -306,14 +306,14 @@ variableManyV2:
 // --------------------------------------------
 // represent variable/function-invoking
 leaVai:
-  leaVar                     {heap_var_validate();heap_var();}
-| leaVar LPAREN {heap_inv();heap_deep_inc();} leaInv
+  leaVar                     {heap_var_validate();heap_var();heap_variable();}
+| leaVar LPAREN {heap_inv();heap_deep_inc();heap_invoking();invoking_deep_inc();} leaInv
 ;
-leaVar: FIELD                {val_register($1);}
+leaVar: FIELD                {val_register($1);heap_register($1);}
 ;
 leaInv:
-  RPAREN                     {heap_inv_validate();heap_inv_exe();heap_deep_dec();}
-| leaInvOptions RPAREN       {heap_inv_validate();heap_inv_exe();heap_deep_dec();}
+  RPAREN                     {heap_inv_validate();heap_inv_exe();heap_deep_dec();invoking_deep_dec();}
+| leaInvOptions RPAREN       {heap_inv_validate();heap_inv_exe();heap_deep_dec();heap_invoking_args_link();invoking_deep_dec();}
 ;
 leaInvOptions:
   leaInvOptions COMMA {heap_inv_args_inc();} booOrExp
@@ -324,32 +324,32 @@ leaInvOptions:
 // --------------------------------------------
 // define bool expression
 // --------------------------------------------
-leaVal: booOrExp {tree_release();};
+leaVal: booOrExp {tree_node_deep_assign(); tree_node_print();/*tree_node_modify(); tree_node_print();*/};
 booOrExp:
-  booOrExp OR {tree_node_stack_push("", "||", "operator");} booAndExp {}
+  booOrExp OR {} booAndExp { tree_node_link("||");}
 | booAndExp {}
 ;
 booAndExp:
-  booAndExp AND {tree_node_stack_push("", "&&", "operator");} booExpNot {}
+  booAndExp AND {} booExpNot { tree_node_link("&&");}
 | booExpNot {}
 ;
 booExpNot:
   booAtom              {/*tree_append(4);*/}
-| NOT {tree_node_stack_push("", "!", "operator");} booAtom          {comp_not();}
+| NOT {} booAtom          {comp_not(); tree_node_link("!");}
 ;
 booAtom:
   calExp
-| calExp LT {tree_node_stack_push("", "<", "operator");} calExp     {comp_lt();}
-| calExp GT {tree_node_stack_push("", ">", "operator");} calExp     {comp_gt();}
-| calExp LE {tree_node_stack_push("", "<=", "operator");} calExp     {comp_lte();}
-| calExp GE {tree_node_stack_push("", ">=", "operator");} calExp     {comp_gte();}
-| calExp EQ {tree_node_stack_push("", "==", "operator");} calExp     {comp_eq();}
-| calExp NE {tree_node_stack_push("", "!=", "operator");} calExp     {comp_ne();}
+| calExp LT {} calExp     {comp_lt(); tree_node_link("<");}
+| calExp GT {} calExp     {comp_gt(); tree_node_link(">");}
+| calExp LE {} calExp     {comp_lte(); tree_node_link("<=");}
+| calExp GE {} calExp     {comp_gte(); tree_node_link(">=");}
+| calExp EQ {} calExp     {comp_eq(); tree_node_link("==");}
+| calExp NE {} calExp     {comp_ne(); tree_node_link("!=");}
 | booBas
 ;
 booBas: 
-  KW_TRUE              {heap_value("", "1", "bool"); tree_node_stack_push("", "true", "bool");}
-| KW_FALSE             {heap_value("", "0", "bool"); tree_node_stack_push("", "false", "bool");}
+  KW_TRUE              {heap_value("", "1", "bool"); tree_node_create("", "true", "bool");}
+| KW_FALSE             {heap_value("", "0", "bool"); tree_node_create("", "false", "bool");}
 ;
 // --------------------------------------------
 
@@ -358,33 +358,36 @@ booBas:
 // --------------------------------------------
 calExp:
   calExpPro
-| calExp OP_ADD {tree_node_stack_push("", "+", "operator");} calExpPro {calc_add();}
-| calExp OP_SUB {tree_node_stack_push("", "-", "operator");} calExpPro {calc_sub();}
+| calExp OP_ADD {} calExpPro {calc_add(); tree_node_link("+");}
+| calExp OP_SUB {} calExpPro {calc_sub(); tree_node_link("-");}
 ;
 
 calExpPro:
   calExpAtom
-| calExpPro OP_MUL {tree_node_stack_push("", "*", "operator");} calExpAtom {calc_mul();}
-| calExpPro OP_DIV {tree_node_stack_push("", "/", "operator");} calExpAtom {calc_div();}
+| calExpPro OP_MUL {} calExpAtom {calc_mul(); tree_node_link("*");}
+| calExpPro OP_DIV {} calExpAtom {calc_div(); tree_node_link("/");}
 ;
 
 calExpAtom:
   LPAREN {
-    bo_deep_inc();
+//    bo_deep_inc();
 //    tree_append(3);
-    paren_deep_inc();
+//    paren_deep_inc();
+//    tree_node_create("", "(", "lparen");
   }
   booOrExp RPAREN {
-    bo_deep_dec();
-    paren_pop();
-    paren_deep_dec();
+//    bo_deep_dec();
+//    paren_pop();
+//    paren_deep_dec();
+//    tree_node_create("", ")", "rparen");
+    tree_node_link("()");
   }
-| OP_SUB INTEGER {heap_value("-", $2, "int");    tree_node_stack_push("-", $2, "int");}
-| OP_SUB DOUBLE  {heap_value("-", $2, "double"); tree_node_stack_push("-", $2, "double");}
-| INTEGER        {heap_value("", $1, "int");     tree_node_stack_push("", $1, "int");}
-| DOUBLE         {heap_value("", $1, "double");  tree_node_stack_push("", $1, "double");}
-| CHAR           {heap_value("", $1, "char");    tree_node_stack_push("", $1, "char");}
-| STRING         {heap_value("", $1, "string");  tree_node_stack_push("", $1, "string");}
+| OP_SUB INTEGER {heap_value("-", $2, "int");    tree_node_create("-", $2, "int");}
+| OP_SUB DOUBLE  {heap_value("-", $2, "double"); tree_node_create("-", $2, "double");}
+| INTEGER        {heap_value("", $1, "int");     tree_node_create("", $1, "int");}
+| DOUBLE         {heap_value("", $1, "double");  tree_node_create("", $1, "double");}
+| CHAR           {heap_value("", $1, "char");    tree_node_create("", $1, "char");}
+| STRING         {heap_value("", $1, "string");  tree_node_create("", $1, "string");}
 | leaVai
 ;
 // --------------------------------------------

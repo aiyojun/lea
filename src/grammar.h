@@ -12,8 +12,9 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <deque>
 
-#define debug_printf printf
+#define debug_printf printf_empty
 
 /** assemble instruction generation */
 typedef const std::string& cstring;
@@ -29,6 +30,15 @@ public:
 private:
     std::ofstream ostream;
 };
+
+class runtime {
+public:
+    static int size_of_expect;
+    static std::deque<std::string> expects;
+    typedef const std::deque<std::string>& exp_q;
+};
+
+runtime::exp_q get_expects();
 
 std::string ptr(cstring label);
 std::string rt(int i);  // right number
@@ -58,6 +68,8 @@ void function_call(cstring);
 
 std::string format_gas(cstring stmt);
 std::string generate_gas();
+
+// tree
 
 #else
 #  define __export_c
@@ -139,5 +151,22 @@ __export_c void paren_deep_inc();
 __export_c void paren_deep_dec();
 __export_c void paren_push(char* prefix, char* value, char* type);
 __export_c void paren_pop();
+
+/** tree version */
+__export_c void invoking_deep_inc();
+__export_c void invoking_deep_dec();
+__export_c void heap_register(char* fun);
+__export_c void heap_variable();
+__export_c void heap_invoking();
+__export_c void heap_invoking_args_link();
+__export_c void tree_node_create(char* prefix, char* value, char* type);
+__export_c void tree_node_link(char* op);
+
+__export_c void tree_node_deep_assign();
+__export_c void tree_node_print();
+__export_c void tree_node_modify();
+
+__export_c void get_expects_back(int i, char buf[]);
+__export_c void expects_push(char* token);;
 
 #endif//__grammar_h__
