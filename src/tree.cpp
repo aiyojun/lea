@@ -22,10 +22,10 @@ public:
 
     static int max_deep;
     static tree_node* root;
-    static std::vector<tree_node*> node_stack;
-    static std::vector<tree_node*> node_stack_trunk;
-    static std::vector<tree_node*> node_stack_leaves;
-    static std::vector<tree_node*> nodes;
+//    static std::vector<tree_node*> node_stack;
+//    static std::vector<tree_node*> node_stack_trunk;
+//    static std::vector<tree_node*> node_stack_leaves;
+//    static std::vector<tree_node*> nodes;
 
     static int invoking_deep;
     static std::map<int, tree_node*> invoking_stack_query;
@@ -37,15 +37,30 @@ public:
 int tree_node::id_count = 0;
 int tree_node::max_deep = 0;
 tree_node* tree_node::root;
-std::vector<tree_node*> tree_node::node_stack;
-std::vector<tree_node*> tree_node::node_stack_trunk;
-std::vector<tree_node*> tree_node::node_stack_leaves;
-std::vector<tree_node*> tree_node::nodes;
+//std::vector<tree_node*> tree_node::node_stack;
+//std::vector<tree_node*> tree_node::node_stack_trunk;
+//std::vector<tree_node*> tree_node::node_stack_leaves;
+//std::vector<tree_node*> tree_node::nodes;
 
 int tree_node::invoking_deep = 0;
 std::map<int, std::vector<tree_node*>> tree_node::invoking_stack;
 std::string tree_node::heap_register_name;
 std::vector<tree_node*> tree_node::all_nodes;
+
+void tree_clear() {
+    printf("tree_clear\n");
+    tree_node::id_count = 0;
+    tree_node::max_deep = 0;
+    tree_node::root = nullptr;
+//    tree_node::node_stack.clear();
+//    tree_node::node_stack_trunk.clear();
+//    tree_node::node_stack_leaves.clear();
+//    tree_node::nodes.clear();
+    tree_node::invoking_deep = 0;
+    tree_node::invoking_stack.clear();
+    tree_node::heap_register_name = "";
+    tree_node::all_nodes.clear();
+}
 
 void invoking_deep_inc() {tree_node::invoking_deep++;}
 void invoking_deep_dec() {tree_node::invoking_deep--;}
@@ -77,10 +92,15 @@ void heap_invoking() {
 void heap_invoking_args_link() {
     std::vector<tree_node*>& node_stack = tree_node::invoking_stack[tree_node::invoking_deep];
     tree_node* invoking_node = tree_node::invoking_stack[tree_node::invoking_deep - 1].back();
+//    printf("args size : %d\n", (int) node_stack.size());
     for (int i = 0; i < node_stack.size(); i++) {
         tree_node* ptr = node_stack[i];
         ptr->parent = invoking_node;
         invoking_node->children.emplace_back(ptr);
+//        printf("arg string : %s\n", ptr->data.c_str());
+//        node_stack.pop_back();
+    }
+    for (int i = 0; i < node_stack.size(); i++) {
         node_stack.pop_back();
     }
 }
@@ -88,7 +108,7 @@ void heap_invoking_args_link() {
 void tree_node_create(char* prefix, char* value, char* type) {
     std::vector<tree_node*>& node_stack = tree_node::invoking_stack[tree_node::invoking_deep];
 
-    printf("tree_node_create %s\n", value);
+//    printf("tree_node_create %s\n", value);
     tree_node* ptr = new tree_node();
     std::string val = std::string(prefix) + value;
     ptr->data = val;
@@ -153,7 +173,7 @@ void tree_node_link(char* op) {
 }
 
 void recursion_deep(tree_node* node, int depth) {
-    printf("recursion_deep\n");
+//    printf("recursion_deep\n");
     node->deep = depth;
     if (node->deep > tree_node::max_deep) {
         tree_node::max_deep = node->deep;
@@ -195,20 +215,20 @@ void tree_node_print() {
         printf("%2d ", dp);
         if (dp == 0) {
             tree_node* ptr = tree_node::root;
-            printf(" | %d:%d:%s", ptr->id, 0, ptr->data.c_str());
+            printf(" | %d:%d:%s\n", ptr->id, 0, ptr->data.c_str());
             continue;
-            if (tree_node::nodes.back()->deep == 0) {
-                tree_node* ptr = tree_node::nodes.back();
-                printf(" | %d:%d:%s", ptr->id, 0, ptr->data.c_str());
-            } else if (tree_node::nodes[0]->deep == 0) {
-                tree_node* ptr = tree_node::nodes[0];
-                printf(" | %d:%d:%s", ptr->id, 0, ptr->data.c_str());
-            } else {
-                throw std::runtime_error("tree node print error");
+//            if (tree_node::nodes.back()->deep == 0) {
+//                tree_node* ptr = tree_node::nodes.back();
+//                printf(" | %d:%d:%s", ptr->id, 0, ptr->data.c_str());
+//            } else if (tree_node::nodes[0]->deep == 0) {
+//                tree_node* ptr = tree_node::nodes[0];
+//                printf(" | %d:%d:%s", ptr->id, 0, ptr->data.c_str());
+//            } else {
+//                throw std::runtime_error("tree node print error");
 //                for (auto& ptr : tree_node::nodes) {
 //                    printf("#01 | %d:%d:%s", ptr->id, 0, ptr->data.c_str());
 //                }
-            }
+//            }
         } else {
             for (auto& ptr : tree_node::all_nodes) {
 //            for (auto& ptr : tree_node::nodes) {
@@ -222,7 +242,7 @@ void tree_node_print() {
     }
 }
 
-bool hasBool = true;
+//bool hasBool = true;
 
 bool without_boo(const std::vector<tree_node*>& vec, cstring sym) {
     for (auto& ptr : vec) {
@@ -276,22 +296,22 @@ void recursion_modify(tree_node* node) {
 }
 
 void tree_node_collect(tree_node* node) {
-    tree_node::nodes.emplace_back(node);
-    if (!node->children.empty()) {
-        for (auto& ptr : node->children) {
-            tree_node_collect(ptr);
-        }
-    }
+//    tree_node::nodes.emplace_back(node);
+//    if (!node->children.empty()) {
+//        for (auto& ptr : node->children) {
+//            tree_node_collect(ptr);
+//        }
+//    }
 }
 
 void tree_node_modify() {
-    printf("tree_node_modify\n");
-    recursion_modify(tree_node::root);
-    tree_node::nodes.clear();
-    tree_node_collect(tree_node::root);
-    tree_node::max_deep = 0;
-    recursion_deep(tree_node::root, 0);
-    printf("tree_node_modify over max deep : %d\n", tree_node::max_deep);
+//    printf("tree_node_modify\n");
+//    recursion_modify(tree_node::root);
+//    tree_node::nodes.clear();
+//    tree_node_collect(tree_node::root);
+//    tree_node::max_deep = 0;
+//    recursion_deep(tree_node::root, 0);
+//    printf("tree_node_modify over max deep : %d\n", tree_node::max_deep);
 //    exit(1);
 }
 

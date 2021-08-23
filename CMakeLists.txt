@@ -49,9 +49,9 @@ add_executable(
         build/lea.tab.c
         build/lex.yy.c
         src/compiler.cpp
-        src/val.cpp
+        src/value.cpp
         src/gas.cpp
-        src/boo.cpp
+#        src/boo.cpp
         src/tree.cpp
         src/parsing.cpp
 )
