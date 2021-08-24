@@ -170,4 +170,24 @@ __export_c void tree_analysis(int usage);
 __export_c void get_expects_back(int i, char buf[]);
 __export_c void expects_push(char* token);;
 
+
+/** a way to create life circle for helping parse yacc file */
+#define __opt
+#define __abs
+// def func (x: int) : void {}
+__abs void after_def();
+__abs void after_fun(char*);
+__opt void after_each_arg(char*);
+__opt void after_each_arg_type(char*);
+__opt void after_ret_type(char*);
+__opt void after_fun_begin();
+__abs void after_fun_end();
+// if (^)^ {} else if (^)^ {} else {}
+__abs void after_if();
+__abs void after_if_cdt();
+__opt void after_elif();
+__opt void after_elif_cdt();
+__opt void after_else();
+__abs void after_endif();
+
 #endif//__grammar_h__

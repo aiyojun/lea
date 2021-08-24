@@ -312,6 +312,7 @@ void tree_analysis(int usage) {
                     } else if (value_type == "double") {
                         mov2xmm(ptr_ip(declare_ro_data("double", value_r)));
                     } else if (value_type == "char") {
+                        printf("mov4byte2arg char : %c\n", value_r[1]);
                         mov4byte2arg(rt((int) value_r[1]));
                     } else if (value_type == "string") {
                         mov8byte2arg(ptr(declare_ro_data("string", value_r)));

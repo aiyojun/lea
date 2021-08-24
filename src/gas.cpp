@@ -1,6 +1,9 @@
 //
 // Created by Mr.Jun on 2021/8/18.
 //
+// 8.24.2021
+// I found a problem: Many of functions ware similar.
+// It's necessary to import namespace or other methods to package all the functions.
 
 #include "grammar.h"
 #include <stdio.h>
