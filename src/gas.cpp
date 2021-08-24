@@ -52,7 +52,6 @@ std::string quote(cstring s) {
 
 class gas {
 public:
-
     static std::vector<std::string> g_text;
     static std::vector<std::string> g_data;
     static std::vector<std::string> g_ro_data;
@@ -61,17 +60,26 @@ public:
     static int xmm_i;
     static int arg_i;
     static int g_branch_i;
+    static int bp_i;
+    static std::map<std::string, int> stack_i;
+    static std::map<std::string, std::string> data_g;
+    static std::map<std::string, std::string> bss_g;
 };
 int gas::allocate_ro_data = 0;
 int gas::xmm_i = 0;
 int gas::arg_i = 0;
 int gas::g_branch_i = 0;
+int gas::bp_i = 0;
 std::vector<std::string> gas::g_text{".text"};
 std::vector<std::string> gas::g_data{".data"};
 std::vector<std::string> gas::g_ro_data{".section .rodata"};
 std::vector<std::string> gas::arg_reg{"di", "si", "d", "c", "8", "9"};
+std::map<std::string, int> gas::stack_i;
+std::map<std::string, std::string> gas::data_g;
+std::map<std::string, std::string> gas::bss_g;
 
 std::string ptr(cstring label) {return "$"+label;}
+std::string ptr_ip(cstring label) {return label+"(%rip)";}
 std::string rt(int i) {return "$"+std::to_string(i);}
 std::string st(int i) {return "-"+std::to_string(i)+"(%rbp)";}
 std::string r1(cstring r) {return  "%"+r+"l";}
@@ -113,6 +121,31 @@ std::string declare_data(cstring type, cstring label, cstring v) {
     return label;
 }
 
+/**
+ * declare variable in stack
+ */
+void g_stack_clear(){gas::bp_i=0;gas::stack_i.clear();}
+int g_stack_address(cstring name) {
+    if (gas::stack_i.find(name) != gas::stack_i.end()) {
+        return gas::stack_i[name];
+    }
+    throw std::runtime_error("no " + name + " in stack");
+}
+void stack4bytes(cstring name, cstring src) {
+    gas::bp_i+=4;
+    gas::g_text.emplace_back("movl "+src+","+st(gas::bp_i));
+    gas::stack_i[name] = gas::bp_i;
+}
+void stack8bytes(cstring name, cstring src) {
+    gas::bp_i+=8;
+    gas::g_text.emplace_back("movl "+src+","+st(gas::bp_i));
+    gas::stack_i[name] = gas::bp_i;
+}
+void stack_double(cstring name, cstring src){
+    gas::bp_i+=8;
+    double2stack(src, gas::bp_i);
+    gas::stack_i[name] = gas::bp_i;
+}
 
 void double2stack(cstring ro_, int i)
 {gas::g_text.emplace_back("movsd "+ro_+", %xmm0");
@@ -121,9 +154,10 @@ void ptr2stack(cstring ro_, int i){gas::g_text.emplace_back("movq "+ro_+","+ st(
 void int2stack(int x, int i){gas::g_text.emplace_back("movl "+ rt(x)+","+st(i));}
 void byte2stack(int x, int i){int2stack(x, i);}
 
-void args_clear() {gas::xmm_i=0;}
+void args_clear() {gas::xmm_i=0;gas::arg_i=0;}
 void mov2xmm(cstring src) {gas::g_text.emplace_back("movsd "+src+",%xmm"+std::to_string(gas::xmm_i++));}
-
+void mov2xmm0(cstring src) {gas::g_text.emplace_back("movsd "+src+",%xmm0");}
+void xmm0mov(cstring dest) {gas::g_text.emplace_back("movsd %xmm0,"+dest);}
 void mov4byte(cstring src, cstring dest){gas::g_text.emplace_back("movl "+src+","+dest);}
 void mov8byte(cstring src, cstring dest){gas::g_text.emplace_back("movq "+src+","+dest);}
 void mov4byte2arg(cstring src) {

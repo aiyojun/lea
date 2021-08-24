@@ -27,6 +27,7 @@ add_custom_command(
 
 add_custom_target(cleanCache)
 add_custom_target(leapro)
+add_custom_target(test)
 
 add_custom_command(
         TARGET cleanCache
@@ -36,10 +37,18 @@ add_custom_command(
 
 add_custom_command(
         TARGET leapro
-        COMMAND ${EXECUTABLE_OUTPUT_PATH}/lea leapro/main.lea # ${BUILD_DIR}/main.lea.asm >/dev/null
+        COMMAND ${EXECUTABLE_OUTPUT_PATH}/lea leapro/main.lea ${BUILD_DIR}/main.lea.asm # ${BUILD_DIR}/main.lea.asm >/dev/null
         COMMAND as -o ${BUILD_DIR}/main.lea.o ${BUILD_DIR}/main.lea.asm
         COMMAND gcc -o main.lea.run ${BUILD_DIR}/main.lea.o -lc -no-pie
         COMMENT "Compiling leapro/main.lea"
+)
+
+add_custom_command(
+        TARGET test
+#        COMMAND ${EXECUTABLE_OUTPUT_PATH}/lea leapro/test.lea ${BUILD_DIR}/test.lea.asm # ${BUILD_DIR}/main.lea.asm >/dev/null
+        COMMAND as -o ${BUILD_DIR}/test.lea.o ${BUILD_DIR}/test.lea.asm
+        COMMAND gcc -o test.lea.run ${BUILD_DIR}/test.lea.o -lc -no-pie
+        COMMENT "Compiling leapro/test.lea"
 )
 
 include_directories(${EXECUTABLE_OUTPUT_PATH}/src)

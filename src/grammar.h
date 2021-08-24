@@ -41,6 +41,7 @@ public:
 runtime::exp_q get_expects();
 
 std::string ptr(cstring label);
+std::string ptr_ip(cstring label);
 std::string rt(int i);  // right number
 std::string st(int i);  // stack space
 std::string r1(cstring r);  //  low 8 bits / 1 byte
@@ -51,12 +52,20 @@ std::string rx4(int r);  // 8 bytes => long/double/pointer
 std::string rx8(int r);  // 8 bytes => long/double/pointer
 std::string declare_ro_data(cstring type, cstring v);
 
+void g_stack_clear();
+int g_stack_address(cstring name);
+void stack4bytes(cstring name, cstring src);
+void stack8bytes(cstring name, cstring src);
+void stack_double(cstring name, cstring src);
+
 void double2stack(cstring ro_, int i);
 void ptr2stack(cstring ro_, int i);
 void int2stack(int x, int i);
 void byte2stack(int x, int i);
 void args_clear();
 void mov2xmm(cstring src);
+void mov2xmm0(cstring src);
+void xmm0mov(cstring dest);
 void mov4byte(cstring src, cstring dest);
 void mov8byte(cstring src, cstring dest);
 void mov4byte2arg(cstring src);
@@ -69,7 +78,36 @@ void function_call(cstring);
 std::string format_gas(cstring stmt);
 std::string generate_gas();
 
+/** value.cpp */
+std::string getScope();
+std::string getScopeBack();
+
+class smb {
+public:
+    int cls;          // classify: variable/function
+    std::string name; //
+    std::string type; // int double char string bool
+    std::vector<std::string> typeSign; // args type list
+
+    std::string scope;
+
+    void clear() {cls = 0; name = ""; type = ""; scope = ""; typeSign.clear();}
+};
+const smb& give_variable();
+const smb& give_invoking();
+const smb& give_function();
+const smb& query_smb(cstring name);
+
 // tree
+class tree_node;
+// tree processing
+void recursion_deep(tree_node* node, int depth);
+// processing bool expression
+bool without_boo(const std::vector<tree_node*>& vec, cstring sym);
+void tree_modify_boo(tree_node* node, cstring ops);
+void tree_recursion_boo(tree_node* node);
+// recollect nodes of the tree
+void tree_node_collect(std::vector<tree_node*>& vec, tree_node* node);
 
 #else
 #  define __export_c
@@ -84,11 +122,11 @@ __export_c void printf_empty(const char *__restrict, ...);
 #include <stdio.h>
 
 extern FILE *yyin;
+extern int lealine;
+
 __export_c int yylex(void);
 __export_c int yyparse(void);
 __export_c void yyerror(const char* s);
-
-extern int lealine;
 
 /** symbols collection */
 __export_c void enter_scope();
@@ -102,6 +140,8 @@ __export_c void keep_variable_type(char* type);
 __export_c void keep_function();
 __export_c void keep_function_type(char* type);
 __export_c void keep_function_sign(char* type);
+__export_c void g_function_enter();
+__export_c void g_function_exit();
 __export_c void keep_invoking();
 __export_c void record_variable();
 __export_c void record_function();
@@ -125,6 +165,7 @@ __export_c void tree_node_link(char* op);
 __export_c void tree_node_deep_assign();
 __export_c void tree_node_print();
 __export_c void tree_node_modify();
+__export_c void tree_analysis(int usage);
 
 __export_c void get_expects_back(int i, char buf[]);
 __export_c void expects_push(char* token);;

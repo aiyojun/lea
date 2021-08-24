@@ -90,12 +90,20 @@ root: statement;
 statement: statement globalContext | globalContext;
 
 baseInput:
-COMMENT_SINGLE|KW_VOID|KW_BYTE|KW_CHAR|KW_STRING|KW_INT|KW_DOUBLE|KW_BOOL|
-KW_TRUE|KW_FALSE|KW_IF|KW_ELSE|KW_FOR|KW_WHILE|KW_MATCH|KW_CASE|KW_DEF|KW__|KW_STRUCT|KW_CLASS|KW_RETURN|
-AND|OR|NOT|EQ|NE|GT|GE|LT|LE|
-ARROW|ASSIGN|LPAREN|RPAREN|DOT|COMMA|SEMI|COLON|BLOCK_BEGIN|BLOCK_END|
-DOUBLE|INTEGER|FIELD|CHAR|STRING|
-OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD;
+COMMENT_SINGLE
+|KW_VOID|KW_BYTE|KW_CHAR|KW_STRING|KW_INT|KW_DOUBLE|KW_BOOL
+|KW_TRUE|KW_FALSE
+|AND|OR|NOT|EQ|NE|GT|GE|LT|LE
+|KW_IF|KW_ELSE|KW_FOR|KW_WHILE
+|KW_MATCH|KW_CASE|KW__
+|KW_DEF|ARROW|KW_RETURN
+|KW_STRUCT|KW_CLASS
+|ASSIGN|LPAREN|RPAREN|COMMA|SEMI
+|DOT|COLON
+|BLOCK_BEGIN|BLOCK_END
+|DOUBLE|INTEGER|FIELD|CHAR|STRING
+|OP_ADD|OP_SUB|OP_MUL|OP_DIV|OP_MOD
+;
 
 globalContext:
   KW_EOF {
@@ -117,8 +125,6 @@ variableMany:
 | COLON basicTypeX0 ASSIGN leaVal {
     record_variable();
   }
-//| ASSIGN leaVal {
-//  }
 ;
 
 // --------------------------------------------
@@ -136,10 +142,10 @@ baseInput2: baseInput | COMMENT_BEGIN | NEWLINE;
 // define variable
 // --------------------------------------------
 variableAssign:
-  variableName COLON basicTypeX0 ASSIGN leaVal {
+  variableName COLON basicTypeX0 ASSIGN {keep_variable();} leaVal {
     record_variable();
   }
-| variableName ASSIGN leaVal {
+| variableName ASSIGN {keep_variable();} leaVal {
 
   }
 ;
@@ -165,7 +171,7 @@ functionDefine:
 | KW_DEF functionName functionMany {}
 ;
 functionName: FIELD {
-    check($1); keep($1);printf(">> %s\n", $1);
+    check($1); keep($1);
 }
 ;
 functionMany:
@@ -187,15 +193,15 @@ functionArgs:
 ;
 argDefine: FIELD COLON paramType;
 functionBody: 
-  ARROW {keep_function();record_function();} leaVal {}
-| BLOCK_BEGIN {keep_function();record_function();enter_scope();} codeBlockLoopV3 BLOCK_END {exit_scope();}
+  ARROW {keep_function();record_function();g_function_enter();} leaVal {tree_analysis(4);g_function_exit();}
+| BLOCK_BEGIN {keep_function();record_function();enter_scope();g_function_enter();} codeBlockLoopV3 BLOCK_END {g_function_exit();exit_scope();}
 ;
 codeBlockLoopV3: codeBlockLoopV3 functionContext | functionContext;
 functionContext:
   ending
 | commentDefine
-| FIELD {keep($1);heap_register($1);} variableManyV2 {tree_clear();}
-| KW_RETURN leaVal {}
+| FIELD {tree_clear();keep($1);heap_register($1);} variableManyV2 {tree_clear();}
+| KW_RETURN leaVal {tree_analysis(4);}
 | stateIfDefine
 | stateForDefine
 | codeBlockDefine {}
@@ -226,8 +232,8 @@ stateIfDefine:
   stateIf
 | stateIf KW_ELSE codeBlockDefine {}
 stateIf:
-  stateIf KW_ELSE KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_clear();} codeBlockDefine {}
-| KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_clear();} codeBlockDefine {}
+  stateIf KW_ELSE KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_node_modify();tree_node_print();tree_clear();} codeBlockDefine {}
+| KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_node_modify();tree_node_print();tree_clear();} codeBlockDefine {}
 ;
 // --------------------------------------------
 
@@ -266,7 +272,7 @@ codeBlockLoop: codeBlockLoop blockContext | blockContext;
 blockContext: 
   ending
 | commentDefine
-| FIELD {heap_register($1);} variableManyV2 {tree_clear();}
+| FIELD {tree_clear();keep($1);heap_register($1);} variableManyV2 {tree_clear();}
 | stateIfDefine
 | stateForDefine
 | codeBlockDefine {}
@@ -277,9 +283,9 @@ variableManyV2:
     keep_variable();
     record_variable();
   }
-| COLON basicTypeX0 ASSIGN {check_keep();keep_variable();record_variable();} leaVal {}
-| ASSIGN {} leaVal {}
-| LPAREN {keep_invoking();heap_invoking();invoking_deep_inc();} leaInv
+| COLON basicTypeX0 ASSIGN {check_keep();keep_variable();record_variable();} leaVal {tree_analysis(1);}
+| ASSIGN {keep_variable();} leaVal {}
+| LPAREN {keep_invoking();heap_invoking();invoking_deep_inc();} leaInv {tree_node_deep_assign();tree_node_print();tree_analysis(5);}
 //| KW_MATCH {} stateMatchBlock
 ;
 // --------------------------------------------

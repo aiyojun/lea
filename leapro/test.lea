@@ -1,8 +1,16 @@
 
 def task_01:int
-def task_02(x: int, y: double): int
+def task_02(x: int, y: double): int {
+    return 0;
+}
 
-def main {
-    var_01: int = 12
-    if (12 > 13 && 12 < 43 && 23 != 31 && ((11 == 12 && -32 == ((34+43)*13) )) && var_01==task_01(12, 23, "haha", 34)) { }
+def printf(): void
+
+def main: int {
+    //var_01: int = 12
+    //str: string = "haha"
+    task_02(10, 10.23)
+    printf("hello lea!\n");
+    // if (12 > 13 && 12 < 43 && 23 != 31 && ((11 == 12 && -32 == ((34+43)*13) )) && var_01==task_01(12, 23, "haha", 34)) { }
+    return 0;
 }

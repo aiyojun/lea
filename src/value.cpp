@@ -13,15 +13,6 @@ bool contains(std::map<T, _> map, T key)
 {return map.find(key) != map.end();}
 
 
-class smb {
-public:
-    int cls;          // classify: variable/function
-    std::string name; //
-    std::string type; // int double char string bool
-    std::vector<std::string> typeSign; // args type list
-    void clear() {cls = 0; name = ""; type = ""; typeSign.clear();}
-}
-;
 std::string nameTemporary;
 smb variable; smb invoking; smb function;
 
@@ -31,15 +22,24 @@ void enter_scope() {scopeStack.emplace_back(function.name);}
 void exit_scope() {scopeStack.pop_back();}
 /** Prepared for C++ */
 std::string getScope() {return join(".", scopeStack);}
+std::string getScopeBack() {return scopeStack.back();}
 
 // TODO: scope -> symbol_name -> symbol_info
 std::map<std::string, std::map<std::string, smb>> globalDefinedSymbols{{"global", std::map<std::string, smb>()}};
 void check(char* name)
 {if (strlen(name) == 0) return; printf("! check [ %s ]\n", name);
  if (has_defined(name) == 0) {std::string err; err+=std::string(name)+" already defined"; yyerror(err.c_str());}}
-int has_defined(char* name)
-{std::string def(name); std::string sco(std::move(getScope()));
- return contains(globalDefinedSymbols, sco) && contains(globalDefinedSymbols[sco], def) ? 0 : 1;}
+int has_defined(char* name) {
+    std::string def(name); std::string sco(std::move(getScope()));
+    if (contains(globalDefinedSymbols, sco)
+        && contains(globalDefinedSymbols[sco], def)) {
+        return 0;
+    } else if (contains(globalDefinedSymbols, sco)
+        && !contains(globalDefinedSymbols[sco], def)
+        && contains(globalDefinedSymbols["global"], def)) {
+        return 0;
+    } else return 1;
+}
 
 void check_keep() {check((char*) nameTemporary.c_str());}
 void keep(char* name) {nameTemporary = std::string(name); variable.clear(); function.clear(); invoking.clear();}
@@ -47,8 +47,37 @@ void keep_variable() {variable.name = nameTemporary; variable.cls = 1;}
 void keep_variable_type(char* type) {variable.type = std::string(type);}
 void keep_function() {function.name = nameTemporary; function.cls = 2;}
 void keep_function_type(char* type) {function.type = std::string(type);}
+void g_function_enter() {function_enter(function.name);}
+void g_function_exit() {function_exit();}
 void keep_function_sign(char* type) {function.typeSign.emplace_back(std::string(type));}
 void keep_invoking() {invoking.name = nameTemporary;}
+
+const smb& give_variable() {return variable;}
+const smb& give_invoking() {return invoking;}
+const smb& give_function() {return function;}
+
+const smb& query_smb(cstring name) {
+    symbol_print();
+    printf("query smb name : %s\n", name.c_str());
+    std::string sco(std::move(getScope()));
+    if (contains(globalDefinedSymbols, sco)
+        && contains(globalDefinedSymbols[sco], name)) {
+        return globalDefinedSymbols[sco][name];
+    } else if (contains(globalDefinedSymbols, sco)
+        && !contains(globalDefinedSymbols[sco], name)
+        && contains(globalDefinedSymbols["global"], name)) {
+        return globalDefinedSymbols["global"][name];
+    } else if (contains(globalDefinedSymbols["global"], name)) {
+        return globalDefinedSymbols["global"][name];
+    } else throw std::runtime_error("undefined " + name);
+}
+
+const smb& query_function(cstring name) {
+    std::string sco(std::move(getScope()));
+    if (contains(globalDefinedSymbols["global"], name)) {
+        return globalDefinedSymbols["global"][name];
+    } else throw std::runtime_error("undefined " + name);
+}
 
 void record_variable() {
     if (has_defined((char *) variable.name.c_str()) == 0) {
@@ -59,6 +88,7 @@ void record_variable() {
     if (!contains<std::string>(globalDefinedSymbols, sco)) {
         globalDefinedSymbols[sco] = std::map<std::string, smb>();
     }
+    variable.scope = sco;
     globalDefinedSymbols[sco][variable.name] = variable;
 }
 void record_function() {
@@ -67,6 +97,7 @@ void record_function() {
     if (!contains<std::string>(globalDefinedSymbols, sco)) {
         globalDefinedSymbols[sco] = std::map<std::string, smb>();
     }
+    function.scope = sco;
     globalDefinedSymbols[sco][function.name] = function;
 }
 
