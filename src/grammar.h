@@ -90,11 +90,13 @@ __export_c void yyerror(const char* s);
 
 extern int lealine;
 
+/** symbols collection */
 __export_c void enter_scope();
 __export_c void exit_scope();
 __export_c void check(char* name);
 __export_c int has_defined(char* name);
 __export_c void keep(char* name);
+__export_c void check_keep();
 __export_c void keep_variable();
 __export_c void keep_variable_type(char* type);
 __export_c void keep_function();
@@ -105,38 +107,9 @@ __export_c void record_variable();
 __export_c void record_function();
 
 __export_c void symbol_print();
-__export_c void val_register2(char*);
 
-__export_c void variable_register(int mode);
-__export_c void variable_type(char* type);
-__export_c void variable_record();
-__export_c void variable_assign_v2();
-__export_c void variable_already_exist();
-
-__export_c void function_record();
-__export_c void function_name(char*);
-__export_c void function_type(int);
-__export_c void function_push_args_type(char*);
-__export_c void function_return(char*);
-
-__export_c void g_function_imp();
-__export_c void g_function_over();
-__export_c void g_function_return();
-
+/** gas generating */
 __export_c void print_gas();
-
-//__export_c void tree_init();
-//__export_c void tree_release();
-//__export_c void tree_append(int);
-//__export_c void tree_node_append(int);
-//__export_c void tree_print();
-//__export_c void bo_deep_inc();
-//__export_c void bo_deep_dec();
-//__export_c void tree_node_stack_push(char*, char*, char*);
-//__export_c void paren_deep_inc();
-//__export_c void paren_deep_dec();
-//__export_c void paren_push(char* prefix, char* value, char* type);
-//__export_c void paren_pop();
 
 /** tree version */
 __export_c void tree_clear();

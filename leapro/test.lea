@@ -1,4 +1,6 @@
+
 def task_01:int
+def task_02(x: int, y: double): int
 
 def main {
     var_01: int = 12

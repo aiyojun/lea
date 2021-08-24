@@ -106,26 +106,18 @@ globalContext:
   }
 | ending
 | commentDefine
-| FIELD {keep($1);keep_variable();/*val_register2($1);*/} variableMany {}
+| FIELD {check($1); keep($1);keep_variable();} variableMany {}
 | functionDefine
 ;
 
 variableMany:
   COLON basicTypeX0 {
     record_variable();
-//    variable_register(0);
-//    variable_record();
   }
 | COLON basicTypeX0 ASSIGN leaVal {
     record_variable();
-//    variable_register(0);
-//    variable_record();
-//    variable_assign_v2();
   }
 //| ASSIGN leaVal {
-//    variable_register(1);
-//    variable_already_exist();
-//    variable_assign_v2();
 //  }
 ;
 
@@ -153,12 +145,12 @@ variableAssign:
 ;
 variableName: FIELD {keep($1);};
 basicTypeX0: 
-  KW_BYTE    {keep_variable_type("byte");/*variable_type("byte");*/}
-| KW_CHAR    {keep_variable_type("char");/*variable_type("char");*/}
-| KW_INT     {keep_variable_type("int");/*variable_type("int");*/}
-| KW_BOOL    {keep_variable_type("bool");/*variable_type("bool");*/}
-| KW_DOUBLE  {keep_variable_type("double");/*variable_type("double");*/}
-| KW_STRING  {keep_variable_type("string");/*variable_type("string");*/}
+  KW_BYTE    {keep_variable_type("byte");}
+| KW_CHAR    {keep_variable_type("char");}
+| KW_INT     {keep_variable_type("int");}
+| KW_BOOL    {keep_variable_type("bool");}
+| KW_DOUBLE  {keep_variable_type("double");}
+| KW_STRING  {keep_variable_type("string");}
 ;
 // --------------------------------------------
 
@@ -168,25 +160,22 @@ basicTypeX0:
 functionDefine:
   KW_DEF functionName {
     keep_function();
-//    function_record();
+    record_function();
   }
-| KW_DEF functionName functionMany {
-//    function_record();
-  }
+| KW_DEF functionName functionMany {}
 ;
 functionName: FIELD {
-    check($1); keep($1);
-//    function_name($1);
+    check($1); keep($1);printf(">> %s\n", $1);
 }
 ;
 functionMany:
-  returnDefine
-| LPAREN functionArgsApp returnDefine
+  returnDefine {}
+| LPAREN {} functionArgsApp returnDefine
 ;
 returnDefine:
-  COLON returnType              {}
-| COLON returnType functionBody {/*function_type(5);*/}
-| functionBody                  {/*function_type(5);*/}
+  COLON returnType              {keep_function();record_function();}
+| COLON returnType functionBody {}
+| functionBody                  {}
 ;
 functionArgsApp:
   RPAREN
@@ -198,35 +187,35 @@ functionArgs:
 ;
 argDefine: FIELD COLON paramType;
 functionBody: 
-  ARROW {record_function();/*g_function_imp();*/} leaVal {/*g_function_return();g_function_over();*/}
-| BLOCK_BEGIN {record_function();enter_scope();/*g_function_imp();*/} codeBlockLoopV3 BLOCK_END {exit_scope();/*g_function_over();*/}
+  ARROW {keep_function();record_function();} leaVal {}
+| BLOCK_BEGIN {keep_function();record_function();enter_scope();} codeBlockLoopV3 BLOCK_END {exit_scope();}
 ;
 codeBlockLoopV3: codeBlockLoopV3 functionContext | functionContext;
 functionContext:
   ending
 | commentDefine
-| FIELD {/*val_register2($1);*/heap_register($1);} variableManyV2 {tree_clear();}
-| KW_RETURN leaVal {/*g_function_return();*/}
+| FIELD {keep($1);heap_register($1);} variableManyV2 {tree_clear();}
+| KW_RETURN leaVal {}
 | stateIfDefine
 | stateForDefine
 | codeBlockDefine {}
 ;
 paramType:
-  KW_BYTE   {keep_function_sign("type");/*function_push_args_type("type");*/}
-| KW_CHAR   {keep_function_sign("char");/*function_push_args_type("char");*/}
-| KW_INT    {keep_function_sign("int");/*function_push_args_type("int");*/}
-| KW_BOOL   {keep_function_sign("bool");/*function_push_args_type("bool");*/}
-| KW_DOUBLE {keep_function_sign("double");/*function_push_args_type("double");*/}
-| KW_STRING {keep_function_sign("string");/*function_push_args_type("string");*/}
+  KW_BYTE   {keep_function_sign("type");}
+| KW_CHAR   {keep_function_sign("char");}
+| KW_INT    {keep_function_sign("int");}
+| KW_BOOL   {keep_function_sign("bool");}
+| KW_DOUBLE {keep_function_sign("double");}
+| KW_STRING {keep_function_sign("string");}
 ;
 returnType:
-  KW_BYTE   {keep_function_type("type");/*function_return("byte");*/}
-| KW_CHAR   {keep_function_type("char");/*function_return("char");*/}
-| KW_INT    {keep_function_type("int");/*function_return("int");*/}
-| KW_BOOL   {keep_function_type("bool");/*function_return("bool");*/}
-| KW_DOUBLE {keep_function_type("double");/*function_return("double");*/}
-| KW_STRING {keep_function_type("string");/*function_return("string");*/}
-| KW_VOID   {keep_function_type("void");/*function_return("void");*/}
+  KW_BYTE   {keep_function_type("type");}
+| KW_CHAR   {keep_function_type("char");}
+| KW_INT    {keep_function_type("int");}
+| KW_BOOL   {keep_function_type("bool");}
+| KW_DOUBLE {keep_function_type("double");}
+| KW_STRING {keep_function_type("string");}
+| KW_VOID   {keep_function_type("void");}
 ;
 // --------------------------------------------
 
@@ -277,27 +266,20 @@ codeBlockLoop: codeBlockLoop blockContext | blockContext;
 blockContext: 
   ending
 | commentDefine
-| FIELD {/*val_register2($1);*/heap_register($1);} variableManyV2 {tree_clear();}
+| FIELD {heap_register($1);} variableManyV2 {tree_clear();}
 | stateIfDefine
 | stateForDefine
 | codeBlockDefine {}
 ;
 variableManyV2:
   COLON basicTypeX0 {
-//    variable_register(0);
-//    variable_record();
+    check_keep();
+    keep_variable();
+    record_variable();
   }
-| COLON basicTypeX0 ASSIGN {} leaVal {
-//    variable_register(0);
-//    variable_record();
-//    variable_assign_v2();
-  }
-| ASSIGN leaVal {
-//    variable_register(1);
-//    variable_already_exist();
-//    variable_assign_v2();
-  }
-| LPAREN {heap_invoking();invoking_deep_inc();} leaInv
+| COLON basicTypeX0 ASSIGN {check_keep();keep_variable();record_variable();} leaVal {}
+| ASSIGN {} leaVal {}
+| LPAREN {keep_invoking();heap_invoking();invoking_deep_inc();} leaInv
 //| KW_MATCH {} stateMatchBlock
 ;
 // --------------------------------------------
@@ -311,7 +293,7 @@ leaVai:
   leaVar                     {heap_variable();}
 | leaVar LPAREN {heap_invoking();invoking_deep_inc();} leaInv
 ;
-leaVar: FIELD                {heap_register($1);}
+leaVar: FIELD                {keep($1);heap_register($1);}
 ;
 leaInv:
   RPAREN                     {invoking_deep_dec();}
