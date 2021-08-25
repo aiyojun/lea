@@ -232,8 +232,8 @@ stateIfDefine:
   stateIf
 | stateIf KW_ELSE codeBlockDefine {}
 stateIf:
-  stateIf KW_ELSE KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_node_modify();tree_node_print();tree_clear();} codeBlockDefine {}
-| KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_node_modify();tree_node_print();tree_clear();} codeBlockDefine {}
+  stateIf KW_ELSE KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_analysis(3);tree_node_print();tree_clear();} codeBlockDefine {}
+| KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_analysis(3);tree_node_print();tree_clear();} codeBlockDefine {}
 ;
 // --------------------------------------------
 

@@ -6,6 +6,11 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
+
+template<typename T, typename _>
+bool contains(std::map<T, _> map, T key)
+{return map.find(key) != map.end();}
 
 class tree_node {
 public:
@@ -24,6 +29,9 @@ public:
     std::string data;
     std::string sign_type;
     std::vector<std::string> stack_data;
+
+    /** 8.25.2021 for invoking */
+    std::string expect_type;
 
     /** tree management */
     static int max_deep;
@@ -193,7 +201,406 @@ void tree_modify_boo(tree_node* node, cstring ops) {
             }
         }
         node->children.clear();
-        for (auto& pp : tmp) node->children.emplace_back(pp);
+        for (auto& pp : tmp) {
+            pp->parent = node;
+            node->children.emplace_back(pp);
+        }
+    }
+}
+
+void tree_modify_cmp(tree_node* node) {
+
+}
+
+std::map<std::string, int> calculation_operators{
+    {"+", 1}, {"-", 2}, {"*", 3}, {"/", 4}
+};
+std::map<std::string, int> bool_operators{
+    {"!", 1}, {"&&", 2}, {"||", 3}
+};
+
+void g_calculate(tree_node* p0, tree_node* p1, cstring ops) {
+    if (!contains(calculation_operators, ops)) yyerror(("unknown calculation operator " + ops).c_str());
+//    if (p0->type != 2 || p0->type != 2) yyerror("");
+    if (p0->sign_type == "int" && p1->sign_type == "int") {
+        if (ops == "+") {
+            mov4byte(rt(atoi(p0->data.c_str())), r4("a"));
+            gas_add4bytes(rt(atoi(p1->data.c_str())), r4("a"));
+        } else if (ops == "-") {
+            mov4byte(rt(atoi(p0->data.c_str())), r4("a"));
+            gas_sub4bytes(rt(atoi(p1->data.c_str())), r4("a"));
+        } else if (ops == "*") {
+            mov4byte(rt(atoi(p0->data.c_str())), r4("a"));
+            gas_mul4bytes(rt(atoi(p1->data.c_str())), r4("a"));
+        } else if (ops == "/") {
+            if (atoi(p1->data.c_str()) == 0) yyerror("zero divisor");
+            mov4byte(rt(atoi(p0->data.c_str())), r4("a"));
+            gas_cmd("cltd");
+            gas_div4bytes(rt(atoi(p1->data.c_str())));
+        } else {
+            yyerror("undefined calculation");
+        }
+    } else if (p0->sign_type == "int" && p1->sign_type == "double") {
+        if (ops == "+") {
+            mov2xmm(ptr_ip(declare_ro_data("double", p0->data)), 0);
+            mov2xmm(ptr_ip(declare_ro_data("double", p1->data)), 1);
+            sse_add_sd(xmm(1), xmm(0));
+        } else if (ops == "-") {
+            mov4byte(rt(atoi(p0->data.c_str())), r4("a"));
+            gas_sub4bytes(rt(atoi(p1->data.c_str())), r4("a"));
+        } else if (ops == "*") {
+            mov4byte(rt(atoi(p0->data.c_str())), r4("a"));
+            gas_mul4bytes(rt(atoi(p1->data.c_str())), r4("a"));
+        } else if (ops == "/") {
+            if (atoi(p1->data.c_str()) == 0) yyerror("zero divisor");
+            mov4byte(rt(atoi(p0->data.c_str())), r4("a"));
+            gas_cmd("cltd");
+            gas_div4bytes(rt(atoi(p1->data.c_str())));
+        } else {
+            yyerror("undefined calculation");
+        }
+    } else if (p0->sign_type == "double" && p1->sign_type == "int") {
+
+    } else if (p0->sign_type == "double" && p1->sign_type == "double") {
+
+    } else {
+        yyerror("unknown value type of calculation");
+    }
+}
+
+std::map<std::string, int> simple_ops{{"+", 1}, {"-", 1}, {"*", 1}, {"/", 1}, {"()", 1}};
+bool is_simple_subtree(tree_node* subtree) { // just include +-*/ and number
+    if (subtree->children.empty()) {
+        if (subtree->type == 2) {
+            if (subtree->sign_type == "int" || subtree->sign_type == "double") {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+    if (contains(simple_ops, subtree->data)) {
+        for (auto& child : subtree->children) {
+            if (!is_simple_subtree(child)) {
+                return false;
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+void subtree_left_recursion(int i_deep, std::set<tree_node*>& recording, tree_node* root, tree_node* node) {
+    printf("subtree_left_recursion i_deep : %d ; node : %s\n", i_deep, node->data.c_str());
+    if (i_deep > 10) {
+        exit(10);
+    }
+    if (recording.find(node) != recording.end()) {  // exit node
+        printf(">> map with %s\n", node->data.c_str());
+        recording.erase(node);
+//        if (node != root) {
+        bool isRoot = false;
+        tree_node* root_parent = nullptr;
+        if (node == root) {isRoot = true;root_parent = root->parent;}
+            printf(">> subtree print %s\n", node->data.c_str());
+            subtree_print(root);
+            printf(">> subtree print over\n");
+
+            {
+                std::string ops = node->data;
+                if (ops == "+") {
+                    tree_node* p0 = node->children[0];
+                    tree_node* p1 = node->children[1];
+                    if (p0->sign_type == "int" && p1->sign_type == "int") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atoi(p0->data.c_str()) + atoi(p1->data.c_str()));
+                        ptr->sign_type = "int";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "int" && p1->sign_type == "double") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atoi(p0->data.c_str()) + atof(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "double" && p1->sign_type == "int") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p0->data.c_str()) + atoi(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "double" && p1->sign_type == "double") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p0->data.c_str()) + atof(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else {
+                        yyerror("??? 01");
+                    }
+                } else if (ops == "-") {
+                    tree_node* p0 = node->children[0];
+                    tree_node* p1 = node->children[1];
+                    if (p0->sign_type == "int" && p1->sign_type == "int") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atoi(p0->data.c_str()) - atoi(p1->data.c_str()));
+                        ptr->sign_type = "int";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "int" && p1->sign_type == "double") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p0->data.c_str()) - atof(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "double" && p1->sign_type == "int") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p0->data.c_str()) - atoi(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "double" && p1->sign_type == "double") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p0->data.c_str()) - atof(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else {
+                        yyerror("??? 01");
+                    }
+                } else if (ops == "*") {
+                    tree_node* p0 = node->children[0];
+                    tree_node* p1 = node->children[1];
+                    if (p0->sign_type == "int" && p1->sign_type == "int") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atoi(p0->data.c_str()) * atoi(p1->data.c_str()));
+                        ptr->sign_type = "int";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "int" && p1->sign_type == "double") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p1->data.c_str()) * atoi(p0->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "double" && p1->sign_type == "int") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p0->data.c_str()) * atoi(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "double" && p1->sign_type == "double") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p0->data.c_str()) * atof(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else {
+                        yyerror("??? 01");
+                    }
+                } else if (ops == "/") {
+                    tree_node* p0 = node->children[0];
+                    tree_node* p1 = node->children[1];
+                    if (p0->sign_type == "int" && p1->sign_type == "int") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atoi(p0->data.c_str()) / atoi(p1->data.c_str()));
+                        ptr->sign_type = "int";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "int" && p1->sign_type == "double") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p0->data.c_str()) / atof(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "double" && p1->sign_type == "int") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p0->data.c_str()) / atoi(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else if (p0->sign_type == "double" && p1->sign_type == "double") {
+                        tree_node* ptr = new tree_node();
+                        ptr->type = 2;
+                        ptr->deep = node->deep + 1;
+                        ptr->data = std::to_string(atof(p0->data.c_str()) / atof(p1->data.c_str()));
+                        ptr->sign_type = "double";
+                        ptr->parent = node->parent;
+                        ptr->parent->children.clear();
+                        ptr->parent->children.emplace_back(ptr);
+                        node = ptr;
+//                        delete p0; delete p1; delete node;
+                    } else {
+                        yyerror("??? 01");
+                    }
+                } else if (ops == "()") {
+//                    if (node->children.size() > 1) yyerror("() size beyond 1");
+                    tree_node* p0 = node->children[0];
+//                    printf("() -> %s no: %d; node no: %d\n", p0->data.c_str(), p0->no, node->no);
+                    p0->parent = node->parent;
+                    p0->deep = p0->parent->deep + 1;
+                    p0->parent->children[node->no] = p0;
+                    node->parent = nullptr;
+                    node = p0;
+//                    p0->parent->children.emplace_back(p0);
+//                    delete node;
+                } else {
+                    yyerror(("??? impossible branch " + ops).c_str());
+                }
+            }
+
+//            printf(">> subtree print tail %s\n", node->data.c_str());
+//            subtree_print(root);
+//            printf(">> subtree print tail over %s\n", node->data.c_str());
+
+//            if (node->data == "()") {
+//                exit(4);
+//            }
+
+            if (!isRoot) {subtree_left_recursion(i_deep+1, recording, root, node->parent);}
+            else {printf(">> root= subtree print %s\n", node->data.c_str());node->parent = root_parent;}
+            return;
+//        } else {
+//            printf(">> root= subtree print %s\n", node->data.c_str());
+//            subtree_print(root);
+//            printf(">> root= subtree print over %s\n", node->data.c_str());
+//            return;
+//        }
+    }
+    printf(">> map without %s\n", node->data.c_str());
+    recording.insert(node);  // entry node
+
+    if (!node->children.empty()) {
+        subtree_left_recursion(i_deep+1, recording, root, node->children[0]);
+    } else if (node->children.empty() && node->parent != root && node->no + 1 < node->parent->children.size()) {
+        recording.erase(node); subtree_left_recursion(i_deep+1, recording, root, node->parent->children[node->no + 1]);
+    } else if (node->children.empty() && node->parent != root && node->no + 1 >= node->parent->children.size()) {
+        recording.erase(node); subtree_left_recursion(i_deep+1, recording, root, node->parent);
+    } else if (node->children.empty() && node->parent == root) {
+        recording.erase(node);
+        return;
+    }
+}
+
+void calculate_simple_subtree(tree_node* subtree) {
+    if (subtree->children.empty()) {return;}
+    if (is_simple_subtree(subtree)) {
+        printf("is_simple_subtree\n");
+        subtree_print(subtree);
+        printf("subtree_print over\n");
+        std::set<tree_node*> recording;
+        std::cout << "[addr] subtree root : " << subtree << "  ;  " << subtree->data << std::endl;
+        subtree_left_recursion(0, recording, subtree, subtree);
+        return;
+    }
+    for (tree_node* every : subtree->children) {
+        calculate_simple_subtree(every);
+    }
+}
+
+void tree_left_recursion(std::map<tree_node*, bool>& recursion_record, tree_node* node) {
+    if (recursion_record.find(node) != recursion_record.end()) {  // exit node
+        recursion_record.erase(node);
+        if (node->parent != nullptr) {
+
+
+
+            tree_left_recursion(recursion_record, node->parent);
+            return;
+        } else {
+            return;
+        }
+    }
+    recursion_record[node] = true;  // entry node
+
+    
+
+    if (!node->children.empty()) {
+        tree_left_recursion(recursion_record, node->children[0]);
+    } else if (node->children.empty() && node->parent != nullptr && node->no + 1 < node->parent->children.size()) {
+        tree_left_recursion(recursion_record, node->parent->children[node->no + 1]);
+    } else if (node->children.empty() && node->parent != nullptr && node->no + 1 >= node->parent->children.size()) {
+        tree_left_recursion(recursion_record, node->parent);
+    } else if (node->children.empty() && node->parent == nullptr) {
+        recursion_record.erase(node);
+        return;
     }
 }
 
@@ -204,6 +611,17 @@ void tree_recursion_boo(tree_node* node) {
     if (!node->children.empty()) {
         for (auto& child : node->children) {
             tree_recursion_boo(child);
+        }
+    }
+}
+
+void tree_node_collect_v2(std::vector<tree_node*>& vec, tree_node* node, int deep, int& max_deep) {
+    if (deep > max_deep) max_deep = deep;
+    node->deep = deep;
+    vec.emplace_back(node);
+    if (!node->children.empty()) {
+        for (auto& ptr : node->children) {
+            tree_node_collect_v2(vec, ptr, deep + 1, max_deep);
         }
     }
 }
@@ -225,6 +643,27 @@ void tree_node_modify() {
     tree_node::max_deep = 0;
     recursion_deep(tree_node::root, 0);
     printf("tree_node_modify over max deep : %d\n", tree_node::max_deep);
+}
+
+void subtree_print(tree_node* subtree) {
+    std::vector<tree_node*> allNodes;
+    int max_deep = 0;
+    tree_node_collect_v2(allNodes, subtree, 0, max_deep);
+    for (int dp = 0; dp <= max_deep; dp++) {
+        printf("%2d ", dp);
+        if (dp == 0) {
+            tree_node* ptr = subtree;
+            printf(" | %d:%d:%s\n", ptr->id, 0, ptr->data.c_str());
+            continue;
+        } else {
+            for (auto& ptr : allNodes) {
+                if (ptr->deep == dp) {
+                    printf(" | [%d] %d:%d:%s", ptr->parent->id, ptr->id, ptr->no, ptr->data.c_str());
+                }
+            }
+        }
+        printf("\n");
+    }
 }
 
 void tree_node_print() {
@@ -276,6 +715,48 @@ void tree_recursion_anl(tree_node* node) {
     }
 }
 
+void do_compare(tree_node* subtree) {
+    std::string ops = subtree->data;
+    if (ops == ">") {
+        tree_node* p0 = subtree->children[0];
+        tree_node* p1 = subtree->children[1];
+        if (p0->type == 2 && p1->type == 2) {
+            if (p0->sign_type == "int" && p1->sign_type == "int") {
+                mov4byte(rt(atoi(p0->data.c_str())), r4("a"));
+                gas_cmp4bytes(rt(atoi(p1->data.c_str())), r4("a"));
+                std::string nextBranch = branch_new();
+                gas_cmd("jle " + nextBranch);
+            }
+        } else if (p0->type == 2 && p1->type == 3) { // invoking
+
+        } else if (p0->type == 2 && p1->type == 4) {
+
+        } else if (p0->type == 3 && p1->type == 2) {
+
+        } else if (p0->type == 3 && p1->type == 3) {
+
+        } else if (p0->type == 3 && p1->type == 4) {
+
+        } else if (p0->type == 4 && p1->type == 2) {
+
+        } else if (p0->type == 4 && p1->type == 3) {
+
+        } else if (p0->type == 4 && p1->type == 4) {
+
+        }
+    } else if (ops == "<") {
+
+    } else if (ops == ">=") {
+
+    } else if (ops == "<=") {
+
+    } else if (ops == "!=") {
+
+    } else if (ops == "==") {
+
+    }
+}
+
 // TODO: analysis right side
 // TODO: analysis left side, scenes as following:
 //       1. : type = x
@@ -283,8 +764,34 @@ void tree_recursion_anl(tree_node* node) {
 //       3. if (x)
 //       4. return x
 //       5. fun()
+std::map<std::string, int> compare_operators{
+//    {"+", 1}, {"-", 2}, {"*", 3}, {"/", 4}, {"%", 5},
+    {">", 6}, {">=", 7}, {"<", 8}, {"<=", 9}, {"==", 10}, {"!=", 11},
+//    {"!", 12}, {"&&", 13}, {"||", 14}
+};
 void tree_analysis(int usage) {
+    tree_node_modify();
+    printf("calculate_simple_subtree\n");
+    calculate_simple_subtree(tree_node::root);
+    printf("calculate_simple_subtree over\n");
+//    return;
 //    tree_node_print();
+    if (usage == 3) {
+        auto judge = tree_node::root->children[0];
+        if (judge->data == "||") {
+
+        } else if (judge->data == "&&") {
+
+        } else if (contains(compare_operators, judge->data)) {
+
+        } else
+            yyerror("");
+    } else if (usage == 4) {
+
+    } else {
+
+    }
+    return;
     printf("tree_analysis %d\n", usage);
     tree_node* node_op_r = tree_node::root->children[0];
     if (node_op_r->data == "()")

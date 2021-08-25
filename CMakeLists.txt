@@ -63,6 +63,7 @@ add_executable(
 #        src/boo.cpp
         src/tree.cpp
         src/parsing.cpp
+        src/branch.cpp
 )
 
 target_link_libraries(lea c stdc++)

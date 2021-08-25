@@ -93,6 +93,7 @@ std::string rx4(int x) {return "%r"+std::to_string(x)+"d";}
 std::string rx8(int x) {return "%r"+std::to_string(x);}
 std::string ri4(cstring x) {return "%e"+x;}
 std::string ri8(cstring x) {return "%r"+x;}
+std::string xmm(int i) {return "%xmm"+std::to_string(i);}
 
 /**
  * &string => stack
@@ -159,6 +160,7 @@ void byte2stack(int x, int i){int2stack(x, i);}
 
 void args_clear() {gas::xmm_i=0;gas::arg_i=0;}
 void mov2xmm(cstring src) {gas::g_text.emplace_back("movsd "+src+",%xmm"+std::to_string(gas::xmm_i++));}
+void mov2xmm(cstring src, int i) {gas::g_text.emplace_back("movsd "+src+",%xmm"+std::to_string(i));}
 void mov2xmm0(cstring src) {gas::g_text.emplace_back("movsd "+src+",%xmm0");}
 void xmm0mov(cstring dest) {gas::g_text.emplace_back("movsd %xmm0,"+dest);}
 void mov4byte(cstring src, cstring dest){gas::g_text.emplace_back("movl "+src+","+dest);}
@@ -197,6 +199,22 @@ gas::g_text.emplace_back("ret");}
 void function_call(cstring fun_name)
 {gas::g_text.emplace_back("call "+fun_name);}
 
+void gas_cmd(cstring cmd) {gas::g_text.emplace_back(cmd);}
+
+void gas_add4bytes(cstring src, cstring dest) {gas::g_text.emplace_back("addl "+src+","+dest);}
+void gas_add8bytes(cstring src, cstring dest) {gas::g_text.emplace_back("addq "+src+","+dest);}
+void gas_sub4bytes(cstring src, cstring dest) {gas::g_text.emplace_back("subl "+src+","+dest);}
+void gas_sub8bytes(cstring src, cstring dest) {gas::g_text.emplace_back("subq "+src+","+dest);}
+void gas_mul4bytes(cstring src, cstring dest) {gas::g_text.emplace_back("imull "+src+","+dest);}
+void gas_mul8bytes(cstring src, cstring dest) {gas::g_text.emplace_back("imulq "+src+","+dest);}
+void gas_div4bytes(cstring src) {gas::g_text.emplace_back("idivl "+src);}
+void gas_div8bytes(cstring src) {gas::g_text.emplace_back("idivq "+src);}
+
+void gas_cmp4bytes(cstring src, cstring dest) {gas::g_text.emplace_back("cmpl "+src+","+dest);}
+
+void sse_add_sd(cstring src, cstring dest) {gas::g_text.emplace_back("addsd "+src+","+dest);}
+
+void sse_cvtsi2_sd(cstring src, int i) {gas::g_text.emplace_back("cvtsi2sd "+src+",%xmm"+std::to_string(i));}
 
 
 std::string format_gas(cstring stmt) {

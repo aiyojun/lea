@@ -50,6 +50,7 @@ std::string r4(cstring r);  // 4 bytes => integer
 std::string r8(cstring r);  // 8 bytes => long/double/pointer
 std::string rx4(int r);  // 8 bytes => long/double/pointer
 std::string rx8(int r);  // 8 bytes => long/double/pointer
+std::string xmm(int r);
 std::string declare_ro_data(cstring type, cstring v);
 
 void g_stack_clear();
@@ -64,6 +65,7 @@ void int2stack(int x, int i);
 void byte2stack(int x, int i);
 void args_clear();
 void mov2xmm(cstring src);
+void mov2xmm(cstring src, int i);
 void mov2xmm0(cstring src);
 void xmm0mov(cstring dest);
 void mov4byte(cstring src, cstring dest);
@@ -74,6 +76,19 @@ void mov8byte2arg(cstring src);
 void function_enter(cstring);
 void function_exit();
 void function_call(cstring);
+void gas_cmd(cstring cmd);
+void gas_add4bytes(cstring src, cstring dest);
+void gas_add8bytes(cstring src, cstring dest);
+void gas_sub4bytes(cstring src, cstring dest);
+void gas_sub8bytes(cstring src, cstring dest);
+void gas_mul4bytes(cstring src, cstring dest);
+void gas_mul8bytes(cstring src, cstring dest);
+void gas_div4bytes(cstring src);
+void gas_div8bytes(cstring src);
+void gas_cmp4bytes(cstring src, cstring dest);
+
+void sse_add_sd(cstring src, cstring dest);
+void sse_cvtsi2_sd(cstring src, int i);
 
 std::string format_gas(cstring stmt);
 std::string generate_gas();
@@ -108,6 +123,12 @@ void tree_modify_boo(tree_node* node, cstring ops);
 void tree_recursion_boo(tree_node* node);
 // recollect nodes of the tree
 void tree_node_collect(std::vector<tree_node*>& vec, tree_node* node);
+
+void subtree_print(tree_node* subtree);
+
+// branch
+void branch_clear();
+std::string branch_new();
 
 #else
 #  define __export_c
@@ -171,23 +192,23 @@ __export_c void get_expects_back(int i, char buf[]);
 __export_c void expects_push(char* token);;
 
 
-/** a way to create life circle for helping parse yacc file */
-#define __opt
-#define __abs
-// def func (x: int) : void {}
-__abs void after_def();
-__abs void after_fun(char*);
-__opt void after_each_arg(char*);
-__opt void after_each_arg_type(char*);
-__opt void after_ret_type(char*);
-__opt void after_fun_begin();
-__abs void after_fun_end();
-// if (^)^ {} else if (^)^ {} else {}
-__abs void after_if();
-__abs void after_if_cdt();
-__opt void after_elif();
-__opt void after_elif_cdt();
-__opt void after_else();
-__abs void after_endif();
+///** a way to create life circle for helping parse yacc file*/
+//#define __opt
+//#define __abs
+//// def func (x: int) : void {}
+//__abs void after_def();
+//__abs void after_fun(char*);
+//__opt void after_each_arg(char*);
+//__opt void after_each_arg_type(char*);
+//__opt void after_ret_type(char*);
+//__opt void after_fun_begin();
+//__abs void after_fun_end();
+//// if (^)^ {} else if (^)^ {} else {}
+//__abs void after_if();
+//__abs void after_if_cdt();
+//__opt void after_elif();
+//__opt void after_elif_cdt();
+//__opt void after_else();
+//__abs void after_endif();
 
 #endif//__grammar_h__
