@@ -13,6 +13,8 @@
 #include <string>
 #include <fstream>
 #include <deque>
+#include <map>
+#include <set>
 
 #define debug_printf printf
 
@@ -114,7 +116,38 @@ const smb& give_function();
 const smb& query_smb(cstring name);
 
 // tree
-class tree_node;
+class tree_node {
+public:
+    tree_node() {id = ++uuid;if (uuid > 100) { printf("id count error\n");}}
+    static int uuid;
+
+    /** member of tree node */
+    int id = 0;
+    int no = 0;
+    int deep;
+    tree_node *parent;
+    std::vector<tree_node*> children;
+
+    /** right value information */
+    int type;
+    std::string data;
+    std::string sign_type;
+    std::vector<std::string> stack_data;
+
+    /** 8.25.2021 for invoking */
+    std::string expect_type;
+
+    /** tree management */
+    static int max_deep;
+    static tree_node* root;
+
+    /** prepared for nest invoking */
+    static int invoking_deep;
+    //    static std::map<int, tree_node*> invoking_stack_query;
+    static std::map<int, std::vector<tree_node*>> invoking_stack;
+    static std::string heap_register_name;
+};
+
 // tree processing
 void recursion_deep(tree_node* node, int depth);
 // processing bool expression
@@ -126,9 +159,47 @@ void tree_node_collect(std::vector<tree_node*>& vec, tree_node* node);
 
 void subtree_print(tree_node* subtree);
 
+// parser_tree.cpp
+#define __TopTree
+
+__TopTree bool subtree_is_clc(tree_node* subtree);
+__TopTree bool subtree_is_cmp(tree_node* subtree);
+__TopTree bool subtree_is_boo(tree_node* subtree);
+
+class subtree_modifier {
+public:
+    virtual void modify(tree_node*) = 0;
+};
+class calculate_modifier : public subtree_modifier {
+public:
+    void modify(tree_node* node) override;
+};
+class compare_modifier : public subtree_modifier {
+public:
+    void modify(tree_node* node) override;
+};
+class boo_modifier : public subtree_modifier {
+public:
+    void modify(tree_node* node) override;
+};
+
+void reduce_subtree(
+        int debug_deep, std::set<tree_node*>& recording,
+        tree_node* root, tree_node* node,
+        subtree_modifier* modifier);
+
+void reduce_clc(tree_node* subtree, subtree_modifier* modifier_clc);
+void reduce_cmp(tree_node* subtree, subtree_modifier* modifier_cmp);
+void reduce_boo(tree_node* subtree, subtree_modifier* modifier_boo);
+
+void forecast_boo(
+        int debug_deep, std::set<tree_node*>& recording, tree_node* node, tree_node* root);
+
 // branch
 void branch_clear();
 std::string branch_new();
+
+
 
 #else
 #  define __export_c

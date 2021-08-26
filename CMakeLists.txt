@@ -63,6 +63,7 @@ add_executable(
 #        src/boo.cpp
         src/tree.cpp
         src/parsing.cpp
+        src/parser_tree.cpp
         src/branch.cpp
 )
 
