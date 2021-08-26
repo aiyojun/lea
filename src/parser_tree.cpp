@@ -3,27 +3,27 @@
 #include <string>
 #include <vector>
 #include <set>
-
+// necessary functions
 template<typename T>
 bool contains(std::set<T> container, T key)
 {return container.find(key) != container.end();}
-
-/**
- * operator classify
- */
+// operator classify
 namespace lea_op {
     std::set<std::string> boo {"&&", "||", "!", "()"};
     std::set<std::string> compare {">", "<", ">=", "<=", "!=", "==", "()"};
     std::set<std::string> calculate {"+", "-", "*", "/", "()"};
 }
-
+// data type classify
 namespace lea_type {
     std::set<std::string> numberType {"int", "double"};
 }
 
-/**
- * part 1. reduce tree - calculate rt number
- */
+// TODO: core logic
+//       1. make bool binary subtree been multi-subtree
+//       2. reduce calculate subtree (binary tree)
+//       3. reduce compare subtree (binary tree)
+//       4. reduce bool subtree (multi-tree)
+// Part 1. reduce tree - calculate rt number
 void reduce_clc(tree_node* subtree, subtree_modifier* modifier_clc) {
     if (subtree->children.empty()) return;
     if (subtree_is_clc(subtree)) {

@@ -152,8 +152,10 @@ public:
 void recursion_deep(tree_node* node, int depth);
 // processing bool expression
 bool without_boo(const std::vector<tree_node*>& vec, cstring sym);
-void tree_modify_boo(tree_node* node, cstring ops);
-void tree_recursion_boo(tree_node* node);
+void rotate_subtree_boo(tree_node* node, cstring ops);
+void rotate_boo(tree_node* node);
+//void tree_modify_boo(tree_node* node, cstring ops);
+//void tree_recursion_boo(tree_node* node);
 // recollect nodes of the tree
 void tree_node_collect(std::vector<tree_node*>& vec, tree_node* node);
 

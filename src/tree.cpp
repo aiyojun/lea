@@ -21,14 +21,14 @@ std::map<int, std::vector<tree_node*>> tree_node::invoking_stack;
 std::string tree_node::heap_register_name;
 
 void tree_clear() {
-    printf("tree_clear\n");
+//    printf("tree_clear\n");
     tree_node::uuid = 0;
     tree_node::max_deep = 0;
     tree_node::root = nullptr;
     tree_node::invoking_deep = 0;
     tree_node::invoking_stack.clear();
     tree_node::heap_register_name = "";
-    printf("tree_clear over , invoking_deep size : %d\n", (int) tree_node::invoking_stack.size());
+//    printf("tree_clear over , invoking_deep size : %d\n", (int) tree_node::invoking_stack.size());
 }
 
 void invoking_deep_inc() {tree_node::invoking_deep++;}
@@ -120,7 +120,7 @@ void recursion_deep(tree_node* node, int depth) {
 }
 
 void tree_node_deep_assign() {
-    printf("tree_node_deep_assign\n");
+//    printf("tree_node_deep_assign\n");
     tree_node::root = new tree_node();
     tree_node::root->type = 0;
     tree_node::root->data = "root";
@@ -129,32 +129,23 @@ void tree_node_deep_assign() {
     tree_node::root->children.emplace_back(tree_node::invoking_stack[0][0]);
     tree_node::invoking_stack[0][0]->parent = tree_node::root;
     recursion_deep(tree_node::root, 0);
-    printf("tree_node_deep_assign over\n");
+//    printf("tree_node_deep_assign over\n");
 }
 
 
-
-bool without_boo(const std::vector<tree_node*>& vec, cstring sym) {
-    for (auto& ptr : vec) {
-        if (ptr->data == sym) {
-            return false;
+//
+void rotate_boo(tree_node* node) {
+    if (node->data == "&&" || node->data == "||") {
+        rotate_subtree_boo(node, node->data);
+    }
+    if (!node->children.empty()) {
+        for (auto& child : node->children) {
+            rotate_boo(child);
         }
     }
-    return true;
 }
 
-//tree_node* pick_not_paren(tree_node* paren_node) {
-//    tree_node* ptr = paren_node;
-//    while (ptr->data != "()") {
-//        if (ptr->children.size() > 1) {
-//            throw std::runtime_error("paren node must have one child");
-//        }
-//        ptr = ptr->children[0];
-//    }
-//    return ptr;
-//}
-
-void tree_modify_boo(tree_node* node, cstring ops) {
+void rotate_subtree_boo(tree_node* node, cstring ops) {
     while (!without_boo(node->children, ops)) {
         std::vector<tree_node*> tmp;
         for (int i = 0; i < node->children.size(); i++) {
@@ -163,7 +154,7 @@ void tree_modify_boo(tree_node* node, cstring ops) {
                 for (tree_node* child_of_child : child->children) {
                     tmp.emplace_back(child_of_child);
                 }
-//                delete child;
+                //                delete child;
             } else {
                 tmp.emplace_back(child);
             }
@@ -174,6 +165,10 @@ void tree_modify_boo(tree_node* node, cstring ops) {
             node->children.emplace_back(pp);
         }
     }
+}
+bool without_boo(const std::vector<tree_node*>& vec, cstring sym) {
+    for (auto& ptr : vec) {if (ptr->data == sym) return false;}
+    return true;
 }
 
 std::map<std::string, int> calculation_operators{
@@ -229,112 +224,6 @@ void g_calculate(tree_node* p0, tree_node* p1, cstring ops) {
     }
 }
 
-
-
-
-
-void subtree_left_recursion_boo(int i_deep, std::set<tree_node*>& recording, tree_node* root, tree_node* node) {
-    printf(">> boo subtree print %s\n", node->data.c_str());
-    subtree_print(root);
-    printf(">> boo subtree print over\n");
-    printf("subtree_left_recursion_boo i_deep : %d ; node : %s\n", i_deep, node->data.c_str());
-    if (recording.find(node) != recording.end()) {  // exit node
-        printf(">> boo map with %s\n", node->data.c_str());
-        recording.erase(node);
-        bool isRoot = false;
-        tree_node* root_parent = nullptr;
-        if (node == root) {isRoot = true;root_parent = root->parent;}
-
-
-        {
-            std::string ops = node->data;
-            if (ops == "&&") {
-                auto ptr = new tree_node();
-                ptr->type = 2;
-                ptr->sign_type = "bool";
-                ptr->no = node->no;
-                ptr->parent = node->parent;
-                ptr->deep = ptr->parent->deep + 1;
-                ptr->parent->children[ptr->no] = ptr;
-                bool result = true;
-                for (auto& child : node->children) {
-                    if (child->data == "false" || child->data != "true") {
-                        result = false; break;
-                    }
-                }
-                ptr->data = result ? "true" : "false";
-            } else if (ops == "||") {
-                auto ptr = new tree_node();
-                ptr->type = 2;
-                ptr->sign_type = "bool";
-                ptr->no = node->no;
-                ptr->parent = node->parent;
-                ptr->deep = ptr->parent->deep + 1;
-                ptr->parent->children[ptr->no] = ptr;
-                bool result = false;
-                for (auto& child : node->children) {
-                    if (child->data == "true") {
-                        result = true; break;
-                    }
-                }
-                ptr->data = result ? "true" : "false";
-            } else if (ops == "()") {
-                tree_node* p0 = node->children[0];
-                p0->parent = node->parent;
-                p0->no = node->no;
-                p0->deep = p0->parent->deep + 1;
-                p0->parent->children[node->no] = p0;
-                node->parent = nullptr;
-                node = p0;
-            } else {
-                yyerror(("??? impossible boo branch " + ops).c_str());
-            }
-        }
-
-        if (!isRoot) {subtree_left_recursion_boo(i_deep+1, recording, root, node->parent);}
-        else {printf(">> root= boo subtree print %s\n", node->data.c_str());node->parent = root_parent;}
-        return;
-    }
-    recording.insert(node);  // entry node
-    printf(">> boo map without %s\n", node->data.c_str());
-
-    if (!node->children.empty()) {
-        subtree_left_recursion_boo(i_deep+1, recording, root, node->children[0]);
-    } else if (node->children.empty() && node == root) {
-        recording.erase(node);
-    } else if (node->children.empty() && node->no + 1 < node->parent->children.size()) {
-        recording.erase(node); subtree_left_recursion_boo(i_deep+1, recording, root, node->parent->children[node->no + 1]);
-    } else if (node->children.empty() && node->no + 1 >= node->parent->children.size()) {
-        recording.erase(node); subtree_left_recursion_boo(i_deep+1, recording, root, node->parent);
-    }
-}
-
-
-
-void travel_collect_boo(std::vector<tree_node*>& collect_boo, tree_node* node) {
-    if (node->type != 1) {return;}
-    for (auto& child : node->children) {
-        if (child->type == 1) {
-            collect_boo.emplace_back(child);
-            travel_collect_boo(collect_boo, child);
-        }
-    }
-}
-
-
-
-
-void tree_recursion_boo(tree_node* node) {
-    if (node->data == "&&" || node->data == "||") {
-        tree_modify_boo(node, node->data);
-    }
-    if (!node->children.empty()) {
-        for (auto& child : node->children) {
-            tree_recursion_boo(child);
-        }
-    }
-}
-
 void tree_node_collect_v2(std::vector<tree_node*>& vec, tree_node* node, int deep, int& max_deep) {
     if (deep > max_deep) max_deep = deep;
     node->deep = deep;
@@ -353,16 +242,6 @@ void tree_node_collect(std::vector<tree_node*>& vec, tree_node* node) {
             tree_node_collect(vec, ptr);
         }
     }
-}
-
-void tree_node_modify() {
-    printf("tree_node_modify\n");
-    tree_recursion_boo(tree_node::root);
-    std::vector<tree_node*> allNodes;
-    tree_node_collect(allNodes, tree_node::root);
-    tree_node::max_deep = 0;
-    recursion_deep(tree_node::root, 0);
-    printf("tree_node_modify over max deep : %d\n", tree_node::max_deep);
 }
 
 void subtree_print(tree_node* subtree) {
@@ -424,25 +303,25 @@ void tree_node_print() {
     printf("---------------\n");
 }
 
-std::string analysis_type_op;
-std::vector<std::string> analysis_invoking;
-std::vector<std::string> analysis_variable;
-
-void tree_recursion_anl(tree_node* node) {
-    if (node->type == 3) {
-        analysis_invoking.emplace_back(node->data);
-        return;
-    }
-    if (node->type == 4) {
-        analysis_variable.emplace_back(node->data);
-        return;
-    }
-    if (!node->children.empty()) {
-        for (auto& ptr : node->children) {
-            tree_recursion_anl(ptr);
-        }
-    }
-}
+//std::string analysis_type_op;
+//std::vector<std::string> analysis_invoking;
+//std::vector<std::string> analysis_variable;
+//
+//void tree_recursion_anl(tree_node* node) {
+//    if (node->type == 3) {
+//        analysis_invoking.emplace_back(node->data);
+//        return;
+//    }
+//    if (node->type == 4) {
+//        analysis_variable.emplace_back(node->data);
+//        return;
+//    }
+//    if (!node->children.empty()) {
+//        for (auto& ptr : node->children) {
+//            tree_recursion_anl(ptr);
+//        }
+//    }
+//}
 
 void do_compare(tree_node* subtree, cstring next_branch) {
     std::string ops = subtree->data;
@@ -510,8 +389,10 @@ std::map<std::string, int> compare_operators{
 //    {"!", 12}, {"&&", 13}, {"||", 14}
 };
 void tree_analysis(int usage) {
-    tree_node_modify();
-    printf("// After modify\n");
+//    tree_node_modify();
+    rotate_boo(tree_node::root);
+    recursion_deep(tree_node::root, 0);
+    printf("// After rotate boo\n");
     reduce_clc(tree_node::root, new calculate_modifier);
     printf("// After reduce clc\n");
     tree_node_print();
