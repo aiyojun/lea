@@ -5,7 +5,7 @@
 #  define __export_c
 #  define __export_c_begin
 #  define __export_c_end
-#ifdef __cplusplus
+//#ifdef __cplusplus
 //#  define __export_c       extern "C"
 //#  define __export_c_begin extern "C" {
 //#  define __export_c_end   }
@@ -218,8 +218,11 @@ __export_c void printf_empty(const char *__restrict, ...);
 
 #include <stdio.h>
 
+//extern FILE *yyin;
 extern int lealine;
 
+//__export_c int yylex(void);
+//__export_c int yyparse(void);
 __export_c void yyerror(const char* s);
 
 /** symbols collection */

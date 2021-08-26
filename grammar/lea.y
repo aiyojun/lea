@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "grammar.h"
+#include "lea.tab.hh"
+extern int yylex(yy::parser::semantic_type* value);
 %}
 
 %union {
@@ -171,6 +173,7 @@ functionDefine:
 | KW_DEF functionName functionMany {}
 ;
 functionName: FIELD {
+printf("function name : %s\n", $1);
     check($1); keep($1);
 }
 ;

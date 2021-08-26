@@ -7,21 +7,30 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/)
 set(BUILD_DIR ${EXECUTABLE_OUTPUT_PATH}/build)
 set(LEA_COMPILER ${PROJECT_SOURCE_DIR}/lea)
 
+add_compile_options(-Wall)
+
 message("-- Preset lea compiler: ${LEA_COMPILER}")
 
 execute_process(COMMAND mkdir -p ${BUILD_DIR})
 
 add_custom_command(
-        OUTPUT ${BUILD_DIR}/lex.yy.c
+        OUTPUT ${BUILD_DIR}/lex.yy.cc
         PRE_BUILD
-        COMMAND flex -o ${BUILD_DIR}/lex.yy.c ${EXECUTABLE_OUTPUT_PATH}/grammar/lea.l
-        COMMENT "Building lex lex.yy.c"
+        COMMAND flex -+ -o ${BUILD_DIR}/lex.yy.cc ${EXECUTABLE_OUTPUT_PATH}/grammar/lea.l
+        COMMENT "Building lex lex.yy.c ccFlexLexer"
 )
 
 add_custom_command(
-        OUTPUT ${BUILD_DIR}/lea.tab.c
+        OUTPUT ${BUILD_DIR}/lex.cc.cc
         PRE_BUILD
-        COMMAND bison -o ${BUILD_DIR}/lea.tab.c -d ${EXECUTABLE_OUTPUT_PATH}/grammar/lea.y -v
+        COMMAND flex -+ -P cc -o ${BUILD_DIR}/lex.cc.cc ${EXECUTABLE_OUTPUT_PATH}/grammar/comment.l
+        COMMENT "Building lex lex.yy.c ccFlexLexer"
+)
+
+add_custom_command(
+        OUTPUT ${BUILD_DIR}/lea.tab.cc
+        PRE_BUILD
+        COMMAND bison -L C++ -o ${BUILD_DIR}/lea.tab.cc -d ${EXECUTABLE_OUTPUT_PATH}/grammar/lea.y -v
         COMMENT "Building yacc lea.tab.c"
 )
 
@@ -51,12 +60,13 @@ add_custom_command(
         COMMENT "Compiling leapro/test.lea"
 )
 
-include_directories(${EXECUTABLE_OUTPUT_PATH}/src)
+include_directories(${EXECUTABLE_OUTPUT_PATH}/src ${EXECUTABLE_OUTPUT_PATH}/build)
 
 add_executable(
         lea
-        build/lea.tab.c
-        build/lex.yy.c
+        build/lea.tab.cc
+        build/lex.yy.cc
+        build/lex.cc.cc
         src/compiler.cpp
         src/value.cpp
         src/gas.cpp
