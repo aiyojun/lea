@@ -389,7 +389,6 @@ std::map<std::string, int> compare_operators{
 //    {"!", 12}, {"&&", 13}, {"||", 14}
 };
 void tree_analysis(int usage) {
-//    tree_node_modify();
     rotate_boo(tree_node::root);
     recursion_deep(tree_node::root, 0);
     printf("// After rotate boo\n");

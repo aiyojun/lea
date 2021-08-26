@@ -258,7 +258,6 @@ __export_c void tree_node_link(char* op);
 
 __export_c void tree_node_deep_assign();
 __export_c void tree_node_print();
-__export_c void tree_node_modify();
 __export_c void tree_analysis(int usage);
 
 __export_c void get_expects_back(int i, char buf[]);
