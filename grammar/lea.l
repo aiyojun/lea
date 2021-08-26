@@ -26,7 +26,7 @@ extern yy::parser::semantic_type yylval;
                             expects_push(yytext); _p_lex("[lex] } : %s\n", yytext);
                             return yy::parser::token::token_kind_type::BLOCK_END; }
 ":"                     {
-                            printf(">> 01");yylval.ycText = yytext;
+                            yylval.ycText = yytext;
                             expects_push(yytext); _p_lex("[lex] COLON : %s\n", yytext);
                             return yy::parser::token::token_kind_type::COLON;
                         }
@@ -225,7 +225,6 @@ extern yy::parser::semantic_type yylval;
                         }
 [a-zA-Z_][0-9a-zA-Z_]*  {
                             yylval.ycText = yytext;
-                            printf("lexer: %s\n", yytext);
                             expects_push(yytext); _p_lex("[lex] FIELD : %s\n", yytext);
                             return yy::parser::token::token_kind_type::FIELD;
                         }
