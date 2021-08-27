@@ -85,6 +85,7 @@ public:
 };
 
 namespace lea_if {
+    extern std::set<int> ref_node_id;
     extern std::vector<int> back_seq;
     extern std::vector<int> back_seq_cmp;
     extern std::map<tree_node *, std::tuple<int, int, int>> following;

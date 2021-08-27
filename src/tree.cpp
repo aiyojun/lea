@@ -304,6 +304,7 @@ void tree_node_print() {
 }
 
 namespace lea_if {
+    std::set<int> ref_node_id;
     std::vector<int> back_seq;
     std::vector<int> back_seq_cmp;
     std::map<tree_node *, std::tuple<int, int, int>> following;
@@ -382,6 +383,7 @@ namespace lea_if {
             back_seq.emplace_back(node->id);
             back_seq_cmp.emplace_back(node->id);
             compare_nodes[node->id] = node;
+            std::cout << "compare node add " << node->id << std::endl;
         }
     }
 
@@ -393,6 +395,13 @@ namespace lea_if {
             }
         }
         throw std::runtime_error("find from " + std::to_string(i) + " error");
+    }
+
+    int find_next(const std::vector<int>& ok_v, int id) {
+        for (unsigned int i = 0; i < ok_v.size(); i++) {
+            if (ok_v[i] == id) return ok_v[i + 1];
+        }
+        return -1;
     }
 
     void on_update() {
@@ -430,6 +439,24 @@ namespace lea_if {
                 success = replace_node_id[success];
             }
         }
+        for (unsigned i = 0; i < lea_if::back_seq_cmp.size() - 3; i++) {
+            int next_node_id = lea_if::back_seq_cmp[i + 1];
+            std::tuple<int, int, int>& group = lea_if::following[lea_if::compare_nodes[lea_if::back_seq_cmp[i]]];
+            int& failed  = std::get<1>(group);
+            int& success = std::get<2>(group);
+            std::cout << "C:" << std::get<0>(group) << "; F: " << failed << "; S: " << success << std::endl;
+            if (failed!=-1 && failed!=-2 && contains(lea_if::back_seq_cmp, failed) && failed != next_node_id) {
+                lea_if::ref_node_id.insert(failed);
+            }
+            if (success!=-1 && success!=-2 && contains(lea_if::back_seq_cmp, success) && success != next_node_id) {
+                lea_if::ref_node_id.insert(success);
+            }
+        }
+        std::string ss_out;
+        for (auto& pp : lea_if::ref_node_id) {
+            ss_out += "  " + std::to_string(pp);
+        }
+        std::cout << "ref node : " << ss_out << std::endl;
     }
 
     void gen_boo(tree_node* node) {
