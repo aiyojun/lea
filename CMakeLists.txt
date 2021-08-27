@@ -70,7 +70,6 @@ add_executable(
         src/compiler.cpp
         src/value.cpp
         src/gas.cpp
-#        src/boo.cpp
         src/tree.cpp
         src/parsing.cpp
         src/parser_tree.cpp
