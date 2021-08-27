@@ -122,10 +122,11 @@ void subtree_compare(int node_id, int next_node_id) {
 
 
 void do_compare() {
-    // TODO: generate gas code from comparing expression one by one
-    //       This process is linear.
-    //       Action: query from lea_if::compare_nodes by node id
-    //////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////
+    /// TODO: generate gas code from comparing expression one by one
+    ///       This process is linear.
+    ///       Action: query from lea_if::compare_nodes by node id
+    ////////////////////////////////////////////////////////////////
     std::vector<std::string> temp_gas;
     for (unsigned int i = 0; i < lea_if::back_seq_cmp.size() - 2; i++) {
         int node_id = lea_if::back_seq_cmp[i];
