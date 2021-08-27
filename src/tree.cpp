@@ -10,6 +10,7 @@
 #include <tuple>
 #include "tree.h"
 #include "basic_ds.h"
+#include "branch.h"
 
 int tree_node::uuid = 0;
 int tree_node::max_deep = 0;
@@ -383,6 +384,54 @@ namespace lea_if {
             compare_nodes[node->id] = node;
         }
     }
+
+    int find_from(const std::vector<int>& ok_v, const std::vector<int>& v, unsigned int i) {
+        for (unsigned int j = i; j < v.size(); j++) {
+            int id = v[j];
+            if (contains(ok_v, id)) {
+                return id;
+            }
+        }
+        throw std::runtime_error("find from " + std::to_string(i) + " error");
+    }
+
+    void on_update() {
+        std::map<int, int> replace_node_id;
+        lea_if::back_seq.emplace_back(-1);
+        lea_if::back_seq.emplace_back(-2);
+        lea_if::back_seq_cmp.emplace_back(-1);
+        lea_if::back_seq_cmp.emplace_back(-2);
+        for (int i = 0; i < lea_if::back_seq.size(); i++) {
+            int id = lea_if::back_seq[i];
+            if (!contains(lea_if::back_seq_cmp, id)) {
+                int next_id = find_from(lea_if::back_seq_cmp, lea_if::back_seq, i);
+                replace_node_id[id] = next_id;
+            }
+        }
+        lea_if::gen_boo_print();
+        std::cout << "replacing map : ";
+        for (auto& kv_i : replace_node_id) {
+            std::cout << kv_i.first << "->" << kv_i.second << "   ";
+        }
+        std::cout << std::endl;
+        for (auto& node_kv : lea_if::following) {
+            std::tuple<int, int, int>& group = node_kv.second;
+            int& failed  = std::get<1>(group);
+            int& success = std::get<2>(group);
+            if (!contains(lea_if::back_seq_cmp, failed)) {
+                if (!contains(replace_node_id, failed))
+                    throw std::runtime_error("no node id in replacing map");
+                failed = replace_node_id[failed];
+            }
+            if (!contains(lea_if::back_seq_cmp, success)) {
+                printf("++ success\n");
+                if (!contains(replace_node_id, success))
+                    throw std::runtime_error("no node id in replacing map");
+                success = replace_node_id[success];
+            }
+        }
+    }
+
     void gen_boo(tree_node* node) {
         on_create();
         auto ptr = node->children[0];
@@ -394,18 +443,24 @@ namespace lea_if {
         }
         std::set<tree_node*> recording;
         reduce_subtree(0, recording, node->children[0], node->children[0], new generate_modifier());
-//        std::cout << "** simu gas:" << std::endl;
-//        for (auto& kv : following) {
-//            std::cout
-//                << "cmp:" << std::get<0>(kv.second) << std::endl
-//                << "->F:" << std::get<1>(kv.second) << std::endl
-//                << "->S:" << std::get<2>(kv.second) << std::endl
-//            ;
-//        }
-//        std::cout << "** node seq     : " << join(", ", to_vs(back_seq)) << std::endl;
-//        std::cout << "** node seq cmp : " << join(", ", to_vs(back_seq_cmp)) << std::endl;
+        on_update();
+    }
+
+    void gen_boo_print() {
+        std::cout << "** simu gas:" << std::endl;
+        for (auto& kv : following) {
+            std::cout
+            << "cmp: o " << std::get<0>(kv.second) << std::endl
+            << "->F: o " << std::get<1>(kv.second) << std::endl
+            << "->S: o " << std::get<2>(kv.second) << std::endl
+            ;
+        }
+        std::cout << "** -1 : self branch ; -2 : next branch." << std::endl;
+        std::cout << "** node seq     : " << join(", ", to_vs(back_seq)) << std::endl;
+        std::cout << "** node seq cmp : " << join(", ", to_vs(back_seq_cmp)) << std::endl;
     }
 }
+
 //std::string analysis_type_op;
 //std::vector<std::string> analysis_invoking;
 //std::vector<std::string> analysis_variable;
@@ -425,59 +480,59 @@ namespace lea_if {
 //        }
 //    }
 //}
-
-void do_compare(tree_node* subtree, cstring next_branch) {
-    std::string ops = subtree->data;
-    if (ops == ">") {
-        tree_node* p0 = subtree->children[0];
-        tree_node* p1 = subtree->children[1];
-        if (p0->type == 2 && p1->type == 2) {
-            if (p0->sign_type == "int" && p1->sign_type == "int") {
-                if (atoi(p0->data.c_str()) > atoi(p1->data.c_str())) {
-
-                } else {
-
-                }
-//                mov4byte(rt(atoi(p0->data.c_str())), r4("a"));
-//                gas_cmp4bytes(rt(atoi(p1->data.c_str())), r4("a"));
-//                std::string nextBranch = branch_new();
-//                gas_cmd("jle " + next_branch);
-            } else if (p0->sign_type == "int" && p1->sign_type == "double") {
-
-            } else if (p0->sign_type == "double" && p1->sign_type == "int") {
-
-            } else if (p0->sign_type == "double" && p1->sign_type == "double") {
-
-            }
-        } else if (p0->type == 2 && p1->type == 3) { // invoking
-
-        } else if (p0->type == 2 && p1->type == 4) {
-
-        } else if (p0->type == 3 && p1->type == 2) {
-
-        } else if (p0->type == 3 && p1->type == 3) {
-
-        } else if (p0->type == 3 && p1->type == 4) {
-
-        } else if (p0->type == 4 && p1->type == 2) {
-
-        } else if (p0->type == 4 && p1->type == 3) {
-
-        } else if (p0->type == 4 && p1->type == 4) {
-
-        }
-    } else if (ops == "<") {
-
-    } else if (ops == ">=") {
-
-    } else if (ops == "<=") {
-
-    } else if (ops == "!=") {
-
-    } else if (ops == "==") {
-
-    }
-}
+//
+//void do_compare(tree_node* subtree, cstring next_branch) {
+//    std::string ops = subtree->data;
+//    if (ops == ">") {
+//        tree_node* p0 = subtree->children[0];
+//        tree_node* p1 = subtree->children[1];
+//        if (p0->type == 2 && p1->type == 2) {
+//            if (p0->sign_type == "int" && p1->sign_type == "int") {
+//                if (atoi(p0->data.c_str()) > atoi(p1->data.c_str())) {
+//
+//                } else {
+//
+//                }
+////                mov4byte(rt(atoi(p0->data.c_str())), r4("a"));
+////                gas_cmp4bytes(rt(atoi(p1->data.c_str())), r4("a"));
+////                std::string nextBranch = branch_new();
+////                gas_cmd("jle " + next_branch);
+//            } else if (p0->sign_type == "int" && p1->sign_type == "double") {
+//
+//            } else if (p0->sign_type == "double" && p1->sign_type == "int") {
+//
+//            } else if (p0->sign_type == "double" && p1->sign_type == "double") {
+//
+//            }
+//        } else if (p0->type == 2 && p1->type == 3) { // invoking
+//
+//        } else if (p0->type == 2 && p1->type == 4) {
+//
+//        } else if (p0->type == 3 && p1->type == 2) {
+//
+//        } else if (p0->type == 3 && p1->type == 3) {
+//
+//        } else if (p0->type == 3 && p1->type == 4) {
+//
+//        } else if (p0->type == 4 && p1->type == 2) {
+//
+//        } else if (p0->type == 4 && p1->type == 3) {
+//
+//        } else if (p0->type == 4 && p1->type == 4) {
+//
+//        }
+//    } else if (ops == "<") {
+//
+//    } else if (ops == ">=") {
+//
+//    } else if (ops == "<=") {
+//
+//    } else if (ops == "!=") {
+//
+//    } else if (ops == "==") {
+//
+//    }
+//}
 
 // TODO: analysis right side
 // TODO: analysis left side, scenes as following:
@@ -513,6 +568,10 @@ void tree_analysis(int usage) {
         subtree_remove_paren(0, tree_node::root);
         tree_node_print();
         lea_if::gen_boo(tree_node::root);
+        lea_if::gen_boo_print();
+
+        lea_if::allocate_label();
+        do_compare();
     }
     return;
 //    tree_node_print();

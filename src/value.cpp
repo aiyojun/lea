@@ -83,6 +83,10 @@ void record_variable() {
     }
     variable.scope = sco;
     globalDefinedSymbols[sco][variable.name] = variable;
+
+    if (variable.type == "int") {
+        stack4bytes(variable.name, rt(0));
+    }
 }
 void record_function() {
     std::string sco(std::move(getScope()));

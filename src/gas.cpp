@@ -6,6 +6,7 @@
 // It's necessary to import namespace or other methods to package all the functions.
 
 #include "grammar.h"
+#include "basic_ds.h"
 #include <stdio.h>
 #include <iostream>
 #include <string>
@@ -14,44 +15,6 @@
 #include <map>
 
 std::string file_writer::out;
-
-std::vector<std::string> split(cstring s, cstring separator) {
-    std::vector<std::string> _r;
-    std::string tmp = s;
-    while (tmp.length() > 0) {
-        std::string::size_type pos = tmp.find_first_of(separator);
-        if (pos > tmp.length() - 1) { if (tmp.length() > 0) _r.emplace_back(tmp);break; }
-        if (pos != 0)
-            _r.emplace_back(tmp.substr(0, pos));
-        tmp = tmp.substr(pos + separator.length());
-    }
-//    std::cout << "_r: ";
-//    for (cstring pp : _r) std::cout << pp << " | ";
-//    std::cout << std::endl;
-    return std::move(_r);
-}
-
-std::vector<std::string> splits(cstring s, const std::vector<std::string>& separators) {
-    std::vector<std::string> _r;
-    if (separators.empty()) return _r;
-    _r = split(s, separators[0]);
-    std::vector<std::string> _r2;
-    std::vector<std::string> _r3;
-    for (int i = 1; i < separators.size(); i++) {
-        _r2.clear();
-        for (int j = 0; j <_r.size(); j++) {
-            _r3 = split(_r[j], separators[i]);
-            _r2.insert(_r2.end(), _r3.begin(), _r3.end());
-        }
-        _r = _r2;
-    }
-    return std::move(_r);
-}
-
-std::string quote(cstring s) {
-    if (s[0] != '"' || s[s.length() - 1] != '"') return "\"" + s + "\"";
-    return s;
-}
 
 class gas {
 public:

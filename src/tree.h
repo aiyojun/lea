@@ -98,6 +98,10 @@ namespace lea_if {
         void enter(tree_node *) override;
         void modify(tree_node *) override {};
     };
+//    void on_create();
+//    void on_update();
+    void gen_boo(tree_node* node);
+    void gen_boo_print();
 }
 
 void reduce_subtree(
