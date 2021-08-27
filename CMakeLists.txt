@@ -75,6 +75,7 @@ add_executable(
         src/parsing.cpp
         src/parser_tree.cpp
         src/branch.cpp
+        src/basic_ds.cpp
 )
 
 target_link_libraries(lea c stdc++)

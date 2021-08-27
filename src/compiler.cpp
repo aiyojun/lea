@@ -50,22 +50,15 @@ int main(int argc, char **argv)
         istream.open(argv[1]);
         cc_lexer->switch_streams(istream, bridge);
         lexer->switch_streams(bridge, std::cout);
-//        yyin = fopen(argv[1], "r");
     } else if (argc == 2) {
         istream.open(argv[1]);
         cc_lexer->switch_streams(istream, bridge);
         lexer->switch_streams(bridge, std::cout);
-//        yyin = fopen(argv[1], "r");
     }
     cc_lexer->yylex();
     std::cout << "cc lexer complete remove comments." << std::endl;
-//    std::stringstream bridge;
-//    cc_lexer->switch_streams();
-//std::cout << "bridge: " << bridge.str() << std::endl;
     yy_parser->parse();
-std::cout << "yy parser parse over" << std::endl;
-//    yyparse();
-//    fclose(yyin);
+    std::cout << "yy parser parse over" << std::endl;
     istream.close();
     delete cc_lexer;
     delete lexer;

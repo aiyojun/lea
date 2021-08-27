@@ -61,23 +61,44 @@ void subtree_print(tree_node* subtree);
 __TopTree bool subtree_is_clc(tree_node* subtree);
 __TopTree bool subtree_is_cmp(tree_node* subtree);
 __TopTree bool subtree_is_boo(tree_node* subtree);
+__TopTree void subtree_remove_paren(int depth, tree_node* subtree);
 
 class subtree_modifier {
 public:
+    virtual void enter(tree_node*) = 0;
     virtual void modify(tree_node*) = 0;
 };
 class calculate_modifier : public subtree_modifier {
 public:
+    void enter(tree_node *) override {};
     void modify(tree_node* node) override;
 };
 class compare_modifier : public subtree_modifier {
 public:
+    void enter(tree_node *) override {};
     void modify(tree_node* node) override;
 };
 class boo_modifier : public subtree_modifier {
 public:
+    void enter(tree_node *) override {};
     void modify(tree_node* node) override;
 };
+
+namespace lea_if {
+    extern std::vector<int> back_seq;
+    extern std::vector<int> back_seq_cmp;
+    extern std::map<tree_node *, std::tuple<int, int, int>> following;
+    extern std::map<tree_node *, int> back_point_s;
+    extern std::map<tree_node *, int> back_point_f;
+    extern std::map<int, tree_node *> compare_nodes;
+    extern std::set<std::string> compare_op;
+    extern std::set<std::string> boo_op;
+    class generate_modifier : public subtree_modifier {
+    public:
+        void enter(tree_node *) override;
+        void modify(tree_node *) override {};
+    };
+}
 
 void reduce_subtree(
         int debug_deep, std::set<tree_node*>& recording,

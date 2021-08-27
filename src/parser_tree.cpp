@@ -23,6 +23,7 @@ namespace lea_type {
 //       2. reduce calculate subtree (binary tree)
 //       3. reduce compare subtree (binary tree)
 //       4. reduce bool subtree (multi-tree)
+//       5. forecast bool subtree (remove some known true/false values)
 // Part 1. reduce tree - calculate rt number
 void reduce_clc(tree_node* subtree, subtree_modifier* modifier_clc) {
     if (subtree->children.empty()) return;
@@ -59,12 +60,13 @@ void forecast_boo(int debug_deep, std::set<tree_node*>& recording, tree_node* no
         recording.erase(node);
         tree_node* node_parent;
         bool is_root = false;
+        int node_no = node->no;
         if (node == root) is_root = true; else node_parent = node->parent;
 
         if (node->type == 1) {
             std::string ops = node->data;
             if (ops == "&&" || ops == "||") {
-                bool hasFalse = !(ops == "&&");
+                bool hasFalse = false;
                 std::set<int> true_v;
                 int total = node->children.size();
                 int true_number = 0;
@@ -99,7 +101,6 @@ void forecast_boo(int debug_deep, std::set<tree_node*>& recording, tree_node* no
                     }
                     node->children.swap(tmp);
                 }
-
             } else if (ops == "()") {
                 tree_node* p0 = node->children[0];
                 p0->parent = node->parent;
@@ -109,7 +110,12 @@ void forecast_boo(int debug_deep, std::set<tree_node*>& recording, tree_node* no
                 node->parent = nullptr;
             }
         }
-        if (!is_root) forecast_boo(debug_deep - 1, recording, node_parent, root);
+
+        if (!is_root && node_no + 1 < node_parent->children.size()) {
+            forecast_boo(debug_deep, recording, node_parent->children[node_no + 1], root);
+        } else if (!is_root) {
+            forecast_boo(debug_deep - 1, recording, node_parent, root);
+        }
         return;
     }
     recording.insert(node);
@@ -163,30 +169,63 @@ __TopTree bool subtree_is_boo(tree_node* subtree) {
     return false;
 }
 
+__TopTree void subtree_remove_paren(int depth, tree_node* subtree) {
+    subtree->deep = depth;
+    if (subtree->children.empty()) {return;}
+    for (int child_index = 0; child_index < subtree->children.size(); child_index++) {
+        auto child = subtree->children[child_index];
+//        printf("++ %d %d %d %d %s\n", child->parent != nullptr ? child->parent->id : -1, child->id, child->no, child->type, child->data.c_str());
+        if (child->type == 1 && child->data == "()") {
+            auto next = child->children[0];
+            while (next->type == 1 && next->data == "()") {
+                if (next->children.empty()) throw std::runtime_error("impossible branch");
+                next = next->children[0];
+            }
+            subtree->children[child->no] = next;
+//            printf("-- %s %d %d\n", child->data.c_str(), child->no, child->id);
+            next->parent = subtree;
+            child->parent = nullptr;
+            subtree_remove_paren(depth + 1, next);
+        } else {
+            subtree_remove_paren(depth + 1, child);
+        }
+    }
+}
+
 void reduce_subtree(
         int debug_deep, std::set<tree_node*>& recording,
         tree_node* root, tree_node* node,
         subtree_modifier* modifier) {
+//    printf("[recursion] %d %s\n", node->id, node->data.c_str());
     if (recording.find(node) != recording.end()) {  // exit node
         recording.erase(node);
         bool is_root = false;
+        int node_no = node->no;
         tree_node* node_parent;
         if (node == root) is_root = true; else node_parent = node->parent;
 
         modifier->modify(node);  // TODO: core logic
 
-        if (!is_root) {reduce_subtree(debug_deep+1, recording, root, node_parent, modifier);}
+        if (!is_root && node_no + 1 < node_parent->children.size()) {
+            reduce_subtree(debug_deep, recording, root, node_parent->children[node_no + 1], modifier);
+        } else if (!is_root) {
+            reduce_subtree(debug_deep+1, recording, root, node_parent, modifier);
+        }
         return;
     }
     recording.insert(node);  // entry node
+
+    modifier->enter(node);   // TODO: core logic
+
     if (!node->children.empty()) {
         reduce_subtree(debug_deep+1, recording, root, node->children[0], modifier);
     } else if (node->children.empty() && node->parent == root) {  // root exit
         recording.erase(node);
     } else if (node->children.empty() && node->no + 1 < node->parent->children.size()) { // && node->parent != root
-        recording.erase(node); reduce_subtree(debug_deep+1, recording, root, node->parent->children[node->no + 1], modifier);
+        recording.erase(node); reduce_subtree(debug_deep, recording, root, node->parent->children[node->no + 1], modifier);
     } else if (node->children.empty() && node->no + 1 >= node->parent->children.size()) { //&& node->parent != root
-        recording.erase(node); reduce_subtree(debug_deep+1, recording, root, node->parent, modifier);
+//        printf("subtree recursion -> parent\n");
+        recording.erase(node); reduce_subtree(debug_deep-1, recording, root, node->parent, modifier);
     }
 }
 

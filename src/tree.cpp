@@ -7,10 +7,9 @@
 #include <vector>
 #include <map>
 #include <set>
-
-template<typename T, typename _>
-bool contains(std::map<T, _> map, T key)
-{return map.find(key) != map.end();}
+#include <tuple>
+#include "tree.h"
+#include "basic_ds.h"
 
 int tree_node::uuid = 0;
 int tree_node::max_deep = 0;
@@ -303,6 +302,110 @@ void tree_node_print() {
     printf("---------------\n");
 }
 
+namespace lea_if {
+    std::vector<int> back_seq;
+    std::vector<int> back_seq_cmp;
+    std::map<tree_node *, std::tuple<int, int, int>> following;
+    std::map<tree_node *, int> back_point_s;
+    std::map<tree_node *, int> back_point_f;
+    std::map<int, tree_node *> compare_nodes;
+    std::set<std::string> compare_op;
+    std::set<std::string> boo_op;
+    void on_create() {
+        compare_op = {">", "<", ">=", "<=", "!=", "=="};
+        boo_op = {"&&", "||", "!"};
+        back_point_f.clear();
+        back_point_s.clear();
+        following.clear();
+        back_seq.clear();
+        back_seq_cmp.clear();
+        compare_nodes.clear();
+    }
+    void generate_modifier::enter(tree_node *node) {
+        if (node->type != 1) return;
+        std::string ops = node->data;
+        if (contains(boo_op, ops)) {
+            back_seq.emplace_back(node->id);
+            if (ops == "&&") {
+                if (contains(back_point_s, node)) {
+                } else if (contains(back_point_s, node->parent) && node->parent->type == 1 && node->parent->data == "||") {
+                    back_point_s[node] = back_point_s[node->parent];
+                    if (node->no + 1 < node->parent->children.size()) {
+                        back_point_f[node] = node->parent->children[node->no + 1]->id;
+                    } else {
+                        back_point_f[node] = back_point_f[node->parent];
+                    }
+                } else {
+                    printf("node parent %d %s\n", node->parent->id, node->parent->data.c_str());
+                    yyerror("????");
+                }
+                for (int child_index = 0; child_index < node->children.size(); child_index++) {
+                    auto child = node->children[child_index];
+                    if (contains(compare_op, child->data)) {
+                        if (child_index + 1 < node->children.size()) {
+                            following[child] = std::tuple<int, int, int>(
+                                    child->id, back_point_f[node], node->children[child_index + 1]->id);
+                        } else if (child_index == node->children.size() - 1) {
+                            following[child] = std::tuple<int, int, int>(
+                                    child->id, back_point_f[node], back_point_s[node] );
+                        }
+                    }
+                }
+            } else if (ops == "||") {
+                if (contains(back_point_s, node)) {
+                } else if (contains(back_point_s, node->parent) && node->parent->type == 1 && node->parent->data == "&&") {
+                    back_point_f[node] = back_point_f[node->parent];
+                    if (node->no + 1 < node->parent->children.size()) {
+                        back_point_s[node] = node->parent->children[node->no + 1]->id;
+                    } else {
+                        back_point_s[node] = back_point_s[node->parent];
+                    }
+                } else {
+                    printf("node parent %d %s\n", node->parent->id, node->parent->data.c_str());
+                    yyerror("????");
+                }
+                for (int child_index = 0; child_index < node->children.size(); child_index++) {
+                    auto child = node->children[child_index];
+                    if (contains(compare_op, child->data)) {
+                        if (child_index + 1 < node->children.size()) {
+                            following[child] = std::tuple<int, int, int>(
+                                    child->id, node->children[child_index + 1]->id, back_point_s[node]);
+                        } else if (child_index == node->children.size() - 1) {
+                            following[child] = std::tuple<int, int, int>(
+                                    child->id, back_point_f[node], back_point_s[node]);
+                        }
+                    }
+                }
+            }
+        } else if (contains(compare_op, ops)) {
+            back_seq.emplace_back(node->id);
+            back_seq_cmp.emplace_back(node->id);
+            compare_nodes[node->id] = node;
+        }
+    }
+    void gen_boo(tree_node* node) {
+        on_create();
+        auto ptr = node->children[0];
+        if (ptr->type == 1 && (ptr->data == "&&" || ptr->data == "||")) {
+            back_point_s[ptr] = -1; // self branch
+            back_point_f[ptr] = -2; // next branch
+        } else {
+            yyerror("?002");
+        }
+        std::set<tree_node*> recording;
+        reduce_subtree(0, recording, node->children[0], node->children[0], new generate_modifier());
+//        std::cout << "** simu gas:" << std::endl;
+//        for (auto& kv : following) {
+//            std::cout
+//                << "cmp:" << std::get<0>(kv.second) << std::endl
+//                << "->F:" << std::get<1>(kv.second) << std::endl
+//                << "->S:" << std::get<2>(kv.second) << std::endl
+//            ;
+//        }
+//        std::cout << "** node seq     : " << join(", ", to_vs(back_seq)) << std::endl;
+//        std::cout << "** node seq cmp : " << join(", ", to_vs(back_seq_cmp)) << std::endl;
+    }
+}
 //std::string analysis_type_op;
 //std::vector<std::string> analysis_invoking;
 //std::vector<std::string> analysis_variable;
@@ -404,7 +507,13 @@ void tree_analysis(int usage) {
     std::set<tree_node*> recording;
     forecast_boo(0, recording, tree_node::root->children[0], tree_node::root->children[0]);
     printf("// After forecast boo\n");
-    tree_node_print();
+        tree_node_print();
+    if (usage == 3) {
+        printf("// After gen\n");
+        subtree_remove_paren(0, tree_node::root);
+        tree_node_print();
+        lea_if::gen_boo(tree_node::root);
+    }
     return;
 //    tree_node_print();
     if (usage == 3) {

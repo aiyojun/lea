@@ -4,14 +4,7 @@
 #include <vector>
 #include <exception>
 #include <map>
-
-std::string join(cstring c, const std::vector<std::string>& v)
-{std::string _r;for(int i=0;i<v.size();i++){_r+=v[i];if(i!=v.size()-1)_r+=c;}return _r;}
-
-template<typename T, typename _>
-bool contains(std::map<T, _> map, T key)
-{return map.find(key) != map.end();}
-
+#include "basic_ds.h"
 
 std::string nameTemporary;
 smb variable; smb invoking; smb function;

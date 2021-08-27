@@ -13,8 +13,9 @@
 
 //using cstring=const std::string&;
 
-std::string join(cstring c, const std::vector<std::string>& v)
-{std::string _r;for(int i=0;i<v.size();i++){_r+=v[i];if(i!=v.size()-1)_r+=c;}return _r;}
+template<typename T>
+std::string join(cstring c, const std::vector<T>& v)
+{std::string _r;for(int i=0;i<v.size();i++){_r+=std::to_string(v[i]);if(i!=v.size()-1)_r+=c;}return _r;}
 
 template<typename T, typename _>
 bool contains(std::map<T, _> map, T key)
