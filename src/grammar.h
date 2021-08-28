@@ -15,6 +15,7 @@ __export_c void printf_empty(const char *__restrict, ...);
 
 /** symbols collection */
 __export_c void enter_scope();
+__export_c void enter_scope_of(char*);
 __export_c void exit_scope();
 __export_c void check(char* name);
 __export_c int has_defined(char* name);

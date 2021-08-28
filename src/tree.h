@@ -84,6 +84,12 @@ public:
     void modify(tree_node* node) override;
 };
 
+class evaluation_modifier : public subtree_modifier {
+public:
+    void enter(tree_node*) override {};
+    void modify(tree_node *) override;
+};
+
 namespace lea_if {
     extern std::set<int> ref_node_id;
     extern std::vector<int> back_seq;

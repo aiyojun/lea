@@ -21,6 +21,7 @@ std::string xmm(int r);
 std::string declare_ro_data(cstring type, cstring v);
 
 void g_stack_clear();
+bool g_stack_has(cstring name); // ask_for
 int g_stack_address(cstring name);
 void stack4bytes(cstring name, cstring src);
 void stack8bytes(cstring name, cstring src);

@@ -1,10 +1,6 @@
 #ifndef __value_h__
 #define __value_h__
 
-/** value.cpp */
-std::string getScope();
-std::string getScopeBack();
-
 class smb {
 public:
     int cls;          // classify: variable/function
@@ -16,6 +12,10 @@ public:
 
     void clear() {cls = 0; name = ""; type = ""; scope = ""; typeSign.clear();}
 };
+extern std::string nameTemporary;
+extern smb variable;
+extern smb invoking;
+extern smb function;
 const smb& give_variable();
 const smb& give_invoking();
 const smb& give_function();

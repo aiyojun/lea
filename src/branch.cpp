@@ -119,8 +119,6 @@ void subtree_compare(int node_id, int next_node_id) {
     }
 }
 
-
-
 void do_compare() {
     ////////////////////////////////////////////////////////////////
     /// TODO: generate gas code from comparing expression one by one

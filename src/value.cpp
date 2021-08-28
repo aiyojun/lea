@@ -5,17 +5,10 @@
 #include <exception>
 #include <map>
 #include "basic_ds.h"
+#include "scope.h"
 
 std::string nameTemporary;
 smb variable; smb invoking; smb function;
-
-std::vector<std::string> scopeStack{"global"};
-/** Prepared for yacc */
-void enter_scope() {scopeStack.emplace_back(function.name);}
-void exit_scope() {scopeStack.pop_back();}
-/** Prepared for C++ */
-std::string getScope() {return join(".", scopeStack);}
-std::string getScopeBack() {return scopeStack.back();}
 
 // TODO: scope -> symbol_name -> symbol_info
 std::map<std::string, std::map<std::string, smb>> globalDefinedSymbols{{"global", std::map<std::string, smb>()}};
@@ -84,9 +77,9 @@ void record_variable() {
     variable.scope = sco;
     globalDefinedSymbols[sco][variable.name] = variable;
 
-    if (variable.type == "int") {
-        stack4bytes(variable.name, rt(0));
-    }
+//    if (variable.type == "int") {
+//        stack4bytes(variable.name, rt(0));
+//    }
 }
 void record_function() {
     std::string sco(std::move(getScope()));

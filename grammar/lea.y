@@ -233,10 +233,10 @@ returnType:
 // --------------------------------------------
 stateIfDefine:
   stateIf
-| stateIf KW_ELSE codeBlockDefine {}
+| stateIf KW_ELSE {enter_scope_of("else");} codeBlockDefine {exit_scope();}
 stateIf:
-  stateIf KW_ELSE KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_analysis(3);tree_node_print();tree_clear();} codeBlockDefine {}
-| KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_analysis(3);tree_node_print();tree_clear();} codeBlockDefine {}
+  stateIf KW_ELSE KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_analysis(3);tree_node_print();tree_clear();enter_scope_of("elif");} codeBlockDefine {exit_scope();}
+| KW_IF LPAREN {tree_clear();} leaVal RPAREN {tree_analysis(3);tree_node_print();tree_clear();enter_scope_of("if");} codeBlockDefine {exit_scope();}
 ;
 // --------------------------------------------
 
@@ -269,8 +269,9 @@ stateForUpdate: RPAREN | variableAssign RPAREN;
 // define code block
 // --------------------------------------------
 codeBlockDefine:
-  BLOCK_BEGIN BLOCK_END
-| BLOCK_BEGIN codeBlockLoop BLOCK_END;
+  blockBegin BLOCK_END {exit_scope();}
+| blockBegin codeBlockLoop BLOCK_END {exit_scope();};
+blockBegin: BLOCK_BEGIN {enter_scope_of("{");};
 codeBlockLoop: codeBlockLoop blockContext | blockContext;
 blockContext: 
   ending

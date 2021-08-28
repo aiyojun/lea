@@ -439,6 +439,65 @@ namespace lea_if {
     }
 }
 
+/** value tree parsing & evaluation & generating */
+void evaluation() {
+    // TODO: use tree left recursion with node exit-processing
+
+}
+
+/** Don't modify the tree structure */
+void evaluation_modifier::modify(tree_node *node) {
+    if (node->type == 4) {
+
+    } else if (node->type == 1) {
+        // + - * / > < >= <= != ==
+
+    }
+}
+
+void do_assign(int usage) {
+    const smb& variable_g = give_variable();
+    std::string variable_type = variable_g.type;
+    std::string variable_name = variable_g.name;
+    // TODO: step 1. analysis variable's type
+    //       step 2. analysis leaVal
+    //       step 3. generate code
+    recursion_deep(tree_node::root, 0);
+    tree_node* leader = tree_node::root->children[0];
+    if (tree_node::max_deep == 1 && leader->type == 2) {
+        std::string imm = rt(atoi(leader->data.c_str()));
+        if (variable_type == "int" && leader->sign_type == "int") {
+            if (usage == 1) {
+                stack4bytes(variable_name, imm);
+            } else {
+                if (g_stack_has(variable_name)) {
+                    mov4byte(imm, st(g_stack_address(variable_name)));
+                } else if (variable_g.scope == "global") {
+                    mov4byte(imm, ptr_ip(variable_name));
+                } else {
+                    yyerror(("variable ["+variable_name+"] isn't in stack and global scope!").c_str());
+                }
+            }
+        } else if (variable_type == "int" && leader->sign_type == "double") {
+
+        } else if (variable_type == "double" && leader->sign_type == "int") {
+
+        } else if (variable_type == "double" && leader->sign_type == "double") {
+
+        } else if (variable_type == "char" && leader->sign_type == "char") {
+
+        } else if (variable_type == "string" && leader->sign_type == "string") {
+
+        } else {
+            yyerror(("cannot assign " + leader->data + " to " + variable_g.name).c_str());
+        }
+    } else if (tree_node::max_deep == 1 && leader->type == 4) {
+
+    } else if (tree_node::max_deep == 1 && leader->type == 3) {
+
+    }
+}
+
 // TODO: analysis right side
 // TODO: analysis left side, scenes as following:
 //       1. : type = x
@@ -472,5 +531,11 @@ void tree_analysis(int usage) {
 
         lea_if::allocate_label();
         do_compare();
+    } else if (usage == 1) {
+        do_assign(usage);
+    } else if (usage == 2) {
+
+    } else if (usage == 4) {
+
     }
 }

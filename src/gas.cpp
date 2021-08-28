@@ -92,6 +92,9 @@ std::string declare_data(cstring type, cstring label, cstring v) {
  * declare variable in stack
  */
 void g_stack_clear(){gas::bp_i=0;gas::stack_i.clear();}
+bool g_stack_has(cstring name) {
+    return contains(gas::stack_i, name);
+}
 int g_stack_address(cstring name) {
     if (gas::stack_i.find(name) != gas::stack_i.end()) {
         return gas::stack_i[name];
