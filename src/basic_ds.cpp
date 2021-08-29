@@ -43,3 +43,20 @@ std::string quote(cstring s) {
     if (s[0] != '"' || s[s.length() - 1] != '"') return "\"" + s + "\"";
     return s;
 }
+
+std::string un_quote(cstring s) {
+    if (s.length() >= 2
+    && ((s[0] == '\'' && s[s.length() - 1] == '\'')
+    || (s[0] == '"' && s[s.length() - 1] == '"')))
+        return s.substr(1, s.length() - 2);
+    else return s;
+}
+
+std::string double_sci(cstring s) {
+    std::string _r = s;
+    while (_r.back() == '0') {
+        unsigned int len = _r.length();
+        _r = _r.substr(0, len - 1);
+    }
+    return _r;
+}

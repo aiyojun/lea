@@ -124,4 +124,8 @@ void forecast_boo(
         int debug_deep, std::set<tree_node*>& recording, tree_node* node, tree_node* root);
 
 
+//
+void expected_variable(cstring name, std::string &type, std::string& scope, std::string& label);
+
+
 #endif//__tree_h__

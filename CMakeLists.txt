@@ -76,6 +76,7 @@ add_executable(
         src/branch.cpp
         src/basic_ds.cpp
         src/scope.cpp
+        src/memory.cpp
 )
 
 target_link_libraries(lea c stdc++)

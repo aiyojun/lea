@@ -16,21 +16,6 @@
 
 std::string file_writer::out;
 
-class gas {
-public:
-    static std::vector<std::string> g_text;
-    static std::vector<std::string> g_data;
-    static std::vector<std::string> g_ro_data;
-    static std::vector<std::string> arg_reg;
-    static int allocate_ro_data;
-    static int xmm_i;
-    static int arg_i;
-    static int g_branch_i;
-    static int bp_i;
-    static std::map<std::string, int> stack_i;
-    static std::map<std::string, std::string> data_g;
-    static std::map<std::string, std::string> bss_g;
-};
 int gas::allocate_ro_data = 0;
 int gas::xmm_i = 0;
 int gas::arg_i = 0;

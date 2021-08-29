@@ -439,19 +439,89 @@ namespace lea_if {
     }
 }
 
+void do_simple_compare(tree_node* node) { // > < >= <= != ==
+    if (node->type != 1) return;
+    std::string ops = node->data;
+    tree_node* p0 = node->children[0];
+    tree_node* p1 = node->children[1];
+    if (ops == ">") {
+
+    }
+//    gas_cmp4bytes();
+    gas_cmd("sete al");
+}
+
+void do_multi_compare(tree_node* subtree) { // and or => if (...)
+
+}
+
 /** value tree parsing & evaluation & generating */
 void evaluation() {
     // TODO: use tree left recursion with node exit-processing
 
 }
 
+std::map<tree_node*, std::tuple<std::string, std::string, std::string>> stored_result;
+void add_variable_number(tree_node* op_node, tree_node* v_node, tree_node* n) {
+    if (v_node->type == 4) {
+        std::string label;
+        std::string scope;
+        std::string variable_type;
+        expected_variable(v_node->data, variable_type, scope, label);
+        if (variable_type == "int" && n->sign_type == "int") {
+            mov4byte(rt(atoi(n->data.c_str())), r4("a"));
+            gas_add4bytes(label, r4("a"));
+            stored_result[op_node] = std::tuple<std::string, std::string, std::string>(r4("a"), "", "");
+        } else if (variable_type == "int" && n->sign_type == "double") {
+
+        }
+    } else if (v_node->type == 1) {
+
+    } else if (v_node->type == 3) {
+
+    } else {
+        yyerror("");
+    }
+}
+
 /** Don't modify the tree structure */
-void evaluation_modifier::modify(tree_node *node) {
-    if (node->type == 4) {
+// name,type,value
+//std::vector<std::tuple<std::string, std::string, std::string>> evaluation_stack;
+void evaluation_modifier::modify(tree_node *node) { // + - * /
+    if (node->type == 3) {
 
-    } else if (node->type == 1) {
-        // + - * / > < >= <= != ==
+    } else if (node->type == 1 && contains(std::vector<std::string>{"+","-","*","/"}, node->data)) {
+        // + - * /
 
+    }
+}
+
+/** prepare many helper functions to reduce code of operating */
+void expected_variable(cstring name, std::string &type, std::string& scope, std::string& label) {
+    const smb& variable_g = give_variable();
+    type = variable_g.type;
+    scope = variable_g.scope;
+    if (g_stack_has(name))
+        label = st(g_stack_address(name));
+    else if (variable_g.scope == "global") {
+        label = name;
+    } else yyerror("");
+}
+
+void push_stack_variable(cstring name, cstring type, cstring gas_src) {
+    if (type == "int") {
+        stack4bytes(name, gas_src);
+    } else if (type == "double") {
+        stack8bytes(name, gas_src);
+    } else if (type == "char") {
+        stack4bytes(name, gas_src);
+    } else if (type == "bool") {
+        stack4bytes(name, gas_src);
+    } else if (type == "string") {
+        std::string _ptr = declare_ro_data("string", gas_src);
+        stack8bytes(name, ptr(_ptr));
+    } else {
+        yyerror("unknown basic type");
     }
 }
 
