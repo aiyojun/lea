@@ -38,3 +38,5 @@ int yyFlexLexer::yywrap()
 {
     return 1;
 }
+
+FlexLexer* preLexer = new yyFlexLexer;
