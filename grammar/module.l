@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <iostream>
+bool openSemi = false;
+bool openEnter = false;
 std::string gtoken;
 std::string gtoken_0;
 std::string gtoken_1;
@@ -16,7 +18,7 @@ std::vector<std::string> implements;
 %%
 
 [ \t]
-\n 			{ll_println(yytext);}
+\n 			{ll_println(yytext);if(openEnter) return yy::parser::token::token_kind_type::SB_ENTER;}
 "import"	{yylval.ycText=yytext;ll_println(yytext);return yy::parser::token::token_kind_type::KW_IMPORT;}
 "var"		{yylval.ycText=yytext;ll_println(yytext);return yy::parser::token::token_kind_type::KW_VAR;}
 "val"		{yylval.ycText=yytext;ll_println(yytext);return yy::parser::token::token_kind_type::KW_VAL;}
@@ -47,7 +49,7 @@ std::vector<std::string> implements;
 "}"			{yylval.ycText=yytext;ll_println(yytext);return yy::parser::token::token_kind_type::SB_RBRACE;}
 "."			{yylval.ycText=yytext;ll_println(yytext);return yy::parser::token::token_kind_type::SB_DOT;}
 ":"			{yylval.ycText=yytext;ll_println(yytext);return yy::parser::token::token_kind_type::SB_COLON;}
-";"			{yylval.ycText=yytext;ll_println(yytext);}
+";"			{yylval.ycText=yytext;ll_println(yytext);if(openSemi) return yy::parser::token::token_kind_type::SB_SEMI;}
 ","			{yylval.ycText=yytext;ll_println(yytext);return yy::parser::token::token_kind_type::SB_COMMA;}
 "->"		{yylval.ycText=yytext;ll_println(yytext);return yy::parser::token::token_kind_type::SB_ARROW;}
 "="			{yylval.ycText=yytext;ll_println(yytext);return yy::parser::token::token_kind_type::SB_ASSIGN;}

@@ -8,6 +8,7 @@ extern FlexLexer* preLexer;
 extern FlexLexer* lexer;
 #include "module.tab.hh"
 extern yy::parser* moduleParser;
+extern void debug_println();
 
 int main(int argc, char** argv)
 {
@@ -24,7 +25,9 @@ int main(int argc, char** argv)
 
 	moduleParser->parse();
 
-	std::cout << "--------\nimplements:" << std::endl;
+	debug_println();
+
+	std::cout << "implements:" << std::endl;
 
 	int index = 0;
 	for (auto& implement : implements) {

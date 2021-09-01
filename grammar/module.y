@@ -1,7 +1,32 @@
 %{
 #include <string>
+typedef const std::string& cstring;
+#include <vector>
+#include <map>
 #include <iostream>
 typedef const std::string& cstring;
+std::string join(cstring c, const std::vector<std::string>& v)
+{std::string _r;for(int i=0;i<v.size();i++){_r+=v[i];if(i!=v.size()-1)_r+=c;}return _r;}
+class lea_var {public: std::string prefix; std::string name; std::string type; std::string lea_var_type; bool assigned = false; void clear() {prefix="";name="";type="";lea_var_type="";assigned=false;}};
+lea_var leaVar;
+class lea_fun {public: std::string prefix; std::string name; std::string return_type; std::vector<std::string> args_type; bool implemented = false; std::string scene;void clear(){prefix="";name="";return_type="";args_type.clear(); implemented=false;scene="";}};
+lea_fun leaFun;
+class lea_cls {
+public:
+std::string name;
+std::vector<lea_var> memberVariables;
+std::vector<lea_fun> memberFunctions;
+void clear() {name="";memberVariables.clear();memberFunctions.clear();}
+};
+lea_cls leaCls;
+class lea_ctx {
+public:
+std::vector<std::string> globalImports;
+std::vector<lea_var> globalVariables;
+std::vector<lea_fun> globalFunctions;
+std::vector<lea_cls> globalClasses;
+};
+lea_ctx leaCtx;
 #include "module.tab.hh"
 extern std::string gtoken_1;
 extern std::string gtoken_0;
@@ -10,97 +35,141 @@ extern bool braceOpen;
 extern int yylex(yy::parser::semantic_type* value);
 void println(const char* msg) {std::cout << "[yy] " << msg << "\n";}
 void println(cstring msg) {std::cout << "[yy] " << msg << std::endl;}
+void println(lea_var _lv) {std::cout << _lv.lea_var_type << " " << _lv.name << ": " << _lv.type << (_lv.assigned ? " (assigned)" : "") << std::endl;}
+void println(lea_fun _lf) {std::cout <<(_lf.scene.empty()?"":_lf.scene+" ")<<"def " << _lf.name << "(" << join(",", _lf.args_type) << "): " << _lf.return_type << (_lf.implemented ? " (implement)" : "") << std::endl;}
+void println(lea_cls _lc) {
+  std::cout<<"class "<<_lc.name<<"\n";
+  for (auto& _lv: _lc.memberVariables) {
+    std::cout<<"  "<<(_lv.prefix==""?"":_lv.prefix+" ")<<_lv.lea_var_type << " " << _lv.name << ": " << _lv.type << (_lv.assigned ? " (assigned)" : "") << std::endl;
+  }
+  for (auto& _lf: _lc.memberFunctions) {
+    std::cout<<"  "<<(_lf.prefix==""?"":_lf.prefix+" ")<<"def " << _lf.name << "(" << join(",", _lf.args_type) << "): " << _lf.return_type << (_lf.implemented ? " (implement)" : "") << std::endl;
+  }
+}
+void println(lea_ctx _ctx) {
+  std::cout << "\033[32;1mCONTEXT:\033[0m" << std::endl;
+  std::cout << "import " << join(",", _ctx.globalImports) << std::endl;
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "\033[32;1mGlobal variables:\033[0m" << std::endl;
+  std::cout << "-----------------------------" << std::endl;
+  for (auto& _lv : _ctx.globalVariables) {
+    println(_lv);
+  }
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "\033[32;1mGlobal functions:\033[0m" << std::endl;
+  std::cout << "-----------------------------" << std::endl;
+  for (auto& _lf : _ctx.globalFunctions) {
+    println(_lf);
+  }
+  std::cout << "-----------------------------" << std::endl;
+  std::cout << "\033[32;1mGlobal class:\033[0m" << std::endl;
+  std::cout << "-----------------------------" << std::endl;
+  for (auto& _cls : _ctx.globalClasses) {
+    println(_cls);
+  }
+  std::cout << "-----------------------------" << std::endl;
+}
+std::string tempString;
+std::vector<std::string> tempVectorString;
+void debug_println() {
+  println(leaCtx);
+}
 %}
 
 %union {
     char* ycText;
 }
 
-%token KW_IMPORT
-%token KW_VAR
-%token KW_VAL
-%token KW_DEF
-%token KW_CLASS
-%token KW_PUB
-%token KW_VOID
-%token KW_INT
-%token KW_LONG
-%token KW_DOUBLE
-%token KW_CHAR
-%token KW_STRING
-%token KW_BOOL
-%token KW_TRUE
-%token KW_FALSE
-%token KW_IF
-%token KW_ELSE
-%token KW_MATCH
-%token KW_CASE
-%token KW_WHILE
-%token KW_FOR
-%token KW_CONTINUE
-%token KW_BREAK
-%token KW_RETURN
-%token SB_LBRACE
-%token SB_RBRACE
-%token SB_LPAREN
-%token SB_RPAREN
-%token SB_DOT
-%token SB_COLON
-%token SB_SEMI
-%token SB_COMMA
-%token SB_ARROW
-%token SB_ASSIGN
-%token SB_ADD
-%token SB_SUB
-%token SB_MUL
-%token SB_DIV
-%token SB_MOD
-%token SB_GT
-%token SB_LT
-%token SB_GE
-%token SB_LE
-%token SB_NE
-%token SB_EQ
-%token SB_NOT
-%token SB_AND
-%token SB_OR
-%token SB_ENTER
+%token <ycText> KW_IMPORT
+%token <ycText> KW_VAR
+%token <ycText> KW_VAL
+%token <ycText> KW_DEF
+%token <ycText> KW_CLASS
+%token <ycText> KW_PUB
+%token <ycText> KW_VOID
+%token <ycText> KW_INT
+%token <ycText> KW_LONG
+%token <ycText> KW_DOUBLE
+%token <ycText> KW_CHAR
+%token <ycText> KW_STRING
+%token <ycText> KW_BOOL
+%token <ycText> KW_TRUE
+%token <ycText> KW_FALSE
+%token <ycText> KW_IF
+%token <ycText> KW_ELSE
+%token <ycText> KW_MATCH
+%token <ycText> KW_CASE
+%token <ycText> KW_WHILE
+%token <ycText> KW_FOR
+%token <ycText> KW_CONTINUE
+%token <ycText> KW_BREAK
+%token <ycText> KW_RETURN
+%token <ycText> SB_LBRACE
+%token <ycText> SB_RBRACE
+%token <ycText> SB_LPAREN
+%token <ycText> SB_RPAREN
+%token <ycText> SB_DOT
+%token <ycText> SB_COLON
+%token <ycText> SB_SEMI
+%token <ycText> SB_COMMA
+%token <ycText> SB_ARROW
+%token <ycText> SB_ASSIGN
+%token <ycText> SB_ADD
+%token <ycText> SB_SUB
+%token <ycText> SB_MUL
+%token <ycText> SB_DIV
+%token <ycText> SB_MOD
+%token <ycText> SB_GT
+%token <ycText> SB_LT
+%token <ycText> SB_GE
+%token <ycText> SB_LE
+%token <ycText> SB_NE
+%token <ycText> SB_EQ
+%token <ycText> SB_NOT
+%token <ycText> SB_AND
+%token <ycText> SB_OR
+%token <ycText> SB_ENTER
 %token <ycText> VA_CHAR
 %token <ycText> VA_STRING
 %token <ycText> VA_INT
 %token <ycText> VA_DOUBLE
 %token <ycText> VA_ID
 
+%type <ycText> globalVariableBasicType
+%type <ycText> globalVariableName
+
 %start root
 
 %%
 
-root: globalLoop;
+root: globalLoop {};
 
 globalLoop: globalLoop globalStatement | globalStatement;
 
 globalStatement:
-  import {println("import");}
-| globalVariableDeclare {println("variable declare");}
-| globalFunctionDefine {println("function define");}
-| classDefine {println("class define");}
+  import
+| globalVariableDeclare {leaCtx.globalVariables.emplace_back(leaVar);leaVar.clear();}
+| globalFunctionDefine  {leaCtx.globalFunctions.emplace_back(leaFun);leaFun.clear();}
+| classDefine {leaCtx.globalClasses.emplace_back(leaCls);leaCls.clear();leaVar.clear();leaFun.clear();}
 ;
 
-import: KW_IMPORT VA_ID;
+import: KW_IMPORT VA_ID {leaCtx.globalImports.emplace_back($2);};
 
 globalVariableDeclare:
-  KW_VAR VA_ID SB_COLON globalVariableBasicType
-| KW_VAR VA_ID SB_COLON globalVariableBasicType SB_ASSIGN globalVariableBasicValue
-| KW_VAL VA_ID SB_COLON globalVariableBasicType SB_ASSIGN globalVariableBasicValue
+  KW_VAR globalVariableName SB_COLON globalVariableBasicType {leaVar.type=tempString;leaVar.lea_var_type = "var"; leaVar.assigned = false;}
+| KW_VAR globalVariableName SB_COLON globalVariableBasicType SB_ASSIGN globalVariableBasicValue {leaVar.type=tempString;leaVar.lea_var_type = "val"; leaVar.assigned = true;}
+| KW_VAL globalVariableName SB_COLON globalVariableBasicType SB_ASSIGN globalVariableBasicValue {leaVar.type=tempString;leaVar.lea_var_type = "val"; leaVar.assigned = true;}
+;
+globalVariableName: VA_ID {$$=$1;leaVar.name=std::string($1);}
 ;
 globalVariableBasicType:
-  KW_VOID
-| KW_INT
-| KW_LONG
-| KW_DOUBLE
-| KW_CHAR
-| KW_STRING
-| KW_BOOL
+  KW_VOID   {$$=$1;tempString=std::string($1);}
+| KW_INT    {$$=$1;tempString=std::string($1);}
+| KW_LONG   {$$=$1;tempString=std::string($1);}
+| KW_DOUBLE {$$=$1;tempString=std::string($1);}
+| KW_CHAR   {$$=$1;tempString=std::string($1);}
+| KW_STRING {$$=$1;tempString=std::string($1);}
+| KW_BOOL   {$$=$1;tempString=std::string($1);}
 ;
 globalVariableBasicValue:
   VA_CHAR
@@ -109,42 +178,50 @@ globalVariableBasicValue:
 | VA_DOUBLE
 ;
 
-classDefine: KW_CLASS VA_ID SB_LBRACE classMember SB_RBRACE;
+classDefine: KW_CLASS className SB_LBRACE classMember SB_RBRACE {}
+;
+className: VA_ID {leaCls.name=std::string($1);}
+;
 classMember:
   classMember classMemberAtom
 | classMemberAtom
 ;
 classMemberAtom:
-  globalVariableDeclare {println("private member variable declare");}
-| globalFunctionDefine {println("private member function define");}
-| KW_PUB globalVariableDeclare {println("public variable declare");}
-| KW_PUB globalFunctionDefine {println("public function define");}
+  globalVariableDeclare {leaVar.prefix="private";leaCls.memberVariables.emplace_back(leaVar);}
+| globalFunctionDefine  {leaFun.prefix="private";leaCls.memberFunctions.emplace_back(leaFun);}
+| KW_PUB globalVariableDeclare {leaVar.prefix="public";leaCls.memberVariables.emplace_back(leaVar);}
+| KW_PUB globalFunctionDefine  {leaFun.prefix="public";leaCls.memberFunctions.emplace_back(leaFun);}
 ;
 
 globalFunctionDefine:
-  KW_DEF VA_ID globalFunctionDefineBody
-| KW_DEF VA_ID SB_LPAREN SB_RPAREN globalFunctionDefineBody
-| KW_DEF VA_ID SB_LPAREN globalFunctionDefineArgsList SB_RPAREN globalFunctionDefineBody
-| KW_DEF VA_ID SB_COLON globalVariableBasicType globalFunctionDefineBody
-| KW_DEF VA_ID SB_LPAREN SB_RPAREN SB_COLON globalVariableBasicType globalFunctionDefineBody
-| KW_DEF VA_ID SB_LPAREN globalFunctionDefineArgsList SB_RPAREN SB_COLON globalVariableBasicType globalFunctionDefineBody
+  KW_DEF globalFunctionName globalFunctionDefineBody {leaFun.return_type="void";leaFun.implemented=true;}
+| KW_DEF globalFunctionName SB_LPAREN SB_RPAREN globalFunctionDefineBody {leaFun.return_type="void";leaFun.implemented=true;}
+| KW_DEF globalFunctionName SB_LPAREN globalFunctionDefineArgsList SB_RPAREN globalFunctionDefineBody {leaFun.return_type="void";leaFun.implemented=true;}
+| KW_DEF globalFunctionName SB_COLON globalFunctionReturnType globalFunctionDefineBody {leaFun.implemented=true;}
+| KW_DEF globalFunctionName SB_LPAREN SB_RPAREN SB_COLON globalFunctionReturnType globalFunctionDefineBody {leaFun.implemented=true;}
+| KW_DEF globalFunctionName SB_LPAREN globalFunctionDefineArgsList SB_RPAREN SB_COLON globalFunctionReturnType globalFunctionDefineBody {leaFun.implemented=true;}
+;
+
+globalFunctionName: VA_ID {leaFun.name = std::string($1);}
+;
+globalFunctionReturnType: globalVariableBasicType {leaFun.return_type = std::string($1);}
 ;
 
 globalFunctionDefineArgsList:
-  globalFunctionDefineArgsList SB_COMMA VA_ID SB_COLON globalFunctionDefineArgsType
+  globalFunctionDefineArgsList SB_COMMA VA_ID SB_COLON globalFunctionDefineArgsType {}
 | VA_ID SB_COLON globalFunctionDefineArgsType
 ;
 
 globalFunctionDefineArgsType:
-  globalVariableBasicType
-| SB_ARROW globalVariableBasicType
-| SB_LPAREN SB_RPAREN SB_ARROW globalVariableBasicType
-| SB_LPAREN typeList SB_RPAREN SB_ARROW globalVariableBasicType
+  globalVariableBasicType {leaFun.args_type.emplace_back(std::string($1));}
+| SB_ARROW globalVariableBasicType {leaFun.args_type.emplace_back("()->" + std::string($2));}
+| SB_LPAREN SB_RPAREN SB_ARROW globalVariableBasicType {leaFun.args_type.emplace_back("()->" + std::string($4));}
+| SB_LPAREN typeList SB_RPAREN SB_ARROW globalVariableBasicType {leaFun.args_type.emplace_back("("+join(",", tempVectorString) + ")->" + std::string($5));tempVectorString.clear();}
 ;
 
 typeList:
-  typeList SB_COMMA globalVariableBasicType
-| globalVariableBasicType
+  typeList SB_COMMA globalVariableBasicType {tempVectorString.emplace_back(std::string($3));}
+| globalVariableBasicType {tempVectorString.emplace_back(std::string($1));}
 ;
 
 globalFunctionDefineBody:
