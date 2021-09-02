@@ -4,9 +4,9 @@ typedef const std::string& cstring;
 #include <vector>
 #include <map>
 #include <iostream>
-typedef const std::string& cstring;
-std::string join(cstring c, const std::vector<std::string>& v)
-{std::string _r;for(int i=0;i<v.size();i++){_r+=v[i];if(i!=v.size()-1)_r+=c;}return _r;}
+#include "basic_ds.h"
+#include "tree_node.h"
+
 class lea_var {public: std::string prefix; std::string name; std::string type; std::string lea_var_type; bool assigned = false; void clear() {prefix="";name="";type="";lea_var_type="";assigned=false;}};
 lea_var leaVar;
 class lea_fun {public: std::string prefix; std::string name; std::string return_type; std::vector<std::string> args_type; bool implemented = false; std::string scene;void clear(){prefix="";name="";return_type="";args_type.clear(); implemented=false;scene="";}};
@@ -79,7 +79,8 @@ void debug_println() {
 %union {
     char* ycText;
 }
-
+%token <ycText> GAP
+%token <ycText> NEWLINE
 %token <ycText> KW_IMPORT
 %token <ycText> KW_VAR
 %token <ycText> KW_VAL
@@ -108,6 +109,8 @@ void debug_println() {
 %token <ycText> SB_RBRACE
 %token <ycText> SB_LPAREN
 %token <ycText> SB_RPAREN
+%token <ycText> SB_LSQBRACE
+%token <ycText> SB_RSQBRACE
 %token <ycText> SB_DOT
 %token <ycText> SB_COLON
 %token <ycText> SB_SEMI
@@ -267,71 +270,98 @@ stateReturn:
 //---------------------------------------------------------------
 // right value
 //---------------------------------------------------------------
-rightValue: booOrValue;
+rightValue: booOrValue {println("\033[31;1mlea Vaule\033[0m");tree_node_deep_assign();tree_node_print();tree_clear();}
+;
 
 booOrValue:
-  booOrValue SB_OR booAndValue
+  booOrValue SB_OR booAndValue {tree_node_link("||");}
 | booAndValue
 ;
 
 booAndValue:
-  booAndValue SB_AND compareValue
+  booAndValue SB_AND compareValue {tree_node_link("&&");}
 | compareValue
 ;
 
 compareValue:
   calculateValue
-| calculateValue SB_GT calculateValue
-| calculateValue SB_LT calculateValue
-| calculateValue SB_GE calculateValue
-| calculateValue SB_LE calculateValue
-| calculateValue SB_NE calculateValue
-| calculateValue SB_EQ calculateValue
+| calculateValue SB_GT calculateValue {tree_node_link(">");}
+| calculateValue SB_LT calculateValue {tree_node_link("<");}
+| calculateValue SB_GE calculateValue {tree_node_link(">=");}
+| calculateValue SB_LE calculateValue {tree_node_link("<=");}
+| calculateValue SB_NE calculateValue {tree_node_link("!=");}
+| calculateValue SB_EQ calculateValue {tree_node_link("==");}
 ;
 
 calculateValue:
   calculateProValue
-| calculateValue SB_ADD calculateProValue
-| calculateValue SB_SUB calculateProValue
+| calculateValue SB_ADD calculateProValue {tree_node_link("+");}
+| calculateValue SB_SUB calculateProValue {tree_node_link("-");}
 ;
 
 calculateProValue:
+  oneOpValue
+| calculateProValue SB_MUL oneOpValue {tree_node_link("*");}
+| calculateProValue SB_DIV oneOpValue {tree_node_link("/");}
+| calculateProValue SB_MOD oneOpValue {tree_node_link("%");}
+;
+
+oneOpValue:
+  topOpValue
+| SB_NOT topOpValue {tree_node_link("!");}
+;
+
+topOpValue:
   atomValue
-| calculateProValue SB_MUL atomValue
-| calculateProValue SB_DIV atomValue
-| calculateProValue SB_MOD atomValue
+| returnValue
+;
+
+returnValue:
+  returnValue SB_DOT refValue {tree_node_link(".");}
+| returnValue SB_LSQBRACE booOrValue SB_RSQBRACE {tree_node_link("[]");}
+| SB_LPAREN booOrValue SB_RPAREN
+| refValue
+;
+
+refValue:
+  accessName {heap_variable();}
+| accessName accessLparen SB_RPAREN {invoking_deep_dec();}
+| accessName accessLparen invokingArgsList SB_RPAREN {heap_invoking_args_link();invoking_deep_dec();}
 ;
 
 atomValue:
-  SB_LPAREN booOrValue SB_RPAREN
-| SB_NOT booOrValue
-| SB_SUB VA_INT
-| SB_SUB VA_DOUBLE
-| VA_INT
-| VA_DOUBLE
-| VA_CHAR
-| VA_STRING
-| KW_TRUE
-| KW_FALSE
-| chainAccess
+  SB_SUB VA_INT     {tree_node_create("-", $2, "int");}
+| SB_SUB VA_DOUBLE  {tree_node_create("-", $2, "double");}
+| VA_INT            {tree_node_create("", $1, "int");}
+| VA_DOUBLE         {tree_node_create("", $1, "double");}
+| VA_CHAR           {tree_node_create("", $1, "char");}
+| VA_STRING         {tree_node_create("", $1, "string");}
+| KW_TRUE           {tree_node_create("", "true" , "bool");}
+| KW_FALSE          {tree_node_create("", "false", "bool");}
+//| chainAccess       {tree_node_chain();}
+;
+
+//chainAccess:
+//  chainAccess SB_DOT accessTarget
+//| accessTarget
+//;
+
+//accessTarget:
+//  accessName {heap_variable();}
+//| accessName accessLparen SB_RPAREN {invoking_deep_dec();}
+//| accessName accessLparen invokingArgsList SB_RPAREN {heap_invoking_args_link();invoking_deep_dec();}
+//;
+
+accessName: VA_ID {heap_register($1);}
+;
+
+accessLparen: SB_LPAREN {heap_invoking();invoking_deep_inc();}
 ;
 
 invokingArgsList:
   invokingArgsList SB_COMMA booOrValue
 | booOrValue
 ;
-
-chainAccess:
-  chainAccess SB_DOT accessTarget
-| accessTarget
-;
-
-accessTarget:
-  VA_ID
-| VA_ID SB_LPAREN SB_RPAREN
-| VA_ID SB_LPAREN invokingArgsList SB_RPAREN
-;
-
 
 %%
 

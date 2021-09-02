@@ -3,6 +3,8 @@
 #include <sstream>
 #include <iostream>
 #include <FlexLexer.h>
+extern bool openImp;
+extern void set_raw_mode();
 extern std::vector<std::string> implements;
 extern FlexLexer* preLexer;
 extern FlexLexer* lexer;
@@ -21,13 +23,15 @@ int main(int argc, char** argv)
 
 	}
 
-	std::cout << "bridge : \n" << bridge.str() << std::endl;
+	// std::cout << "bridge : \n" << bridge.str() << std::endl;
 
 	moduleParser->parse();
 
 	debug_println();
 
 	std::cout << "implements:" << std::endl;
+
+	openImp = true;
 
 	int index = 0;
 	for (auto& implement : implements) {
@@ -37,6 +41,7 @@ int main(int argc, char** argv)
 		bridge << implement;
 		bridge << "}";
 		moduleParser->parse();
+		std::cout << "[IMP] over" << std::endl;
 	}
 
 	delete lexer;

@@ -1,0 +1,38 @@
+/* this is a multi-comment */
+import os;
+import math; // sigle comment
+
+val g_x: int = 12;
+
+def main {
+	a + b
+	.ok()
+	println("hello")
+	println("world")
+	(a.xx+b).no()
+	/*if (true) {
+		if (true) {
+
+		}
+	}*/
+}
+
+def apply(func: (int, int) -> int) {
+	/*if (var_01) {
+		doSomething();
+	}*/
+}
+
+class LeaClsint {
+	var m_x: int;
+
+	pub def add(x: int, y: int): int {
+		return x + y.add(a.ref(), b.r[10]).sub();
+	}
+
+	def doSomething() {
+		return 0;
+	}
+}
+
+
