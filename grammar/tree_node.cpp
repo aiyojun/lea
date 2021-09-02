@@ -140,7 +140,7 @@ void tree_node_link(const char* op) {
         p0->parent = ptr;
         ptr->children.emplace_back(p0);
         stack.pop_back(); stack.emplace_back(ptr);
-    } else if (mapping.find(ops) != mapping.end()) {
+    } else if (contains(mapping, ops)) {
         tree_node* p0 = stack[stack.size() - 2];
         tree_node* p1 = stack[stack.size() - 1];
         p0->parent = ptr; p1->parent = ptr;
