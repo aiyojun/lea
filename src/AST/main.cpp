@@ -1,3 +1,4 @@
+#include <map>
 #include <string>
 #include <vector>
 #include <sstream>
@@ -9,8 +10,10 @@ extern std::vector<std::string> implements;
 extern FlexLexer* preLexer;
 extern FlexLexer* lexer;
 #include "syntax.tab.hh"
+extern std::map<std::string, lea_cls> *ptr_class_type;
 extern yy::parser* moduleParser;
 extern void debug_println();
+#include "type.h"
 
 int main(int argc, char** argv)
 {
@@ -22,6 +25,10 @@ int main(int argc, char** argv)
 	while (preLexer->yylex() != 0) {
 
 	}
+
+	// prepare information type of classes
+	std::map<std::string, lea_cls> class_type;
+	ptr_class_type = &class_type;
 
 	// std::cout << "bridge : \n" << bridge.str() << std::endl;
 

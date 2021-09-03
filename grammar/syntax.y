@@ -7,36 +7,31 @@ typedef const std::string& cstring;
 #include "basic_ds.h"
 #include "AST.h"
 #include "syntax.tab.hh"
+#include "type.h"
 
-class lea_var {public: std::string prefix; std::string name; std::string type; std::string lea_var_type; bool assigned = false; void clear() {prefix="";name="";type="";lea_var_type="";assigned=false;}};
 lea_var leaVar;
-class lea_fun {public: std::string prefix; std::string name; std::string return_type; std::vector<std::string> args_type; bool implemented = false; std::string scene;void clear(){prefix="";name="";return_type="";args_type.clear(); implemented=false;scene="";}};
 lea_fun leaFun;
-class lea_cls {
-public:
-std::string name;
-std::vector<lea_var> memberVariables;
-std::vector<lea_fun> memberFunctions;
-void clear() {name="";memberVariables.clear();memberFunctions.clear();}
-};
 lea_cls leaCls;
-class lea_ctx {
-public:
-std::vector<std::string> globalImports;
-std::vector<lea_var> globalVariables;
-std::vector<lea_fun> globalFunctions;
-std::vector<lea_cls> globalClasses;
-};
 lea_ctx leaCtx;
+
+std::map<std::string, lea_cls> *ptr_class_type;
+
 extern std::string gtoken_1;
 extern std::string gtoken_0;
 extern std::string gtoken;
 extern bool braceOpen;
 extern int yylex(yy::parser::semantic_type* value);
+
 void println(const char* msg) {std::cout << "[yy] " << msg << "\n";}
 void println(cstring msg) {std::cout << "[yy] " << msg << std::endl;}
-void println(lea_var _lv) {std::cout << _lv.lea_var_type << " " << _lv.name << ": " << _lv.type << (_lv.assigned ? " (assigned)" : "") << std::endl;}
-void println(lea_fun _lf) {std::cout <<(_lf.scene.empty()?"":_lf.scene+" ")<<"def " << _lf.name << "(" << join(",", _lf.args_type) << "): " << _lf.return_type << (_lf.implemented ? " (implement)" : "") << std::endl;}
+void println(lea_var _lv) {
+  std::cout << _lv.lea_var_type << " " << _lv.name << ": " << _lv.type << (_lv.assigned ? " (assigned)" : "") << std::endl;
+}
+void println(lea_fun _lf) {
+  std::cout << (_lf.scene.empty()?"":_lf.scene+" ") 
+            << "def " << _lf.name << "(" << join(",", _lf.args_type) << "): "
+            << _lf.return_type << (_lf.implemented ? " (implement)" : "") << std::endl;
+}
 void println(lea_cls _lc) {
   std::cout<<"class "<<_lc.name<<"\n";
   for (auto& _lv: _lc.memberVariables) {
@@ -69,9 +64,12 @@ void println(lea_ctx _ctx) {
   }
   std::cout << "-----------------------------" << std::endl;
 }
+
+std::vector<std::string> scopeStack;
 std::string pre_op;
 std::string tempString;
 std::vector<std::string> tempVectorString;
+
 void debug_println() {
   println(leaCtx);
 }
@@ -175,7 +173,7 @@ globalVariableDeclare:
 | KW_VAR globalVariableName SB_COLON globalVariableBasicType SB_ASSIGN rightValue {leaVar.type=tempString;leaVar.lea_var_type = "val"; leaVar.assigned = true;}
 | KW_VAL globalVariableName SB_COLON globalVariableBasicType SB_ASSIGN rightValue {leaVar.type=tempString;leaVar.lea_var_type = "val"; leaVar.assigned = true;}
 ;
-globalVariableName: VA_ID {$$=$1;leaVar.name=std::string($1);}
+globalVariableName: VA_ID {$$=$1;leaVar.name=std::string($1);leaVar.scope=join(".",scopeStack);}
 ;
 globalVariableBasicType:
   KW_VOID   {$$=$1;tempString=std::string($1);}
@@ -185,6 +183,7 @@ globalVariableBasicType:
 | KW_CHAR   {$$=$1;tempString=std::string($1);}
 | KW_STRING {$$=$1;tempString=std::string($1);}
 | KW_BOOL   {$$=$1;tempString=std::string($1);}
+| VA_ID     {$$=$1;tempString=std::string($1);}
 ;
 globalVariableBasicValue:
   VA_CHAR
@@ -193,19 +192,19 @@ globalVariableBasicValue:
 | VA_DOUBLE
 ;
 
-classDefine: KW_CLASS className SB_LBRACE classMember SB_RBRACE {}
+classDefine: KW_CLASS className SB_LBRACE classMember SB_RBRACE {scopeStack.pop_back();}
 ;
-className: VA_ID {leaCls.name=std::string($1);}
+className: VA_ID {leaCls.name=std::string($1);scopeStack.emplace_back(leaCls.name);}
 ;
 classMember:
   classMember classMemberAtom
 | classMemberAtom
 ;
 classMemberAtom:
-  globalVariableDeclare {leaVar.prefix="private";leaCls.memberVariables.emplace_back(leaVar);}
-| globalFunctionDefine  {leaFun.prefix="private";leaCls.memberFunctions.emplace_back(leaFun);}
-| KW_PUB globalVariableDeclare {leaVar.prefix="public";leaCls.memberVariables.emplace_back(leaVar);}
-| KW_PUB globalFunctionDefine  {leaFun.prefix="public";leaCls.memberFunctions.emplace_back(leaFun);}
+  globalVariableDeclare {leaVar.scope=join(".",scopeStack);leaVar.prefix="private";leaCls.memberVariables.emplace_back(leaVar);}
+| globalFunctionDefine  {leaFun.scope=join(".",scopeStack);leaFun.prefix="private";leaCls.memberFunctions.emplace_back(leaFun);}
+| KW_PUB globalVariableDeclare {leaVar.scope=join(".",scopeStack);leaVar.prefix="public";leaCls.memberVariables.emplace_back(leaVar);}
+| KW_PUB globalFunctionDefine  {leaFun.scope=join(".",scopeStack);leaFun.prefix="public";leaCls.memberFunctions.emplace_back(leaFun);}
 ;
 
 globalFunctionDefine:
@@ -217,7 +216,7 @@ globalFunctionDefine:
 | KW_DEF globalFunctionName SB_LPAREN globalFunctionDefineArgsList SB_RPAREN SB_COLON globalFunctionReturnType globalFunctionDefineBody {leaFun.implemented=true;}
 ;
 
-globalFunctionName: VA_ID {leaFun.name = std::string($1);}
+globalFunctionName: VA_ID {leaFun.name = std::string($1);leaFun.scope=join(".",scopeStack);}
 ;
 globalFunctionReturnType: globalVariableBasicType {leaFun.return_type = std::string($1);}
 ;
@@ -229,23 +228,23 @@ globalFunctionDefineArgsList:
 
 globalFunctionDefineArgsType:
   globalVariableBasicType {leaFun.args_type.emplace_back(std::string($1));}
-| SB_ARROW globalVariableBasicType {leaFun.args_type.emplace_back("()->" + std::string($2));}
-| SB_LPAREN SB_RPAREN SB_ARROW globalVariableBasicType {leaFun.args_type.emplace_back("()->" + std::string($4));}
-| SB_LPAREN typeList SB_RPAREN SB_ARROW globalVariableBasicType {leaFun.args_type.emplace_back("("+join(",", tempVectorString) + ")->" + std::string($5));tempVectorString.clear();}
+//| SB_ARROW globalVariableBasicType {leaFun.args_type.emplace_back("()->" + std::string($2));}
+//| SB_LPAREN SB_RPAREN SB_ARROW globalVariableBasicType {leaFun.args_type.emplace_back("()->" + std::string($4));}
+//| SB_LPAREN typeList SB_RPAREN SB_ARROW globalVariableBasicType {leaFun.args_type.emplace_back("("+join(",", tempVectorString) + ")->" + std::string($5));tempVectorString.clear();}
 ;
 
-typeList:
-  typeList SB_COMMA globalVariableBasicType {tempVectorString.emplace_back(std::string($3));}
-| globalVariableBasicType {tempVectorString.emplace_back(std::string($1));}
-;
+//typeList:
+//  typeList SB_COMMA globalVariableBasicType {tempVectorString.emplace_back(std::string($3));}
+//| globalVariableBasicType {tempVectorString.emplace_back(std::string($1));}
+//;
 
 globalFunctionDefineBody:
   SB_ARROW globalVariableBasicValue
-| lbrace SB_RBRACE
-| lbrace functionBody SB_RBRACE
+| lbrace SB_RBRACE {scopeStack.pop_back();}
+| lbrace functionBody SB_RBRACE {scopeStack.pop_back();}
 ;
 
-lbrace: SB_LBRACE {braceOpen=true;}
+lbrace: SB_LBRACE {braceOpen=true;scopeStack.emplace_back(leaFun.name);}
 ;
 
 functionBody:
@@ -262,8 +261,11 @@ functionBodyAtom:
 
 stateIf:
   stateIfWithElif
-| stateIfWithElif KW_ELSE SB_LBRACE SB_RBRACE
-| stateIfWithElif KW_ELSE SB_LBRACE functionBody SB_RBRACE
+| stateIfWithElif KW_ELSE stateElseLbrace SB_RBRACE {scopeStack.pop_back();}
+| stateIfWithElif KW_ELSE stateElseLbrace functionBody SB_RBRACE {scopeStack.pop_back();}
+;
+
+stateElseLbrace: SB_LBRACE {scopeStack.emplace_back("else");}
 ;
 
 stateIfWithElif:
@@ -272,8 +274,11 @@ stateIfWithElif:
 ;
 
 stateIfAtom:
-  KW_IF SB_LPAREN rightValue SB_RPAREN SB_LBRACE SB_RBRACE
-| KW_IF SB_LPAREN rightValue SB_RPAREN SB_LBRACE functionBody SB_RBRACE
+  KW_IF SB_LPAREN rightValue SB_RPAREN stateIfLbrace SB_RBRACE {scopeStack.pop_back();}
+| KW_IF SB_LPAREN rightValue SB_RPAREN stateIfLbrace functionBody SB_RBRACE {scopeStack.pop_back();}
+;
+
+stateIfLbrace: SB_LBRACE {scopeStack.emplace_back("if");}
 ;
 
 stateReturn: 
@@ -289,7 +294,7 @@ rightValue: booOrValue {println("\033[31;1mLEA right value\033[0m");AST::self.pr
 ;
 
 booOrValue:
-  booOrValue SB_OR booAndValue {AST::self.link_node("||");}
+  booOrValue SB_OR booAndValue    {AST::self.link_node("||");}
 | booAndValue
 ;
 
