@@ -75,8 +75,8 @@ std::vector<std::string> implements;
 "||"		{yylval.ycText=yytext;ll_println(yytext);return yy::parser::token::token_kind_type::SB_OR;}
 (')(.|\n|\r)(') 	{yylval.ycText = yytext;ll_println(yytext);return yy::parser::token::token_kind_type::VA_CHAR;}
 "\""([^"\""\\]|\\"\""|(\\[nr]))*"\"" {yylval.ycText = yytext;ll_println(yytext);return yy::parser::token::token_kind_type::VA_STRING;}
-[0-9]+ 				{yylval.ycText = yytext;ll_println(yytext);return yy::parser::token::token_kind_type::VA_INT;}
 [0-9]+"."[0-9]+ 	{yylval.ycText = yytext;ll_println(yytext);return yy::parser::token::token_kind_type::VA_DOUBLE;}
+[0-9]+ 				{yylval.ycText = yytext;ll_println(yytext);return yy::parser::token::token_kind_type::VA_INT;}
 [a-zA-Z_][0-9a-zA-Z_]* 	{yylval.ycText = yytext;ll_println(yytext);return yy::parser::token::token_kind_type::VA_ID;}
 
 %%

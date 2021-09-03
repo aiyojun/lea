@@ -5,7 +5,7 @@ typedef const std::string& cstring;
 #include <map>
 #include <iostream>
 #include "basic_ds.h"
-#include "tree_node.h"
+#include "AST.h"
 
 class lea_var {public: std::string prefix; std::string name; std::string type; std::string lea_var_type; bool assigned = false; void clear() {prefix="";name="";type="";lea_var_type="";assigned=false;}};
 lea_var leaVar;
@@ -69,6 +69,7 @@ void println(lea_ctx _ctx) {
   }
   std::cout << "-----------------------------" << std::endl;
 }
+std::string pre_op;
 std::string tempString;
 std::vector<std::string> tempVectorString;
 void debug_println() {
@@ -138,8 +139,16 @@ void debug_println() {
 %token <ycText> VA_DOUBLE
 %token <ycText> VA_ID
 
+%left KW_RETURN
+%left SB_NOT
+%left SB_LT SB_LE SB_GT SB_GE SB_EQ SB_NE
+%left SB_SUB SB_ADD
+%left SB_MUL SB_DIV SB_MOD
+%nonassoc VA_ID VA_INT VA_DOUBLE VA_CHAR VA_STRING KW_TRUE KW_FALSE
+
 %type <ycText> globalVariableBasicType
 %type <ycText> globalVariableName
+%type <ycText> atomValue
 
 %start root
 
@@ -270,92 +279,96 @@ stateReturn:
 //---------------------------------------------------------------
 // right value
 //---------------------------------------------------------------
-rightValue: booOrValue {println("\033[31;1mlea Vaule\033[0m");tree_node_deep_assign();tree_node_print();tree_clear();}
+rightValue: booOrValue {AST::self.print();AST::self.clear();}
 ;
 
 booOrValue:
-  booOrValue SB_OR booAndValue {tree_node_link("||");}
+  booOrValue SB_OR booAndValue {AST::self.link_node("||");}
 | booAndValue
 ;
 
 booAndValue:
-  booAndValue SB_AND compareValue {tree_node_link("&&");}
+  booAndValue SB_AND compareValue {AST::self.link_node("&&");}
 | compareValue
 ;
 
 compareValue:
   calculateValue
-| calculateValue SB_GT calculateValue {tree_node_link(">");}
-| calculateValue SB_LT calculateValue {tree_node_link("<");}
-| calculateValue SB_GE calculateValue {tree_node_link(">=");}
-| calculateValue SB_LE calculateValue {tree_node_link("<=");}
-| calculateValue SB_NE calculateValue {tree_node_link("!=");}
-| calculateValue SB_EQ calculateValue {tree_node_link("==");}
+| calculateValue SB_GT calculateValue {AST::self.link_node(">");}
+| calculateValue SB_LT calculateValue {AST::self.link_node("<");}
+| calculateValue SB_GE calculateValue {AST::self.link_node(">=");}
+| calculateValue SB_LE calculateValue {AST::self.link_node("<=");}
+| calculateValue SB_NE calculateValue {AST::self.link_node("!=");}
+| calculateValue SB_EQ calculateValue {AST::self.link_node("==");}
 ;
 
 calculateValue:
   calculateProValue
-| calculateValue SB_ADD calculateProValue {tree_node_link("+");}
-| calculateValue SB_SUB calculateProValue {tree_node_link("-");}
+| calculateValue SB_ADD calculateProValue {AST::self.link_node("+");}
+| calculateValue SB_SUB calculateProValue {AST::self.link_node("-");}
 ;
 
 calculateProValue:
   oneOpValue
-| calculateProValue SB_MUL oneOpValue {tree_node_link("*");}
-| calculateProValue SB_DIV oneOpValue {tree_node_link("/");}
-| calculateProValue SB_MOD oneOpValue {tree_node_link("%");}
+| calculateProValue SB_MUL oneOpValue {AST::self.link_node("*");}
+| calculateProValue SB_DIV oneOpValue {AST::self.link_node("/");}
+| calculateProValue SB_MOD oneOpValue {AST::self.link_node("%");}
 ;
 
 oneOpValue:
   topOpValue
-| SB_NOT topOpValue {tree_node_link("!");}
+| SB_NOT topOpValue {AST::self.link_node("!");}
+| SB_SUB topOpValue {AST::self.link_node("-_");}
+| SB_ADD topOpValue {AST::self.link_node("+_");}
 ;
 
 topOpValue:
   atomValue
-| returnValue
+| chainAccessValue
 ;
 
-returnValue:
-  returnValue SB_DOT refValue {tree_node_link(".");}
-| returnValue SB_LSQBRACE booOrValue SB_RSQBRACE {tree_node_link("[]");}
-| SB_LPAREN booOrValue SB_RPAREN
-| refValue
+chainAccessValue:
+  chainAccessValue SB_DOT xxArrValue  {AST::self.link_node(".");}
+| arrValue SB_DOT xxArrValue          {AST::self.link_node(".");}
+| arrValue
 ;
 
-refValue:
-  accessName {heap_variable();}
-| accessName accessLparen SB_RPAREN {invoking_deep_dec();}
-| accessName accessLparen invokingArgsList SB_RPAREN {heap_invoking_args_link();invoking_deep_dec();}
+arrValue:
+  xValue
+| xValue SB_LSQBRACE booOrValue SB_RSQBRACE   {AST::self.link_node("[]");}
+| arrValue SB_LSQBRACE booOrValue SB_RSQBRACE {AST::self.link_node("[]");}
+;
+
+xxArrValue:
+  xxValue
+| xxValue SB_LSQBRACE booOrValue SB_RSQBRACE    {AST::self.link_node("[]");}
+| xxArrValue SB_LSQBRACE booOrValue SB_RSQBRACE {AST::self.link_node("[]");}
+;
+
+xValue:
+  SB_LPAREN booOrValue SB_RPAREN
+| xxValue
+;
+
+xxValue:
+  accessName {auto ptr=AST::self.create_node(tempString);ptr->type=4;}
+| accessName accessLparen SB_RPAREN {AST::self.exit_inode();}
+| accessName accessLparen invokingArgsList SB_RPAREN {AST::self.link_inode();AST::self.exit_inode();}
+;
+
+accessName: VA_ID {tempString=std::string($1);}
+;
+
+accessLparen: SB_LPAREN {auto ptr=AST::self.create_node(tempString);ptr->type=3;AST::self.enter_inode();}
 ;
 
 atomValue:
-  SB_SUB VA_INT     {tree_node_create("-", $2, "int");}
-| SB_SUB VA_DOUBLE  {tree_node_create("-", $2, "double");}
-| VA_INT            {tree_node_create("", $1, "int");}
-| VA_DOUBLE         {tree_node_create("", $1, "double");}
-| VA_CHAR           {tree_node_create("", $1, "char");}
-| VA_STRING         {tree_node_create("", $1, "string");}
-| KW_TRUE           {tree_node_create("", "true" , "bool");}
-| KW_FALSE          {tree_node_create("", "false", "bool");}
-//| chainAccess       {tree_node_chain();}
-;
-
-//chainAccess:
-//  chainAccess SB_DOT accessTarget
-//| accessTarget
-//;
-
-//accessTarget:
-//  accessName {heap_variable();}
-//| accessName accessLparen SB_RPAREN {invoking_deep_dec();}
-//| accessName accessLparen invokingArgsList SB_RPAREN {heap_invoking_args_link();invoking_deep_dec();}
-//;
-
-accessName: VA_ID {heap_register($1);}
-;
-
-accessLparen: SB_LPAREN {heap_invoking();invoking_deep_inc();}
+  VA_INT            {$$=$1;auto ptr=AST::self.create_node($1);ptr->type=2;ptr->sign_type="int";}
+| VA_DOUBLE         {$$=$1;auto ptr=AST::self.create_node($1);ptr->type=2;ptr->sign_type="double";}
+| VA_CHAR           {$$=$1;auto ptr=AST::self.create_node($1);ptr->type=2;ptr->sign_type="char";}
+| VA_STRING         {$$=$1;auto ptr=AST::self.create_node($1);ptr->type=2;ptr->sign_type="string";}
+| KW_TRUE           {$$=$1;auto ptr=AST::self.create_node($1);ptr->type=2;ptr->sign_type="bool";}
+| KW_FALSE          {$$=$1;auto ptr=AST::self.create_node($1);ptr->type=2;ptr->sign_type="bool";}
 ;
 
 invokingArgsList:
@@ -367,7 +380,7 @@ invokingArgsList:
 
 void yy::parser::error(const std::string& msg) {
     if (gtoken_0 == "\n") gtoken_0 = "\\n";
-    std::cout << "[yy] ('" << gtoken_1 << "', '" << gtoken_0 << "', '" << gtoken << "') parse error : " << msg << std::endl;
+    std::cout << "\033[31;1m[yy] ('" << gtoken_1 << "', '" << gtoken_0 << "', '" << gtoken << "') parse error : " << msg << "\033[0m\n";
 }
 
 yy::parser::semantic_type yylval;

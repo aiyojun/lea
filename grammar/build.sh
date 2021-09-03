@@ -1,2 +1,2 @@
 #!/bin/bash
-mkdir -p test && cp *.cpp *.h test && cd test && cp ../main.cpp ./ && flex -+ -P mm -o comment.cc ../comment.l && bison -L C++ -d ../module.y && flex -+ ../module.l && gcc ./lex.yy.cc ./module.tab.cc ./comment.cc ./main.cpp ./basic_ds.cpp ./tree_node.cpp -lstdc++ -lc -o parser
+mkdir -p test && cp *.cpp *.h test && cd test && cp ../main.cpp ./ && flex -+ -P mm -o comment.cc ../comment.l && bison -L C++ -v -d ../module.y && flex -+ ../module.l && gcc ./lex.yy.cc ./module.tab.cc ./comment.cc ./main.cpp ./basic_ds.cpp ./AST.cpp -lstdc++ -lc -o parser
