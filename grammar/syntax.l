@@ -13,7 +13,7 @@ std::string gtoken_0;
 std::string gtoken_1;
 void set_raw_mode() {openNewline=false;openSemi=true;openEnter=true;openImp=true;}
 void ll_println(char* msg) {gtoken_1=gtoken_0;gtoken_0=gtoken;gtoken=std::string(msg==0?"":msg);gtoken=gtoken=="\n"?"\\n":gtoken;}// {std::cout << "[ll] " << msg << "\n";}
-#include "module.tab.hh"
+#include "syntax.tab.hh"
 extern yy::parser::semantic_type yylval;
 bool braceOpen = false;
 std::vector<std::string> implements;

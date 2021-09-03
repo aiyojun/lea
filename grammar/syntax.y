@@ -6,6 +6,7 @@ typedef const std::string& cstring;
 #include <iostream>
 #include "basic_ds.h"
 #include "AST.h"
+#include "syntax.tab.hh"
 
 class lea_var {public: std::string prefix; std::string name; std::string type; std::string lea_var_type; bool assigned = false; void clear() {prefix="";name="";type="";lea_var_type="";assigned=false;}};
 lea_var leaVar;
@@ -27,7 +28,6 @@ std::vector<lea_fun> globalFunctions;
 std::vector<lea_cls> globalClasses;
 };
 lea_ctx leaCtx;
-#include "module.tab.hh"
 extern std::string gtoken_1;
 extern std::string gtoken_0;
 extern std::string gtoken;
