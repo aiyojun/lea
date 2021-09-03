@@ -140,11 +140,14 @@ void debug_println() {
 %token <ycText> VA_ID
 
 %left KW_RETURN
-%left SB_NOT
+//%nonassoc KW_TRUE KW_FALSE
+%left SB_OR
+%left SB_AND
 %left SB_LT SB_LE SB_GT SB_GE SB_EQ SB_NE
 %left SB_SUB SB_ADD
 %left SB_MUL SB_DIV SB_MOD
-%nonassoc VA_ID VA_INT VA_DOUBLE VA_CHAR VA_STRING KW_TRUE KW_FALSE
+%left SB_NOT
+//%nonassoc VA_ID VA_INT VA_DOUBLE VA_CHAR VA_STRING
 
 %type <ycText> globalVariableBasicType
 %type <ycText> globalVariableName
@@ -169,8 +172,8 @@ import: KW_IMPORT VA_ID {leaCtx.globalImports.emplace_back($2);};
 
 globalVariableDeclare:
   KW_VAR globalVariableName SB_COLON globalVariableBasicType {leaVar.type=tempString;leaVar.lea_var_type = "var"; leaVar.assigned = false;}
-| KW_VAR globalVariableName SB_COLON globalVariableBasicType SB_ASSIGN globalVariableBasicValue {leaVar.type=tempString;leaVar.lea_var_type = "val"; leaVar.assigned = true;}
-| KW_VAL globalVariableName SB_COLON globalVariableBasicType SB_ASSIGN globalVariableBasicValue {leaVar.type=tempString;leaVar.lea_var_type = "val"; leaVar.assigned = true;}
+| KW_VAR globalVariableName SB_COLON globalVariableBasicType SB_ASSIGN rightValue {leaVar.type=tempString;leaVar.lea_var_type = "val"; leaVar.assigned = true;}
+| KW_VAL globalVariableName SB_COLON globalVariableBasicType SB_ASSIGN rightValue {leaVar.type=tempString;leaVar.lea_var_type = "val"; leaVar.assigned = true;}
 ;
 globalVariableName: VA_ID {$$=$1;leaVar.name=std::string($1);}
 ;
@@ -252,13 +255,15 @@ functionBody:
 
 functionBodyAtom:
   rightValue
+| globalVariableDeclare
 | stateIf
 | stateReturn
 ;
 
 stateIf:
   stateIfWithElif
-| stateIfWithElif KW_ELSE SB_LBRACE functionBodyAtom SB_RBRACE
+| stateIfWithElif KW_ELSE SB_LBRACE SB_RBRACE
+| stateIfWithElif KW_ELSE SB_LBRACE functionBody SB_RBRACE
 ;
 
 stateIfWithElif:
@@ -267,7 +272,8 @@ stateIfWithElif:
 ;
 
 stateIfAtom:
-  KW_IF SB_LPAREN rightValue SB_RPAREN SB_LBRACE functionBodyAtom SB_RBRACE
+  KW_IF SB_LPAREN rightValue SB_RPAREN SB_LBRACE SB_RBRACE
+| KW_IF SB_LPAREN rightValue SB_RPAREN SB_LBRACE functionBody SB_RBRACE
 ;
 
 stateReturn: 
@@ -279,7 +285,7 @@ stateReturn:
 //---------------------------------------------------------------
 // right value
 //---------------------------------------------------------------
-rightValue: booOrValue {AST::self.print();AST::self.clear();}
+rightValue: booOrValue {println("\033[31;1mLEA right value\033[0m");AST::self.print();AST::self.clear();}
 ;
 
 booOrValue:

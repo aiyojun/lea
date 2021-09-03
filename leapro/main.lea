@@ -10,18 +10,48 @@ def main {
 	println("hello")
 	println("world")
 	(a.xx+b).no()
-	/*if (true) {
+
+	true
+
+	false
+
+	12 > 8
+
+	val x: int = 43+43 * 2+add_01(2, 'b', 12.12, "haha") + 2;
+
+	val pp: bool = true && ("haha" != "casdb") || 12 == (21 -pp(3,5));
+
+ 	var p0: bool = true && ("haha" != "casdb") || (12 == (21 -pp(3,5)))
+ 	var p1: int = t0(t1(t2()))
+ 	var p2: int = t0(12, t1("aaa", t2()), t3())
+ 	var p3: int = 1 + 2 + 4
+ 	var p4: bool = true && (aa == -12) && true && true
+ 	var p5: bool = (43 < 24) || (p0 <= pp0( p1, 12 + 32 + 43, "haha"  ))
+
+
+ 	doSomething("haha", doTask03(12,34,'a', do_task_04(var01, var02, var_03)))
+
+	if (true) {
+
+		x1().x2().x3.x4[10].x5()
+
 		if (true) {
 
 		}
-	}*/
+	}
+
+	if (12 > 23 && 12 != 23) {
+		println("ok" + 2);
+	}
+
+	if (aa()) {} else {}
 }
 
-def apply(func: (int, int) -> int) {
-	/*if (var_01) {
+/*def apply(func: (int, int) -> int) {
+	if (var_01) {
 		doSomething();
-	}*/
-}
+	}
+}*/
 
 class LeaClsint {
 	var m_x: int;

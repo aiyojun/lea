@@ -12,14 +12,12 @@ class tree_node {
 public:
     tree_node() {id=++uuid;}
     static int uuid;
-
     /** member of tree node */
     int id = 0;
     int no = 0;
     int deep;
     tree_node *parent;
     std::vector<tree_node*> children;
-
     /** right value information */
     int type;
     std::string data;
