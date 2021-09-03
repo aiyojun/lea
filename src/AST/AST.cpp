@@ -1,12 +1,9 @@
 #include "AST.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <map>
 #include <set>
-#include <tuple>
 #include "basic_ds.h"
 
 int tree_node::uuid = 0;
