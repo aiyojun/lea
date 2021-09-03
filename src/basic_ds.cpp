@@ -1,10 +1,10 @@
 #include "basic_ds.h"
 
 std::vector<std::string> to_vs(const std::vector<int>& v)
-{std::vector<std::string> _r(v.size());for(int i=0;i<v.size();i++)_r[i] = std::to_string(v[i]);return std::move(_r);}
+{std::vector<std::string> _r(v.size());for(unsigned int i=0;i<v.size();i++)_r[i] = std::to_string(v[i]);return std::move(_r);}
 
 std::string join(cstring c, const std::vector<std::string>& v)
-{std::string _r;for(int i=0;i<v.size();i++){_r+=v[i];if(i!=v.size()-1)_r+=c;}return _r;}
+{std::string _r;for(unsigned int i=0;i<v.size();i++){_r+=v[i];if(i!=v.size()-1)_r+=c;}return _r;}
 
 std::vector<std::string> split(cstring s, cstring separator) {
     std::vector<std::string> _r;
@@ -28,9 +28,9 @@ std::vector<std::string> splits(cstring s, const std::vector<std::string>& separ
     _r = split(s, separators[0]);
     std::vector<std::string> _r2;
     std::vector<std::string> _r3;
-    for (int i = 1; i < separators.size(); i++) {
+    for (unsigned int i = 1; i < separators.size(); i++) {
         _r2.clear();
-        for (int j = 0; j <_r.size(); j++) {
+        for (unsigned int j = 0; j <_r.size(); j++) {
             _r3 = split(_r[j], separators[i]);
             _r2.insert(_r2.end(), _r3.begin(), _r3.end());
         }
