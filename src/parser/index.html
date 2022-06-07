@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script src="https://cdn.staticfile.org/echarts/5.2.2/echarts.min.js"></script>
+  <title>show grammar</title>
+</head>
+<body>
+<div id="treeChart" style="width: 1200px; height: 800px;"></div>
+<button id="render" onclick="main()">render</button><br>
+<textarea id="editor" style="width: 100%; height: 400px;"></textarea>
+<script type="text/javascript">
+  function main() {
+    let el = document.getElementById('editor');
+    console.info(el.value);
+    // let data = {"children":[{"children":[{"children":[{"children":[],"name":"ID:a"},{"children":[],"name":"NUM:12"}],"name":"GT:"},{"children":[{"children":[],"name":"ID:b"},{"children":[],"name":"NUM:43"}],"name":"LT:"}],"name":"AND:"},{"children":[{"children":[{"children":[],"name":"ID:c"},{"children":[],"name":"CHAR:'a'"}],"name":"NE:"},{"children":[{"children":[],"name":"ID:d"},{"children":[],"name":"STR:\"xa\""}],"name":"EQ:"}],"name":"AND:"}],"name":"OR:"};
+    drawTree(JSON.parse(el.value), 0);
+  }
+
+  function drawTree(data, depth) {
+    let chartDom = document.getElementById('treeChart');
+    let myChart = echarts.init(chartDom);
+    let option;
+    myChart.showLoading();
+    myChart.hideLoading();
+    data.children.forEach(function (datum, index) {
+      index % 2 === 0 && (datum.collapsed = true);
+    });
+    myChart.setOption(
+            (option = {
+              tooltip: {
+                trigger: 'item',
+                triggerOn: 'mousemove'
+              },
+              series: [
+                {
+                  type: 'tree',
+                  data: [data],
+                  top: '1%',
+                  left: '7%',
+                  bottom: '1%',
+                  right: '20%',
+                  symbolSize: 7,
+                  orient: 'vertical',
+                  label: {
+                    position: 'left',
+                    verticalAlign: 'middle',
+                    align: 'right',
+                    // rotate: 90,
+                    fontSize: 12
+                  },
+                  leaves: {
+                    label: {
+                      position: 'right',
+                      verticalAlign: 'middle',
+                      // rotate: 0,
+                      align: 'left'
+                    }
+                  },
+                  emphasis: {
+                    focus: 'descendant'
+                  },
+                  initialTreeDepth: 20,
+                  expandAndCollapse: true,
+                  animationDuration: 550,
+                  animationDurationUpdate: 750
+                }
+              ]
+            })
+    );
+    option && myChart.setOption(option);
+  }
+
+  // main();
+</script>
+</body>
+</html>
