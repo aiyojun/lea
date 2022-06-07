@@ -108,54 +108,56 @@ void println(const char* s)
 %right UMINUS
 %left LP LSP DOT
 
-%type <ycText> symbol
+%type <ycText> multiSymbol
 
 %%
 
 start:
-  outter ENDING  {astTree->print();return 0;}
-| dependencies   {astTree->merge("DEPENDENCIES", importer->resetAll());} 
-  outter ENDING  {astTree->print();return 0;}
+  memberLoop ENDING  {astTree->print();return 0;}
+| dependencies   {astTree->merge("IMPORT", importer->resetAll());} 
+  memberLoop ENDING  {astTree->print();return 0;}
 | ENDING         {astTree->print();return 0;}
 ;
+
+memberLoop: member memberLoop | member;
+member: clazz | symbol;
 
 dependencies: dependency dependencies | dependency;
 dependency: 
   IMPORT         {importer->recordOne();importer->initDepth();} 
-  package SEMI   {astTree->merge("PACKAGE", importer->resetDepth());astTree->merge("IMPORT", 1);}
+  package SEMI   {astTree->merge("PACKAGE", importer->resetDepth());astTree->merge("PACKAGE", 1);}
 ;
-package: 
+package:
   ID DOT package {astTree->pushStack("PKG", $1);importer->addDepth();}
 | ID             {astTree->pushStack("PKG", $1);importer->addDepth();}
 ;
 
-outter: outterStep outter | outterStep;
-outterStep: classDefine | symbolDefine;
-
-symbolDefine:
-  DEF symbol COLON types SEMI {}
-| DEF symbol ASSIGN valuable
-| DEF symbol block
-| DEF symbol COLON types ASSIGN valuable
-| DEF symbol COLON types block
+symbol:
+  DEF multiSymbol COLON types SEMI {}
+| DEF multiSymbol ASSIGN valuable
+| DEF multiSymbol block
+| DEF multiSymbol COLON types ASSIGN valuable
+| DEF multiSymbol COLON types block
 ;
 
-symbol: 
+multiSymbol: 
   ID             {$$ = $1;}
 | ID parameters  {$$ = $1;}
 ;
 
 valuable: rv SEMI | block;
+
 parameters: LP RP | LP param RP;
 param: paramOne COMMA param | paramOne;
 paramOne: ID COLON types;
-classDefine: CLASS ID SEMI | CLASS ID LBP multiDefine RBP;
-multiDefine: symbolDefineWithLimit multiDefine | symbolDefineWithLimit;
-symbolDefineWithLimit: symbolDefine | PRIVATE symbolDefine;
 
-types: TYPE | lambdaDeclaration;
+clazz: CLASS ID SEMI | CLASS ID LBP RBP | CLASS ID LBP multiDefine RBP;
+multiDefine: prefixSymbol multiDefine | prefixSymbol;
+prefixSymbol: PRIVATE symbol | symbol;
 
-lambdaDeclaration:
+types: TYPE | lambdaType;
+
+lambdaType:
   ARROW types
 | LP RP ARROW types
 | LP typeList RP ARROW types
@@ -184,15 +186,15 @@ vars: ID COMMA vars | ID;
 
 block: 
   LBP RBP
-| LBP stmt RBP {}
+| LBP runnableLoop RBP {}
 ;
 
-stmt: 
-  statement stmt 
-| statement {}
+runnableLoop: 
+  runnable runnableLoop 
+| runnable {}
 ;
-statement:
-  symbolDefine
+runnable:
+  symbol
 | assignValue
 | rv SEMI
 | if

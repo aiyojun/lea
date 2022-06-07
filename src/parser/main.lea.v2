@@ -1,0 +1,30 @@
+import math;
+
+import stdlib.system.os;
+import http.server;
+
+class MainDemo 
+{
+
+	private val x: int;
+
+	val pp: bool;
+
+ 	var p0: bool;
+ 	private var p1: int;
+ 	private var p2: int;
+ 	private var p3: int;
+ 	var p4: bool;
+ 	var p5: bool;
+
+    def main(args: string): void {
+    }
+
+    def add(x: int, y: int): int {
+	}
+}
+
+def _main() {
+}
+
+eof

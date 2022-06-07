@@ -16,7 +16,8 @@ lex:
 
 yacc:
 	@echo "[2/3] Compiling yacc file"
-	@$(YACC) -L C++ -Wcounterexamples -d -o build/$(TARGET).yacc.cc $(TARGET).y -v
+	@$(YACC) -L C++ -Wcounterexamples -d -o build/$(TARGET).yacc.cc structure.y -v
+# 	@$(YACC) -L C++ -Wcounterexamples -d -o build/$(TARGET).yacc.cc $(TARGET).y -v
 
 clean:
 	@rm -rf build $(TARGET)

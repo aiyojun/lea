@@ -57,9 +57,32 @@ public:
     int releaseArgsSpace();
 };
 
+class TheSymbol {
+public:
+    // int number;
+    std::vector<AstNode*> symbols;
+
+    std::vector<int> scopeCount;
+    void newScope();
+    void addOne();
+    int releaseScope();
+
+    TheSymbol();
+    // void add();
+    // int reset();
+
+    void merge(cstring nodeSign, int n=2);
+    void pushStack(cstring type, cstring text);
+    AstNode* popStack();
+
+    void print();
+    nlohmann::json loopUp(AstNode* node, int depth=0);
+};
+
 extern AstTree* astTree;
 extern RightValue *rightValue;
 extern TheImport* importer;
+extern TheSymbol* symbolCollector;
 
 void prepareCompiler();
 void releaseCompiler();

@@ -5,6 +5,7 @@
 AstTree* astTree;
 RightValue *rightValue;
 TheImport* importer;
+TheSymbol* symbolCollector;
 
 void AstNode::assign(cstring type, cstring text, AstNode* parent) {
     this->type = type; this->text = text; this->parent = parent;
@@ -127,10 +128,101 @@ int RightValue::releaseArgsSpace() {
     return _r;
 }
 
+
+/**  */
+
+TheSymbol::TheSymbol()
+// :symbols(), scopeCount() 
+{
+    scopeCount.emplace_back(0);
+}
+
+void TheSymbol::newScope() {
+    this->scopeCount.emplace_back(0);
+}
+
+void TheSymbol::addOne() {
+    int back = this->scopeCount.back();
+    this->scopeCount[this->scopeCount.size() - 1] = back + 1;
+}
+
+int TheSymbol::releaseScope() {
+    int _r = this->scopeCount.back();
+    this->scopeCount.pop_back();
+    std::cout << ">> release scope : " << _r << ", rest : " << this->scopeCount.size() << "\n";
+    return _r;
+}
+
+// void TheSymbol::add() {
+//     this->number++;
+// }
+
+// int TheSymbol::reset() {
+//     int _r = this->number;
+//     this->number = 0;
+//     return _r;
+// }
+
+void TheSymbol::merge(cstring nodeSign, int n) {
+    std::cout << "[E] Type(" << nodeSign << "), Depth(" << n << ")\n";
+    AstNode* p = new AstNode();
+    for (int i = 0; i < n; i++) {
+        p->append(this->symbols[this->symbols.size() - (n - i)]);
+    }
+    for (int i = 0; i < n; i++) {
+        this->popStack();
+    }
+    p->assign(nodeSign, "", nullptr);
+    this->symbols.emplace_back(p);
+}
+
+void TheSymbol::pushStack(cstring type, cstring text) {
+    AstNode* p = new AstNode();
+    p->assign(type, text, nullptr);
+    this->symbols.emplace_back(p);
+}
+
+AstNode* TheSymbol::popStack() {
+    AstNode* back = this->symbols.back();
+    this->symbols.pop_back();
+    return back;
+}
+
+nlohmann::json TheSymbol::loopUp(AstNode* node, int depth)
+{
+    if (node == nullptr) return nullptr;
+    nlohmann::json _r;
+    _r["name"] = node->text == "" ? node->type : node->type + ":" + node->text;
+    std::vector<nlohmann::json> children;
+    for (auto child : node->children) {
+        children.emplace_back(loopUp(child, depth + 1));
+    }
+    _r["children"] = nlohmann::json(children);
+    return _r;
+}
+
+void TheSymbol::print() {
+    if (this->symbols.size() != 1) {
+        std::cout << "start size : " << this->symbols.size() << std::endl;
+        for (int i = 0; i < this->symbols.size(); i++) {
+            std::cout << "The " << i << " tree:\n";
+            std::cout << this->loopUp(this->symbols[i]) << std::endl;
+            std::cout << "over\n\n";
+        }
+    } else {
+        std::cout << "Tree:" << std::endl;
+        std::cout << this->loopUp(this->symbols[0]) << std::endl;
+    }
+}
+
+/**  */
+
+
 void prepareCompiler() {
     astTree = new AstTree();
     rightValue = new RightValue();
     importer = new TheImport();
+    symbolCollector = new TheSymbol();
     astTree->init();
 }
 

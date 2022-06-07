@@ -43,7 +43,7 @@ std::deque<std::string> seq;
 yy::parser::token::token_kind_type keywords(const char* word)
 {
     std::string iWord(word);
-    std::cout << "[LEX] " << iWord << std::endl;
+    //std::cout << "[LEX] " << iWord << std::endl;
     static std::map<std::string, yy::parser::token::token_kind_type> mapper {
         {"void"    , yy::parser::token::token_kind_type::TYPE},
         {"bool"    , yy::parser::token::token_kind_type::TYPE},
