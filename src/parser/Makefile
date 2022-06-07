@@ -1,4 +1,4 @@
-TARGET  =lea
+TARGET  =rv
 LEX     =flex
 YACC    =bison
 CXX     =gcc
