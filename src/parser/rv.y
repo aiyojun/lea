@@ -88,7 +88,7 @@ void println(const char* s)
 %token IF
 %token ELSE
 %token RETURN
-%token DEF
+%token <ycText> DEF
 %token CLASS
 %token IMPORT
 %token PRIVATE
@@ -109,14 +109,35 @@ void println(const char* s)
 %left LP LSP DOT
 
 %type <ycText> multiSymbol
+%type <ycText> symbol
 
 %%
 
 start:
-  memberLoop ENDING  {astTree->print();return 0;}
-| dependencies   {astTree->merge("IMPORT", importer->resetAll());} 
-  memberLoop ENDING  {astTree->print();return 0;}
-| ENDING         {astTree->print();return 0;}
+  memberLoop ENDING {
+  int globalNumber = symbolCollector->releaseScope();
+  symbolCollector->GMergeGlobalSymbol(globalNumber);
+  symbolCollector->GPrint("Symbol");
+  typeHelper->GPrint("TypeHelper");
+  context->print();
+  return 0;
+}
+| dependencies {
+  importer->GMergeDependency(importer->dependencies.GReset());
+  importer->GPrint("Importer");
+} 
+  memberLoop ENDING {
+  int globalNumber = symbolCollector->releaseScope();
+  symbolCollector->GMergeGlobalSymbol(globalNumber);
+  symbolCollector->GPrint("Symbol");
+  typeHelper->GPrint("TypeHelper");
+  context->print();
+  return 0;
+}
+| ENDING {
+  symbolCollector->GPrint("Symbol");
+  return 0;
+}
 ;
 
 memberLoop: member memberLoop | member;
@@ -124,20 +145,62 @@ member: clazz | symbol;
 
 dependencies: dependency dependencies | dependency;
 dependency: 
-  IMPORT         {importer->recordOne();importer->initDepth();} 
-  package SEMI   {astTree->merge("PACKAGE", importer->resetDepth());astTree->merge("PACKAGE", 1);}
+  IMPORT {
+  importer->dependencies.GOnce();
+  importer->oneDepth.GInit();
+} 
+  package SEMI {
+  importer->GMergePackage(importer->oneDepth.GReset());
+}
 ;
+
 package:
-  ID DOT package {astTree->pushStack("PKG", $1);importer->addDepth();}
-| ID             {astTree->pushStack("PKG", $1);importer->addDepth();}
+  ID DOT package {
+  importer->GPush("LEVEL", $1);
+  importer->oneDepth.GOnce();
+}
+| ID {
+  importer->GPush("LEVEL", $1);
+  importer->oneDepth.GOnce();
+}
 ;
 
 symbol:
-  DEF multiSymbol COLON types SEMI {}
-| DEF multiSymbol ASSIGN valuable
-| DEF multiSymbol block
-| DEF multiSymbol COLON types ASSIGN valuable
-| DEF multiSymbol COLON types block
+  DEF multiSymbol COLON types SEMI {
+  $$=$2;
+  symbolCollector->GPush("DEF", $1);
+  symbolCollector->GPush("ID", $2);
+  symbolCollector->GMerge("SYMBOL");
+  symbolCollector->addOne();
+}
+| DEF multiSymbol ASSIGN valuable {
+  $$=$2;
+  symbolCollector->GPush("DEF", $1);
+  symbolCollector->GPush("ID", $2);
+  symbolCollector->GMerge("SYMBOL");
+  symbolCollector->addOne();
+}
+| DEF multiSymbol block {
+  $$=$2;
+  symbolCollector->GPush("DEF", $1);
+  symbolCollector->GPush("ID", $2);
+  symbolCollector->GMerge("SYMBOL");
+  symbolCollector->addOne();
+}
+| DEF multiSymbol COLON types ASSIGN valuable {
+  $$=$2;
+  symbolCollector->GPush("DEF", $1);
+  symbolCollector->GPush("ID", $2);
+  symbolCollector->GMerge("SYMBOL");
+  symbolCollector->addOne();
+}
+| DEF multiSymbol COLON types block {
+  $$=$2;
+  symbolCollector->GPush("DEF", $1);
+  symbolCollector->GPush("ID", $2);
+  symbolCollector->GMerge("SYMBOL");
+  symbolCollector->addOne();
+}
 ;
 
 multiSymbol: 
@@ -151,19 +214,58 @@ parameters: LP RP | LP param RP;
 param: paramOne COMMA param | paramOne;
 paramOne: ID COLON types;
 
-clazz: CLASS ID SEMI | CLASS ID LBP RBP | CLASS ID LBP multiDefine RBP;
-multiDefine: prefixSymbol multiDefine | prefixSymbol;
-prefixSymbol: PRIVATE symbol | symbol;
-
-types: TYPE | lambdaType;
-
-lambdaType:
-  ARROW types
-| LP RP ARROW types
-| LP typeList RP ARROW types
+clazz: 
+  CLASS ID SEMI 
+| CLASS ID LBP RBP
+| CLASS ID LBP {
+  symbolCollector->GEnterClazz($2);
+  symbolCollector->addOne();
+  symbolCollector->newScope();
+} multiDefine RBP {
+  int memberNumber = symbolCollector->releaseScope();
+  symbolCollector->GExitClazz(memberNumber);
+}
 ;
 
-typeList: types COMMA typeList | types;
+
+multiDefine: prefixSymbol multiDefine | prefixSymbol;
+prefixSymbol: 
+  PRIVATE symbol {
+  symbolCollector->GMergeClazzSymbol("private");
+}
+| symbol         {
+  symbolCollector->GMergeClazzSymbol("public");
+}
+;
+
+types: 
+  TYPE       {typeHelper->GPush("TYPE", $1);}
+| lambdaType
+;
+
+lambdaType:
+  ARROW types {
+  typeHelper->GMergeReturn();
+  typeHelper->GMergeLambda(1);
+}
+| LP RP ARROW types {
+  typeHelper->GMergeReturn();
+  typeHelper->GMergeLambda(1);
+}
+| LP {
+  typeHelper->GInit();
+} typeList RP {
+  typeHelper->GMergeTypeList(typeHelper->GReset());
+} ARROW types {
+  typeHelper->GMergeReturn();
+  typeHelper->GMergeLambda(2);
+}
+;
+
+typeList:
+  types COMMA typeList {typeHelper->GOnce();}
+| types                {typeHelper->GOnce();}
+;
 
 lambda: 
   ARROW valuable

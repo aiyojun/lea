@@ -16,7 +16,7 @@ int main(int argc, char** argv)
     // std::stringstream bridge;
     // lexer->switch_streams(bridge, std::cout);
     leaParser->parse();
-    std::cout << "Main over!\n";
+    std::cout << "Compiling is completed!\n";
     releaseCompiler();
     // delete lexer;
     // delete leaParser;

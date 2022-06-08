@@ -1,7 +1,12 @@
 import math;
-
 import stdlib.system.os;
 import http.server;
+
+class Algorithm {
+	private def sort(): void {}
+	def add(x: int, y: int): int {}
+	val MagicNumber: byte;
+}
 
 class MainDemo 
 {
@@ -18,13 +23,29 @@ class MainDemo
  	var p5: bool;
 
     def main(args: string): void {
+
     }
 
     def add(x: int, y: int): int {
+		
 	}
 }
 
 def _main() {
+
+}
+
+val stmt: string;
+
+var counter: int;
+
+
+def complex(fn: (int, char, => string) => void): => int {
+
+}
+
+def complex(fn: (int, char, (char) => string) => void): => int {
+
 }
 
 eof
