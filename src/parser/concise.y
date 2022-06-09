@@ -46,23 +46,23 @@ extern int yylex(yy::parser::semantic_type* value);
 
 start: 
   multiImport ENDING           {
-  importer->GMergeDependency(importer->dependencies.GReset());
-  context->print();
+  MO->GMergeDependency(MO->dependencies.GReset());
+  CT->GPrint();
   return 0;
 }
 | multiImport multiLine ENDING {
-  importer->GMergeDependency(importer->dependencies.GReset());
-  symbolCollector->GPrint("Symbol Loop Up");
-  typeHelper->GPrint("Type System");
-  rVal->GPrint("Right Value");
-  context->print();
+  MO->GMergeDependency(MO->dependencies.GReset());
+  SM->GPrint("Symbol Loop Up");
+  TP->GPrint("Type System");
+  VA->GPrint("Right Value");
+  CT->GPrint();
   return 0;
 }
 | multiLine ENDING             {
-  symbolCollector->GPrint("Symbol Loop Up");
-  typeHelper->GPrint("Type System");
-  rVal->GPrint("Right Value");
-  context->print();
+  SM->GPrint("Symbol Loop Up");
+  TP->GPrint("Type System");
+  VA->GPrint("Right Value");
+  CT->GPrint();
   return 0;
 }
 ;
@@ -74,59 +74,78 @@ multiImport:
 
 TermImport:
   IMPORT {
-  importer->dependencies.GOnce();
-  importer->oneDepth.GInit();
+  MO->dependencies.GOnce();
+  MO->oneDepth.GInit();
 } package SEMI {
-  importer->GMergePackage(importer->oneDepth.GReset());
+  MO->GMergePackage(MO->oneDepth.GReset());
 }
 ;
 
 package:
   ID DOT package {
-  importer->GPush("LEVEL", $1);
-  importer->oneDepth.GOnce();
+  MO->GPush("LEVEL", $1);
+  MO->oneDepth.GOnce();
 }
 | ID {
-  importer->GPush("LEVEL", $1);
-  importer->oneDepth.GOnce();
+  MO->GPush("LEVEL", $1);
+  MO->oneDepth.GOnce();
 }
 ;
 
+/* symbol system */
+
 define:
-  QualifierDefine
-| QualifierDefine COLON multiType
-| QualifierDefine ArgsTypeList
-| QualifierDefine ArgsTypeList COLON multiType
+  QualifierDefine {
+  SM->argsList.GReset();
+}
+| QualifierDefine COLON multiType {
+  SM->GCheckVariableWithType();
+  SM->argsList.GReset();
+}
+| QualifierDefine ArgsTypeList {
+  SM->GCheckMethod(SM->argsList.GGet(), 0);
+  SM->argsList.GReset();
+}
+| QualifierDefine ArgsTypeList COLON multiType {
+  SM->GCheckMethod(SM->argsList.GGet(), 1);
+  SM->argsList.GReset();
+}
 ;
 
 QualifierDefine:
   DEF ID           {
-  symbolCollector->GPush("DEF", $1);
-  symbolCollector->GPush("ID" , $2);
-  symbolCollector->GMerge("SYMBOL");
-  symbolCollector->GOnce();
+  SP->GEnter($1, $2);
+
+  SM->argsList.GInit();
+  SM->GPush("DEF", $1);
+  SM->GPush("ID" , $2);
+  SM->GMergeSymbol(2);
+  SM->GOnce();
 }
 | qualifier DEF ID {
-  symbolCollector->GPush("DEF", $2);
-  symbolCollector->GPush("ID" , $3);
-  symbolCollector->GMerge("SYMBOL", 3);
-  symbolCollector->GOnce();
+  SP->GEnter($2, $3);
+
+  SM->argsList.GInit();
+  SM->GPush("DEF", $2);
+  SM->GPush("ID" , $3);
+  SM->GMergeSymbol(3);
+  SM->GOnce();
 }
 ;
 
 qualifier:
   STATIC         {
-  symbolCollector->GPush("PREFIX", "static");
-  symbolCollector->GMerge("QUALIFIER", 1);
+  SM->GPush("PREFIX", "static");
+  SM->GMerge("QUALIFIER", 1);
 }
 | PRIVATE        {
-  symbolCollector->GPush("PREFIX", "private");
-  symbolCollector->GMerge("QUALIFIER", 1);
+  SM->GPush("PREFIX", "private");
+  SM->GMerge("QUALIFIER", 1);
 }
 | STATIC PRIVATE {
-  symbolCollector->GPush("PREFIX", "static");
-  symbolCollector->GPush("PREFIX", "private");
-  symbolCollector->GMerge("QUALIFIER");
+  SM->GPush("PREFIX", "static");
+  SM->GPush("PREFIX", "private");
+  SM->GMerge("QUALIFIER");
 }
 ;
 
@@ -139,10 +158,10 @@ assign:
 block:
   LBP RBP
 | LBP {
-  symbolCollector->GInit();
+  SM->GInit();
 } multiLine RBP {
-  symbolCollector->GMerge("GROUP", symbolCollector->GReset());
-  symbolCollector->GMerge("SCOPE", 2);
+  SM->GMerge("GROUP", SM->GReset());
+  SM->GMerge("SCOPE", 2);
 }
 ;
 
@@ -160,14 +179,16 @@ VarList: ID COMMA VarList | ID;
 
 return: RETURN rv SEMI;
 
+/* code context */
+
 multiLine:
   TermLine multiLine
 | TermLine
 ;
 
 TermLine:
-  define SEMI
-| define assign
+  define SEMI   {SP->GExit();}
+| define assign {SP->GExit();}
 | if
 | for
 | return
@@ -176,80 +197,91 @@ TermLine:
 | SEMI
 ;
 
+/* type system */
+
 multiType:
-  TYPE       {typeHelper->GPush("TYPE", $1);}
+  TYPE       {TP->GPush("TYPE", $1);}
 | lambdaType
 ;
 
 lambdaType:
   ARROW multiType {
-  typeHelper->GMergeReturn();
-  typeHelper->GMergeLambda(1);
+  TP->GMergeReturn();
+  TP->GMergeLambda(1);
 }
 | LP RP ARROW multiType {
-  typeHelper->GMergeReturn();
-  typeHelper->GMergeLambda(1);
+  TP->GMergeReturn();
+  TP->GMergeLambda(1);
 }
 | LP {
-  typeHelper->GInit();
+  TP->GInit();
 } TypeList RP {
-  typeHelper->GMergeTypeList(typeHelper->GReset());
+  TP->GMergeTypeList(TP->GReset());
 } ARROW multiType {
-  typeHelper->GMergeReturn();
-  typeHelper->GMergeLambda(2);
+  TP->GMergeReturn();
+  TP->GMergeLambda(2);
 }
 ;
 
 TypeList:
-  multiType COMMA TypeList {typeHelper->GOnce();}
-| multiType                {typeHelper->GOnce();}
+  multiType COMMA TypeList {TP->GOnce();}
+| multiType                {TP->GOnce();}
 ;
 
-ArgsTypeList: LP RP | LP param RP;
-param: paramOne COMMA param | paramOne;
-paramOne: ID COLON multiType;
+ArgsTypeList:
+  LP RP
+| LP param RP
+;
+
+param: 
+  paramOne COMMA param 
+| paramOne             
+;
+paramOne: ID COLON multiType {SM->argsList.GOnce();};
+
+/* right value */
 
 rv:
-  rv OR rv                  {rVal->GMerge("OR");}
-| rv AND rv                 {rVal->GMerge("AND");}
-| rv BOR rv                 {rVal->GMerge("BOR");}
-| rv XOR rv                 {rVal->GMerge("XOR");}
-| rv BAND rv                {rVal->GMerge("BAND");}
-| rv EQ rv                  {rVal->GMerge("EQ");}
-| rv NE rv                  {rVal->GMerge("NE");}
-| rv GT rv                  {rVal->GMerge("GT");}
-| rv GE rv                  {rVal->GMerge("GE");}
-| rv LT rv                  {rVal->GMerge("LT");}
-| rv LE rv                  {rVal->GMerge("LE");}
-| rv LSHIFT rv              {rVal->GMerge("LSHIFT");}
-| rv RSHIFT rv              {rVal->GMerge("RSHIFT");}
-| rv ADD rv                 {rVal->GMerge("ADD");}
-| rv SUB rv                 {rVal->GMerge("SUB");}
-| rv MUL rv                 {rVal->GMerge("MUL");}
-| rv DIV rv                 {rVal->GMerge("DIV");}
-| rv MOD rv                 {rVal->GMerge("MOD");}
-| ADD rv %prec UMINUS       {rVal->GMerge("ADD", 1);}
-| SUB rv %prec UMINUS       {rVal->GMerge("SUB", 1);}
-| NOT rv                    {rVal->GMerge("NOT", 1);}
-| SADD rv                   {rVal->GMerge("SADD", 1);}
-| SSUB rv                   {rVal->GMerge("SSUB", 1);}
-| ANTI rv                   {rVal->GMerge("ANTI", 1);}
-| rv LP {rVal->newArgsSpace();} RP          {rVal->GMerge("INVOKE", 1);rVal->releaseArgsSpace();}
-| rv LP {rVal->newArgsSpace();} ArgsList RP {rVal->GMerge("INVOKE", 1 + rVal->releaseArgsSpace());}
-| rv LSP rv RSP            {rVal->GMerge("ARRAY");}
-| rv DOT rv                {rVal->GMerge("DOT");}
-| LP TYPE {rVal->GPush("TYPE", $2);} RP rv %prec CAST {rVal->GMerge("CAST");}
+  rv OR rv                  {VA->GMerge("OR");}
+| rv AND rv                 {VA->GMerge("AND");}
+| rv BOR rv                 {VA->GMerge("BOR");}
+| rv XOR rv                 {VA->GMerge("XOR");}
+| rv BAND rv                {VA->GMerge("BAND");}
+| rv EQ rv                  {VA->GMerge("EQ");}
+| rv NE rv                  {VA->GMerge("NE");}
+| rv GT rv                  {VA->GMerge("GT");}
+| rv GE rv                  {VA->GMerge("GE");}
+| rv LT rv                  {VA->GMerge("LT");}
+| rv LE rv                  {VA->GMerge("LE");}
+| rv LSHIFT rv              {VA->GMerge("LSHIFT");}
+| rv RSHIFT rv              {VA->GMerge("RSHIFT");}
+| rv ADD rv                 {VA->GMerge("ADD");}
+| rv SUB rv                 {VA->GMerge("SUB");}
+| rv MUL rv                 {VA->GMerge("MUL");}
+| rv DIV rv                 {VA->GMerge("DIV");}
+| rv MOD rv                 {VA->GMerge("MOD");}
+| ADD rv %prec UMINUS       {VA->GMerge("ADD", 1);}
+| SUB rv %prec UMINUS       {VA->GMerge("SUB", 1);}
+| NOT rv                    {VA->GMerge("NOT", 1);}
+| SADD rv                   {VA->GMerge("SADD", 1);}
+| SSUB rv                   {VA->GMerge("SSUB", 1);}
+| ANTI rv                   {VA->GMerge("ANTI", 1);}
+| rv LP {VA->newArgsSpace();} RP          {VA->GMerge("INVOKE", 1);VA->releaseArgsSpace();}
+| rv LP {VA->newArgsSpace();} ArgsList RP {VA->GMerge("INVOKE", 1 + VA->releaseArgsSpace());}
+| rv LSP rv RSP            {VA->GMerge("ARRAY");}
+| rv DOT rv                {VA->GMerge("DOT");}
+| LP TYPE {VA->GPush("TYPE", $2);} RP rv %prec CAST {VA->GMerge("CAST");}
 | atom
 ;
 
 ArgsList:
-  rv COMMA ArgsList         {rVal->addOneArg();}
-| rv                        {rVal->addOneArg();}
+  rv COMMA ArgsList         {VA->addOneArg();}
+| rv                        {VA->addOneArg();}
 ;
 
 lambda:
   ARROW lambdaReturn
-| LP ArgsTypeList RP ARROW lambdaReturn
+| ArgsTypeList ARROW lambdaReturn
 ;
 
 lambdaReturn:
@@ -258,13 +290,13 @@ lambdaReturn:
 ;
 
 atom:
-  ID       {rVal->GPush("ID", $1);}
-| STR      {rVal->GPush("STR", $1);}
-| CHAR     {rVal->GPush("CHAR", $1);}
-| NUM      {rVal->GPush("NUM", $1);}
-| TRUE     {rVal->GPush("BOOL", "true");}
-| FALSE    {rVal->GPush("BOOL", "false");}
-| LP rv RP {rVal->GMerge("PAREN", 1);}
+  ID       {VA->GPush("ID", $1);}
+| STR      {VA->GPush("STR", $1);}
+| CHAR     {VA->GPush("CHAR", $1);}
+| NUM      {VA->GPush("NUM", $1);}
+| TRUE     {VA->GPush("BOOL", "true");}
+| FALSE    {VA->GPush("BOOL", "false");}
+| LP rv RP {VA->GMerge("PAREN", 1);}
 | lambda   
 ;
 

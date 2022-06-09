@@ -4,16 +4,16 @@
 
 void print(const char* s)
 {
-  std::cout << s;
+  std::cout << "\r" << s;
 }
 void println(cstring s)
 {
-  std::cout << s << std::endl;
+  std::cout << "\r" << s << std::endl;
 }
-void println(const char* s)
-{
-  std::cout << s << std::endl;
-}
+// void println(const char* s)
+// {
+//   std::cout << s << std::endl;
+// }
 
 void checkpoint(cstring s) {
     std::cout << s << std::endl;
@@ -61,11 +61,12 @@ std::string join(std::function<std::string (T)> lambda, const std::vector<T>& se
 
 AstTree* astTree;
 RightValue *rightValue;
-RightValue *rVal;
-TheImport* importer;
-TheSymbol* symbolCollector;
-LContext* context;
-TypeHelper* typeHelper;
+RightValue *VA;
+TheImport *MO;
+TheSymbol* symbolCollector, *SM;
+LContext *CT;
+TypeHelper* typeHelper, *TP;
+LScope *SP;
 
 void AstNode::assign(cstring type, cstring text, AstNode* parent) {
     this->type = type; this->text = text; this->parent = parent;
@@ -161,6 +162,10 @@ int LCounter::GReset() {
     return _r;
 }
 
+int LCounter::GGet() {
+    return this->counter;
+}
+
 void LMultiCounter::GInit() {
     this->multiCounter.emplace_back(0);
 }
@@ -174,6 +179,10 @@ int LMultiCounter::GReset() {
     int _r = this->multiCounter.back();
     this->multiCounter.pop_back();
     return _r;
+}
+
+int LMultiCounter::GGet() {
+    return this->multiCounter.back();
 }
 
 /**  */
@@ -202,7 +211,7 @@ void LCollector::GMerge(cstring nodeSign, int n) {
 }
 
 void LCollector::GPrint(cstring sign) {
-    std::cout << "\n[ " << sign << " sub-tree:" << this->stack.size() << " ]" << std::endl;
+    std::cout << "\r[ " << sign << " sub-tree:" << this->stack.size() << " ]" << std::endl;
     std::cout << ">>>" << std::endl;
     // std::cout << "--- " << sign << " ---" << std::endl;
     if (this->stack.size() != 1) {
@@ -234,6 +243,7 @@ nlohmann::json LCollector::GLoopUp(AstNode* node, int depth) {
 
 /** The import */
 void TheImport::GMergePackage(int n) {
+    // std::cout << "merge package : " << n << "\n";
     this->GMerge("PACKAGE", n);
     AstNode* p = this->stack.back();
     LImport *oneImport = new LImport();
@@ -241,7 +251,7 @@ void TheImport::GMergePackage(int n) {
         oneImport->append(childPtr->text);
         //std::cout << "xxx: " << childPtr->text << "|" << childPtr->type << std::endl;
     }
-    context->imports.emplace_back(oneImport);
+    CT->imports.emplace_back(oneImport);
 }
 
 void TheImport::GMergeDependency(int n) {
@@ -394,7 +404,7 @@ void TheSymbol::GEnterClazz(cstring name) {
 void TheSymbol::GExitClazz(int n) {
     // checkpoint("xxxx exit clazz : " + this->clazz->name);
     this->GMerge("CLASS:" + this->clazz->name, n);
-    context->clazzes.emplace_back(this->clazz);
+    CT->clazzes.emplace_back(this->clazz);
     this->clazz = nullptr;
 }
 
@@ -431,15 +441,98 @@ void TheSymbol::GMergeGlobalSymbol(int n) {
             LFunction *fun = new LFunction();
             fun->def       = def->text;
             fun->name      = sym->text;
-            context->functions.emplace_back(fun);
+            CT->functions.emplace_back(fun);
         } else if (def->text == "var" || def->text == "val") {
             LVariable *var = new LVariable();
             var->def       = def->text;
             var->name      = sym->text;
-            context->variables.emplace_back(var);
+            CT->variables.emplace_back(var);
         }
     }
 }
+
+void AstSymbol(AstNode *p) {
+    AstNode *qualifier = nullptr, *def, *sym;
+    if (p->children.size() == 2) {
+        def = p->children[0];
+        sym = p->children[1];
+    } else if (p->children.size() == 3) {
+        qualifier = p->children[0];
+        def = p->children[1];
+        sym = p->children[2];
+    }
+    // println("Enter " + def->text + " " + p->children[1]->text);
+}
+
+void TheSymbol::GMergeSymbol(int n) {
+    this->GMerge("SYMBOL", n);
+    AstSymbol(this->stack.back());
+}
+
+void TheSymbol::GCheck() {
+    AstNode *qualifier = nullptr, *def, *sym;
+    if (SM->stack.back()->children.size() == 2) {
+        def = SM->stack.back()->children[0];
+        sym = SM->stack.back()->children[1];
+    } else if (SM->stack.back()->children.size() == 3) {
+        qualifier = SM->stack.back()->children[0];
+        def = SM->stack.back()->children[1];
+        sym = SM->stack.back()->children[2];
+    }
+}
+
+void TheSymbol::GCheckVariableWithType() {
+    AstNode *qualifier = nullptr, *def, *sym;
+    if (SM->stack.back()->children.size() == 2) {
+        def = SM->stack.back()->children[0];
+        sym = SM->stack.back()->children[1];
+    } else if (SM->stack.back()->children.size() == 3) {
+        qualifier = SM->stack.back()->children[0];
+        def = SM->stack.back()->children[1];
+        sym = SM->stack.back()->children[2];
+    }
+    std::vector<std::string> VarDefs{"var", "val"};
+    if (std::find(std::begin(VarDefs), std::end(VarDefs), def->text) == std::end(VarDefs)) {
+        // println(sym->text + " is not a variable!");
+        return;
+    }
+
+    std::cout << "\r"
+        << "[VAR] " << sym->text
+        << ": " << TP->stack.back()->type << " " << TP->stack.back()->text
+        << "\n"
+    ;
+}
+
+void TheSymbol::GCheckMethod(int args, int r) {
+    AstNode *qualifier = nullptr, *def, *sym;
+    if (SM->stack.back()->children.size() == 2) {
+        def = SM->stack.back()->children[0];
+        sym = SM->stack.back()->children[1];
+    } else if (SM->stack.back()->children.size() == 3) {
+        qualifier = SM->stack.back()->children[0];
+        def = SM->stack.back()->children[1];
+        sym = SM->stack.back()->children[2];
+    }
+    if (def->text != "def") {
+        // println(sym->text + " is not a variable!");
+        return;
+    }
+    std::cout << "\r"
+        << "[FUN] " << sym->text
+        << ": " << args << " => " << r
+        << "\n"
+    ;
+    for (int i = 0; i < args; i++) {
+        AstNode *p = TP->stack[TP->stack.size() - (args - i) - r];
+        std::cout << "\r   Arg-" << i << " " << p->type << ":" << p->text << "\n";
+    }
+    if (r > 0) {
+        AstNode *p = TP->stack[TP->stack.size() - 1];
+        std::cout << "\r  Return " << p->type << (p->text == "" ? "" : ":" + p->text) << "\n";
+    }
+}
+
 
 /** Type processing */
 LType* TypeHelper::GBasicType(cstring type) {
@@ -543,18 +636,34 @@ void LLambdaType::setRetureType(LType* type) {
 
 
 /**  */
+void LScope::GEnter(cstring type, cstring name) {
+    this->GPush(type, name);
+    std::cout << "\r  scope: " << join<AstNode*>([](AstNode *p) {return p->text;}, this->stack, ".") << std::endl;;
+}
+
+void LScope::GExit() {
+    this->GPop();
+}
+
+
+/**  */
 
 
 void prepareCompiler() {
     astTree = new AstTree();
     rightValue = new RightValue();
-    rVal = new RightValue();
-    importer = new TheImport();
-    symbolCollector = new TheSymbol();
+    VA = new RightValue();
+    MO = new TheImport();
+    // symbolCollector = new TheSymbol();
+    SM = new TheSymbol();
+
     // symbolCollector->GPush("GLOBAL", "");
-    symbolCollector->GInit();
-    context = new LContext();
+    SM->GInit();
+    CT = new LContext();
     typeHelper = new TypeHelper();
+    TP = new TypeHelper();
+    SP = new LScope();
+
     astTree->init();
 }
 
@@ -566,29 +675,29 @@ void releaseCompiler() {
 /// --------------------
 /// --------------------
 /// --------------------
-void LContext::print() {
+void LContext::GPrint() {
     std::cout << "\nimport: {\n";
     for (auto& im : this->imports) {
         std::cout << "    " << im->toString() << std::endl;
     }
     std::cout << "}\n";
-    for (auto& clazz : this->clazzes) {
-        std::cout << clazz->toString() << std::endl;
-    }
-    std::vector<std::string> _functions;
-    for (auto fun : this->functions) {
-        _functions.emplace_back(fun->toString());
-    }
-    std::cout << "function [" << this->functions.size() <<"] {\n    ";
-    std::cout << join(_functions, "\n    ");
-    std::cout << "\n}\n";
-    std::vector<std::string> _variables;
-    for (auto var : this->variables) {
-        _variables.emplace_back(var->toString());
-    }
-    std::cout << "variable [" << this->variables.size() <<"] {\n    ";
-    std::cout << join(_variables, "\n    ");
-    std::cout << "\n}\n";
+    // for (auto& clazz : this->clazzes) {
+    //     std::cout << clazz->toString() << std::endl;
+    // }
+    // std::vector<std::string> _functions;
+    // for (auto fun : this->functions) {
+    //     _functions.emplace_back(fun->toString());
+    // }
+    // std::cout << "function [" << this->functions.size() <<"] {\n    ";
+    // std::cout << join(_functions, "\n    ");
+    // std::cout << "\n}\n";
+    // std::vector<std::string> _variables;
+    // for (auto var : this->variables) {
+    //     _variables.emplace_back(var->toString());
+    // }
+    // std::cout << "variable [" << this->variables.size() <<"] {\n    ";
+    // std::cout << join(_variables, "\n    ");
+    // std::cout << "\n}\n";
 }
 
 std::string LFunction::toString() {

@@ -2,6 +2,7 @@
 #define __core_h__
 
 #include <iostream>
+#include <algorithm>
 #include <string>
 typedef const std::string& cstring;
 #include <map>
@@ -64,6 +65,7 @@ public:
     void GInit();
     void GOnce();
     int GReset();
+    int GGet();
 };
 
 class LMultiCounter {
@@ -73,6 +75,7 @@ public:
     void GInit();
     void GOnce();
     int GReset();
+    int GGet();
 };
 
 class LCollector {
@@ -144,13 +147,20 @@ public:
     // nlohmann::json loopUp(AstNode* node, int depth=0);
 
 
-    /** New version of TheSymbol */
+    /**  Version 2022.06.08 New version of TheSymbol */
     LClazz* clazz;
     void GEnterClazz(cstring name);
     void GExitClazz(int n);
     void GMergeClazzSymbol(cstring qualifier);
 
     void GMergeGlobalSymbol(int n);
+
+    /** Version 2022.06.09 */
+    void GMergeSymbol(int n);
+    void GCheck();
+    void GCheckVariableWithType();
+    void GCheckMethod(int args, int r);
+    LMultiCounter argsList;
 };
 
 
@@ -162,7 +172,7 @@ public:
     std::vector<LVariable*> variables;
     std::vector<LClazz*   > clazzes;
 
-    void print();
+    void GPrint();
 };
 
 class LClazz {
@@ -251,15 +261,22 @@ public:
 
 };
 
+class LScope : public LMultiCounter, public LCollector {
+public:
+    void GEnter(cstring type, cstring name);
+    void GExit();
+};
+
 
 
 extern AstTree* astTree;
 extern RightValue *rightValue;
-extern RightValue *rVal;
-extern TheImport* importer;
-extern TheSymbol* symbolCollector;
-extern TypeHelper* typeHelper;
-extern LContext* context;
+extern RightValue *VA;
+extern TheImport *MO;
+extern TheSymbol *symbolCollector, *SM;
+extern TypeHelper* typeHelper, *TP;
+extern LContext *CT;
+extern LScope *SP;
 
 void prepareCompiler();
 void releaseCompiler();
