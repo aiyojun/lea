@@ -92,6 +92,7 @@ void println(const char* s)
 %token CLASS
 %token IMPORT
 %token PRIVATE
+%token STATIC
 
 %left OR
 %left AND
@@ -238,6 +239,8 @@ prefixSymbol:
 }
 ;
 
+
+
 types: 
   TYPE       {typeHelper->GPush("TYPE", $1);}
 | lambdaType
@@ -267,7 +270,7 @@ typeList:
 | types                {typeHelper->GOnce();}
 ;
 
-lambda: 
+lambda:
   ARROW valuable
 | LP parameters RP ARROW types
 ;
@@ -302,6 +305,7 @@ runnable:
 | if
 | for
 | return
+| SEMI
 ;
 
 return: RETURN rv SEMI;

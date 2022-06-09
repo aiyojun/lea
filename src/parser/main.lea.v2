@@ -23,7 +23,8 @@ class MainDemo
  	var p5: bool;
 
     def main(args: string): void {
-
+		var xa: int = 5;
+		var xb: char = 'a';
     }
 
     def add(x: int, y: int): int {

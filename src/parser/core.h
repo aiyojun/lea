@@ -2,11 +2,19 @@
 #define __core_h__
 
 #include <iostream>
-#include <deque>
 #include <string>
 typedef const std::string& cstring;
+#include <map>
+#include <deque>
 #include <vector>
 #include "json.hpp"
+
+std::string join(const std::deque<std::string>& seq, cstring d);
+std::string join(const std::vector<std::string>& seq, cstring d);
+void print(const char* s);
+void println(cstring s);
+void println(const char* s);
+extern std::deque<std::string> seq;
 
 class LClazz;
 class LFunction;
@@ -106,7 +114,7 @@ public:
     // int resetAll();
 };
 
-class RightValue {
+class RightValue : public LCollector {
 public:
     std::vector<int> invokingArgs;
     void newArgsSpace();
@@ -114,7 +122,7 @@ public:
     int releaseArgsSpace();
 };
 
-class TheSymbol : public LCollector {
+class TheSymbol : public LCollector, public LMultiCounter {
 public:
     // int number;
     std::vector<AstNode*> symbols;
@@ -247,6 +255,7 @@ public:
 
 extern AstTree* astTree;
 extern RightValue *rightValue;
+extern RightValue *rVal;
 extern TheImport* importer;
 extern TheSymbol* symbolCollector;
 extern TypeHelper* typeHelper;

@@ -50,4 +50,12 @@ def _main() {
     MainDemo.main();
 }
 
+def complex(fn: (int, char, => string) => void): => int {
+
+}
+
+def complex(fn: (int, char, (char) => string) => void): => int {
+
+}
+
 eof

@@ -1,5 +1,4 @@
 %{
-#include <stdio.h>
 #include "rv.yacc.hh"
 yy::parser::semantic_type yylval;
 #include <string>
@@ -61,9 +60,10 @@ yy::parser::token::token_kind_type keywords(const char* word)
         {"if"      , yy::parser::token::token_kind_type::IF},
         {"else"    , yy::parser::token::token_kind_type::ELSE},
         {"return"  , yy::parser::token::token_kind_type::RETURN},
-        {"class"   , yy::parser::token::token_kind_type::CLASS},
+        {"class"   , yy::parser::token::token_kind_type::DEF},
         {"import"  , yy::parser::token::token_kind_type::IMPORT},
         {"private" , yy::parser::token::token_kind_type::PRIVATE},
+        {"static"  , yy::parser::token::token_kind_type::STATIC},
         {"eof"     , yy::parser::token::token_kind_type::ENDING},
         {"EOF"     , yy::parser::token::token_kind_type::ENDING}
     };

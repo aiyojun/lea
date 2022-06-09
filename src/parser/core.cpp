@@ -2,8 +2,34 @@
 
 #include <iostream>
 
+void print(const char* s)
+{
+  std::cout << s;
+}
+void println(cstring s)
+{
+  std::cout << s << std::endl;
+}
+void println(const char* s)
+{
+  std::cout << s << std::endl;
+}
+
 void checkpoint(cstring s) {
     std::cout << s << std::endl;
+}
+
+std::string join(const std::deque<std::string>& seq, cstring d) {
+    size_t len = seq.size();
+    std::string _r;
+    for (int i = 0; i < len; i++) {
+        if (i != len - 1) {
+            _r += seq[i] + d;
+        } else {
+            _r += seq[i];
+        }
+    }
+    return _r;
 }
 
 std::string join(const std::vector<std::string>& seq, cstring d) {
@@ -35,6 +61,7 @@ std::string join(std::function<std::string (T)> lambda, const std::vector<T>& se
 
 AstTree* astTree;
 RightValue *rightValue;
+RightValue *rVal;
 TheImport* importer;
 TheSymbol* symbolCollector;
 LContext* context;
@@ -175,18 +202,21 @@ void LCollector::GMerge(cstring nodeSign, int n) {
 }
 
 void LCollector::GPrint(cstring sign) {
-    std::cout << "--- " << sign << " ---" << std::endl;
+    std::cout << "\n[ " << sign << " sub-tree:" << this->stack.size() << " ]" << std::endl;
+    std::cout << ">>>" << std::endl;
+    // std::cout << "--- " << sign << " ---" << std::endl;
     if (this->stack.size() != 1) {
-        std::cout << "Tree number : " << this->stack.size() << std::endl;
+        // std::cout << "Tree number : " << this->stack.size() << std::endl;
         for (int i = 0; i < this->stack.size(); i++) {
-            std::cout << i << ": ";
+            std::cout << std::setw(4) << i << ": ";
             std::cout << this->GLoopUp(this->stack[i]) << std::endl;
         }
     } else {
-        std::cout << "Json Tree:" << std::endl;
+        // std::cout << "Json Tree:" << std::endl;
         std::cout << this->GLoopUp(this->stack[0]) << std::endl;
     }
-    std::cout << "--- " << sign << " --- over" << std::endl;
+    std::cout << "<<<" << sign << std::endl;
+    // std::cout << "--- " << sign << " --- over" << std::endl;
 }
 
 nlohmann::json LCollector::GLoopUp(AstNode* node, int depth) {
@@ -518,8 +548,11 @@ void LLambdaType::setRetureType(LType* type) {
 void prepareCompiler() {
     astTree = new AstTree();
     rightValue = new RightValue();
+    rVal = new RightValue();
     importer = new TheImport();
     symbolCollector = new TheSymbol();
+    // symbolCollector->GPush("GLOBAL", "");
+    symbolCollector->GInit();
     context = new LContext();
     typeHelper = new TypeHelper();
     astTree->init();
@@ -534,7 +567,7 @@ void releaseCompiler() {
 /// --------------------
 /// --------------------
 void LContext::print() {
-    std::cout << "import: {\n";
+    std::cout << "\nimport: {\n";
     for (auto& im : this->imports) {
         std::cout << "    " << im->toString() << std::endl;
     }

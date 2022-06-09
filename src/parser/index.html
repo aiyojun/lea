@@ -4,17 +4,53 @@
   <meta charset="UTF-8">
   <script src="https://cdn.staticfile.org/echarts/5.2.2/echarts.min.js"></script>
   <title>show grammar</title>
+  <style>
+    .pretty-button {
+      display: inline-block;
+      color: #ffffff;
+      text-align: center;
+      font-family: Helvetica, sans-serif;
+      height: 30px;
+      border: none;
+      cursor: pointer;
+      padding-left: 20px;
+      padding-right: 20px;
+      border-radius: 5px;
+      background-color: #9999ff;
+    }
+    .pretty-button:hover {
+      background-color: #aaaaff;
+    }
+    .pretty-text {
+      font-family: Console, Helvetica, sans-serif;
+      border-radius: 8px;
+      padding: 10px;
+      outline: none;
+      width: calc(100% - 20px);
+      min-height: 80px;
+    }
+    .pretty-text:focus  { border: 1px solid #000000; }
+    .pretty-text:active { border: 1px solid #000000; }
+  </style>
 </head>
 <body>
-<div id="treeChart" style="width: 1200px; height: 800px;"></div>
-<button id="render" onclick="main()">render</button><br>
-<textarea id="editor" style="width: 100%; height: 400px;"></textarea>
+  <!-- <h1>LEA Compiler</h1> -->
+
+<textarea id="editor" class="pretty-text" placeholder="JSON Tree"></textarea>
+<br><button id="render" class="pretty-button" style="margin-right: 10px;" onclick="main()">Render</button>
+<button id="render" class="pretty-button" onclick="format()">Format</button><br>
+<div id="treeChart" style="display: flex; justify-content: center; min-width: 480px; height: 800px; margin-left: auto; margin-right: auto;"></div>
 <script type="text/javascript">
   function main() {
     let el = document.getElementById('editor');
     console.info(el.value);
     // let data = {"children":[{"children":[{"children":[{"children":[],"name":"ID:a"},{"children":[],"name":"NUM:12"}],"name":"GT:"},{"children":[{"children":[],"name":"ID:b"},{"children":[],"name":"NUM:43"}],"name":"LT:"}],"name":"AND:"},{"children":[{"children":[{"children":[],"name":"ID:c"},{"children":[],"name":"CHAR:'a'"}],"name":"NE:"},{"children":[{"children":[],"name":"ID:d"},{"children":[],"name":"STR:\"xa\""}],"name":"EQ:"}],"name":"AND:"}],"name":"OR:"};
     drawTree(JSON.parse(el.value), 0);
+  }
+
+  function format() {
+    let el = document.getElementById('editor');
+    el.value = JSON.stringify(JSON.parse(el.value), null, 2);
   }
 
   function drawTree(data, depth) {
