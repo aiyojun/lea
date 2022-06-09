@@ -55,6 +55,7 @@ start:
   SM->GPrint("Symbol Loop Up");
   TP->GPrint("Type System");
   VA->GPrint("Right Value");
+  EX->GPrint("Execution");
   CT->GPrint();
   return 0;
 }
@@ -62,6 +63,7 @@ start:
   SM->GPrint("Symbol Loop Up");
   TP->GPrint("Type System");
   VA->GPrint("Right Value");
+  EX->GPrint("Execution");
   CT->GPrint();
   return 0;
 }
@@ -166,12 +168,14 @@ block:
 ;
 
 if:
-  IF LP rv RP block
-| IF LP rv RP block else
+  TermIf
+| TermIf else             {EX->GMerge("if-else");}
 ;
+TermIf: IF LP rv RP block {EX->GPush("if", "");};
+
 else:
-  ELSE block
-| ELSE if
+  ELSE block              {EX->GPush("else", "");}
+| ELSE if                 {EX->GMerge("else-if", 1);}
 ;
 
 for: FOR LP VarList COLON rv RP block;
@@ -187,8 +191,8 @@ multiLine:
 ;
 
 TermLine:
-  define SEMI   {SP->GExit();}
-| define assign {SP->GExit();}
+  define SEMI   {SP->GExit();/*EX->GPush("define", "");*/}
+| define assign {SP->GExit();/*EX->GPush("define:assign", "");*/}
 | if
 | for
 | return

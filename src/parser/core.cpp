@@ -67,6 +67,7 @@ TheSymbol* symbolCollector, *SM;
 LContext *CT;
 TypeHelper* typeHelper, *TP;
 LScope *SP;
+LExecution *EX;
 
 void AstNode::assign(cstring type, cstring text, AstNode* parent) {
     this->type = type; this->text = text; this->parent = parent;
@@ -663,6 +664,7 @@ void prepareCompiler() {
     typeHelper = new TypeHelper();
     TP = new TypeHelper();
     SP = new LScope();
+    EX = new LExecution();
 
     astTree->init();
 }

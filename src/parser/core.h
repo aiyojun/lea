@@ -261,12 +261,17 @@ public:
 
 };
 
+
 class LScope : public LMultiCounter, public LCollector {
 public:
     void GEnter(cstring type, cstring name);
     void GExit();
 };
 
+
+class LExecution : public LCollector {
+
+};
 
 
 extern AstTree* astTree;
@@ -277,6 +282,7 @@ extern TheSymbol *symbolCollector, *SM;
 extern TypeHelper* typeHelper, *TP;
 extern LContext *CT;
 extern LScope *SP;
+extern LExecution *EX;
 
 void prepareCompiler();
 void releaseCompiler();
