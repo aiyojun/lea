@@ -211,6 +211,11 @@ void LCollector::GMerge(cstring nodeSign, int n) {
     this->stack.emplace_back(p);
 }
 
+void LCollector::GReplace(cstring type, cstring text) {
+    this->stack.back()->type = type;
+    this->stack.back()->text = text;
+}
+
 void LCollector::GPrint(cstring sign) {
     std::cout << "\r[ " << sign << " sub-tree:" << this->stack.size() << " ]" << std::endl;
     std::cout << ">>>" << std::endl;

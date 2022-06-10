@@ -168,14 +168,14 @@ block:
 ;
 
 if:
-  TermIf
-| TermIf else             {EX->GMerge("if-else");}
+  TermIf                  
+| TermIf else             {EX->GMerge("if-group");}
 ;
 TermIf: IF LP rv RP block {EX->GPush("if", "");};
 
 else:
   ELSE block              {EX->GPush("else", "");}
-| ELSE if                 {EX->GMerge("else-if", 1);}
+| ELSE if                 {EX->GReplace("else-if", "");}
 ;
 
 for: FOR LP VarList COLON rv RP block;

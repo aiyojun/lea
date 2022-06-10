@@ -85,6 +85,7 @@ public:
     void GPush(cstring type, cstring text);
     AstNode* GPop();
     void GMerge(cstring nodeSign, int n=2);
+    void GReplace(cstring type, cstring text);
 
     void GPrint(cstring sign="Tree");
     nlohmann::json GLoopUp(AstNode* node, int depth=0);
@@ -269,7 +270,7 @@ public:
 };
 
 
-class LExecution : public LCollector {
+class LExecution : public LCollector, public LMultiCounter {
 
 };
 

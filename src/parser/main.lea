@@ -18,6 +18,9 @@ class MainDemo
  	var p5: bool = (43 < 24) || (p0 <= pp0( p1, 12 + 32 + 43, "haha"  ));
 
     def main(args: string): void {
+		;
+		;;;;;
+		;
 
         a + b
         .ok();
@@ -39,6 +42,14 @@ class MainDemo
 		        println("ok" + 2);
 	        }
     	}
+
+		if (true) {
+
+		} else if (1) {
+ 
+		} else {
+			
+		}
     }
 
     def add(x: int, y: int): int {
