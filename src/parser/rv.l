@@ -44,6 +44,7 @@ yy::parser::token::token_kind_type keywords(const char* word)
     std::string iWord(word);
     //std::cout << "[LEX] " << iWord << std::endl;
     static std::map<std::string, yy::parser::token::token_kind_type> mapper {
+        {"new"     , yy::parser::token::token_kind_type::NEW},
         {"void"    , yy::parser::token::token_kind_type::TYPE},
         {"bool"    , yy::parser::token::token_kind_type::TYPE},
         {"int"     , yy::parser::token::token_kind_type::TYPE},
@@ -70,6 +71,15 @@ yy::parser::token::token_kind_type keywords(const char* word)
     return mapper.find(iWord) != mapper.end() ? mapper[iWord] : yy::parser::token::token_kind_type::ID;
 }
 
+yy::parser::token::token_kind_type number(const char* num) {
+    std::string iNum(num);
+    if (iNum.find('.') != std::string::npos) {
+        return yy::parser::token::token_kind_type::FLOAT;
+    } else {
+        return yy::parser::token::token_kind_type::INT;
+    }
+}
+
 %}
 
 
@@ -89,7 +99,7 @@ yy::parser::token::token_kind_type keywords(const char* word)
 _?[a-zA-Z_][a-zA-Z0-9_]*     {set_word(yytext);return keywords(yytext);}
 \"[^\"]*\"                   {set_word(yytext);return yy::parser::token::token_kind_type::STR;}
 \'[^\']\'                    {set_word(yytext);return yy::parser::token::token_kind_type::CHAR;}
-([0-9]+\.)?[0-9]+            {set_word(yytext);return yy::parser::token::token_kind_type::NUM;}
+([0-9]+\.)?[0-9]+            {set_word(yytext);return number(yytext);}
 "."                          {return yy::parser::token::token_kind_type::DOT;}
 "*"                          {return yy::parser::token::token_kind_type::MUL;}
 "/"                          {return yy::parser::token::token_kind_type::DIV;}

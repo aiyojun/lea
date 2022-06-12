@@ -27,6 +27,28 @@ class LType;
 class LLambdaType;
 class LLambda;
 
+union MValue {
+    int intVal;
+    long longVal;
+    float floatVal;
+    double doubleVal;
+    char charVal;
+    bool boolVal;
+};
+
+enum MType {
+    MT_NONE,
+    MT_TEMP,
+    MT_BOOL, 
+    MT_INT, 
+    MT_LONG, 
+    MT_FLOAT, 
+    MT_DOUBLE, 
+    MT_CHAR, 
+    MT_BYTE,
+    MT_NULL
+};
+
 
 class AstNode {
 public:
@@ -38,6 +60,11 @@ public:
     void assign(cstring type, cstring text, AstNode* parent);
     void append(AstNode* child);
     std::string toString();
+
+    /** Version 2022.06.12 */
+    MValue mValue;
+    MType  mType = MType::MT_NONE;
+    std::string tempSpace;
 };
 
 class AstTree {
@@ -82,7 +109,7 @@ class LCollector {
 public:
     std::vector<AstNode*> stack;
 
-    void GPush(cstring type, cstring text);
+    void GPush(cstring type, cstring text="");
     AstNode* GPop();
     void GMerge(cstring nodeSign, int n=2);
     void GReplace(cstring type, cstring text);
@@ -124,6 +151,31 @@ public:
     void newArgsSpace();
     void addOneArg();
     int releaseArgsSpace();
+
+    /** Version 2022.06.12 */
+    void GMerge(cstring sign, int n = 2);
+
+    void GAdd();
+    void GSub();
+    void GMul();
+    void GDiv();
+    void GMod();
+    void GEq();
+    void GNe();
+    void GGt();
+    void GGe();
+    void GLt();
+    void GLe();
+    void GXor();
+    void GBor();
+    void GBand();
+    void GAnti();
+    void GLshift();
+    void GRshift();
+    void GCast();
+    void GInvoke();
+    void GArray();
+    void GDot();
 };
 
 class TheSymbol : public LCollector, public LMultiCounter {
@@ -172,6 +224,7 @@ public:
     std::vector<LFunction*> functions;
     std::vector<LVariable*> variables;
     std::vector<LClazz*   > clazzes;
+    std::vector<std::string> commands;
 
     void GPrint();
 };
@@ -267,11 +320,14 @@ class LScope : public LMultiCounter, public LCollector {
 public:
     void GEnter(cstring type, cstring name);
     void GExit();
+    std::string GGet();
 };
 
 
 class LExecution : public LCollector, public LMultiCounter {
-
+public:
+    static int uniqueCode;
+    std::string GAllocate();
 };
 
 
@@ -283,10 +339,11 @@ extern TheSymbol *symbolCollector, *SM;
 extern TypeHelper* typeHelper, *TP;
 extern LContext *CT;
 extern LScope *SP;
-extern LExecution *EX;
+extern LExecution *EX, *CX;
 
 void prepareCompiler();
 void releaseCompiler();
+
 
 
 #endif/*__core_h__*/

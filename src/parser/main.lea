@@ -35,6 +35,10 @@ class MainDemo
 
 	    	x1().x2().x3.x4[10].x5();
 
+	    	system("expr 1 + 2");
+	    	system("cd ~");
+	    	system("nohup");
+
 		    if (true) {
 
     		}
@@ -44,9 +48,9 @@ class MainDemo
     	}
 
 		if (true) {
-
+	    	system("nohup");
 		} else if (1) {
- 
+ 	    	system("lea");
 		} else {
 			
 		}

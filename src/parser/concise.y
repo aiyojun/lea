@@ -17,7 +17,7 @@ extern int yylex(yy::parser::semantic_type* value);
 %token TRUE FALSE
 %token ENDING
 %token CLASS IMPORT
-%token FOR IF ELSE RETURN
+%token FOR IF ELSE RETURN NEW
 %token <ycText> PRIVATE
 %token <ycText> STATIC
 %token <ycText> DEF
@@ -26,6 +26,8 @@ extern int yylex(yy::parser::semantic_type* value);
 %token <ycText> STR
 %token <ycText> CHAR
 %token <ycText> NUM
+%token <ycText> FLOAT
+%token <ycText> INT
 
 %left OR
 %left AND
@@ -56,6 +58,7 @@ start:
   TP->GPrint("Type System");
   VA->GPrint("Right Value");
   EX->GPrint("Execution");
+  CX->GPrint("Context execution");
   CT->GPrint();
   return 0;
 }
@@ -64,6 +67,7 @@ start:
   TP->GPrint("Type System");
   VA->GPrint("Right Value");
   EX->GPrint("Execution");
+  CX->GPrint("Context execution");
   CT->GPrint();
   return 0;
 }
@@ -171,17 +175,35 @@ if:
   TermIf                  
 | TermIf else             {EX->GMerge("if-group");}
 ;
-TermIf: IF LP rv RP block {EX->GPush("if", "");};
+TermIf: IF {SP->GEnter("", "if");} LP rv RP {SP->GExit();SP->GEnter("", "if");} block {SP->GExit();EX->GPush("if", "");};
 
 else:
-  ELSE block              {EX->GPush("else", "");}
-| ELSE if                 {EX->GReplace("else-if", "");}
+  ELSE {
+  SP->GEnter("", "else");
+} block {
+  SP->GExit();
+  EX->GPush("else", "");
+}
+| ELSE {
+  SP->GEnter("", "else");
+} if {
+  SP->GExit();
+  EX->GReplace("else-if", "");
+}
 ;
 
 for: FOR LP VarList COLON rv RP block;
 VarList: ID COMMA VarList | ID;
 
-return: RETURN rv SEMI;
+return: 
+  RETURN    {CX->GPush(SP->GGet() + "::return:empty");}
+| RETURN rv {CX->GPush(SP->GGet() + "::return:value");}
+;
+
+new:
+  NEW ID LP RP
+| NEW ID LP ArgsList RP
+;
 
 /* code context */
 
@@ -191,13 +213,14 @@ multiLine:
 ;
 
 TermLine:
-  define SEMI   {SP->GExit();/*EX->GPush("define", "");*/}
-| define assign {SP->GExit();/*EX->GPush("define:assign", "");*/}
+  define SEMI   {CX->GPush(SP->GGet() + "::define");SP->GExit();/*EX->GPush("define", "");*/}
+| define assign {CX->GPush(SP->GGet() + "::define:assign");SP->GExit();/*EX->GPush("define:assign", "");*/}
 | if
 | for
-| return
-| ID assign
-| rv SEMI
+| new SEMI
+| return SEMI
+| ID assign {CX->GPush(SP->GGet() + "::assign");}
+| rv SEMI   {CX->GPush(SP->GGet() + "::value");}
 | SEMI
 ;
 
@@ -297,7 +320,9 @@ atom:
   ID       {VA->GPush("ID", $1);}
 | STR      {VA->GPush("STR", $1);}
 | CHAR     {VA->GPush("CHAR", $1);}
-| NUM      {VA->GPush("NUM", $1);}
+/*| NUM      {VA->GPush("NUM", $1);}*/
+| INT      {VA->GPush("INT", $1);}
+| FLOAT    {VA->GPush("FLOAT", $1);}
 | TRUE     {VA->GPush("BOOL", "true");}
 | FALSE    {VA->GPush("BOOL", "false");}
 | LP rv RP {VA->GMerge("PAREN", 1);}

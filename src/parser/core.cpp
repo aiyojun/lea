@@ -67,7 +67,7 @@ TheSymbol* symbolCollector, *SM;
 LContext *CT;
 TypeHelper* typeHelper, *TP;
 LScope *SP;
-LExecution *EX;
+LExecution *EX, *CX;
 
 void AstNode::assign(cstring type, cstring text, AstNode* parent) {
     this->type = type; this->text = text; this->parent = parent;
@@ -314,6 +314,358 @@ int RightValue::releaseArgsSpace() {
     this->invokingArgs.pop_back();
     return _r;
 }
+
+void RightValue::GMerge(cstring sign, int n) {
+    // std::cout << "  - " << "GMerge";
+    LCollector::GMerge(sign, n);
+    // if (sign == "INVOKE" || sign == "ARRAY") {
+    //     AstNode* node = this->stack[this->stack.size() - 1];
+    //     node->mType = MType::MT_TEMP;
+    //     node->tempSpace = CX->GAllocate();
+    // } else if (sign == "DOT") {
+    //     AstNode* node = this->stack[this->stack.size() - 1];
+    //     AstNode* node = 
+    //     node->mType = MType::MT_TEMP;
+    //     node->tempSpace =  + CX->GAllocate();
+    // }
+    static std::vector<std::string> signatures {
+        "ADD", "SUB", "MUL", "DIV", "MOD",
+        "SADD", "SSUB", "OR", "AND", "NOT", // 9
+        "EQ", "NE", "GT", "GE", "LT", "LE", // 15
+        "XOR", "BOR", "BAND", "ANTI", // 19
+        "LSHIFT", "RSHIFT", "CAST", // 22
+        "INVOKE", "ARRAY", "DOT" // 
+    };
+    int index = -1;
+    for (int i = 0; i < signatures.size(); i++) {
+        if (signatures[i] == sign) {
+            index = i;
+            break;
+        }
+    }
+    switch (index) {
+        case 0: GAdd(); break;
+        case 1: GSub(); break;
+        case 2: GMul(); break;
+        case 3: GDiv(); break;
+        case 4: GMod(); break;
+        case 23: GInvoke(); break;
+        case 24: GArray(); break;
+        case 25: GDot(); break;
+        default:;
+    }
+}
+
+bool isFinalNumber(AstNode* p) {
+    return p->type == "INT" || p->type == "FLOAT" || p->mType == MType::MT_INT || p->mType == MType::MT_FLOAT;
+}
+
+bool isFinalNumberInt(AstNode* p) {
+    return p->type == "INT" || p->mType == MType::MT_INT;
+}
+
+template<typename T>
+T getFinalNumber(AstNode* p) {
+    if (p->mType == MType::MT_INT  ) return (T) p->mValue.intVal;
+    if (p->mType == MType::MT_FLOAT) return (T) p->mValue.floatVal;
+    if (p->type  == "INT"  ) return (T) std::stoi(p->text);
+    if (p->type  == "FLOAT") return (T) std::stod(p->text);
+    return (T) 0;
+}
+
+void RightValue::GAdd() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        if (isFinalNumberInt(p0)) {
+            node->mValue.intVal = getFinalNumber<int>(p0) + getFinalNumber<double>(p1);
+            node->mType = MType::MT_INT;
+            std::cout << "  - " 
+                << getFinalNumber<int>(p0)
+                << " + " << getFinalNumber<double>(p1)
+                << " = " << node->mValue.intVal 
+                << std::endl;
+        } else {
+            node->mValue.floatVal = getFinalNumber<int>(p0) + getFinalNumber<double>(p1);
+            node->mType = MType::MT_FLOAT;
+            std::cout << "  - " << getFinalNumber<int>(p0)
+                << " + " << getFinalNumber<double>(p1) 
+                << " = "  << node->mValue.floatVal << std::endl;
+        }
+    }
+}
+
+void RightValue::GSub() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    /// TODO:
+    if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        if (isFinalNumberInt(p0)) {
+            node->mValue.intVal = getFinalNumber<double>(p0) - getFinalNumber<double>(p1);
+            node->mType = MType::MT_INT;
+            std::cout << "  - " 
+                << getFinalNumber<double>(p0)
+                << " - " << getFinalNumber<double>(p1)
+                << " = " << node->mValue.intVal 
+                << std::endl;
+        } else {
+            node->mValue.floatVal = getFinalNumber<double>(p0) - getFinalNumber<double>(p1);
+            node->mType = MType::MT_FLOAT;
+            std::cout << "  - " << getFinalNumber<double>(p0)
+                << " - " << getFinalNumber<double>(p1) 
+                << " = "  << node->mValue.floatVal << std::endl;
+        }
+    }
+}
+
+void RightValue::GMul() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        if (isFinalNumberInt(p0)) {
+            node->mValue.intVal = getFinalNumber<int>(p0) * getFinalNumber<double>(p1);
+            node->mType = MType::MT_INT;
+            std::cout << "  - " 
+                << getFinalNumber<int>(p0)
+                << " * " << getFinalNumber<double>(p1)
+                << " = " << node->mValue.intVal 
+                << std::endl;
+        } else {
+            node->mValue.floatVal = getFinalNumber<int>(p0) * getFinalNumber<double>(p1);
+            node->mType = MType::MT_FLOAT;
+            std::cout << "  - " << getFinalNumber<int>(p0)
+                << " * " << getFinalNumber<double>(p1) 
+                << " = "  << node->mValue.floatVal << std::endl;
+        }
+    }
+}
+
+void RightValue::GDiv() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        if (isFinalNumberInt(p0)) {
+            node->mValue.intVal = getFinalNumber<int>(p0) / getFinalNumber<int>(p1);
+            node->mType = MType::MT_INT;
+            std::cout << "  - " 
+                << getFinalNumber<int>(p0)
+                << " / " << getFinalNumber<int>(p1)
+                << " = " << node->mValue.intVal 
+                << std::endl;
+        } else {
+            node->mValue.floatVal = getFinalNumber<int>(p0) / getFinalNumber<int>(p1);
+            node->mType = MType::MT_FLOAT;
+            std::cout << "  - " << getFinalNumber<int>(p0)
+                << " / " << getFinalNumber<int>(p1) 
+                << " = "  << node->mValue.floatVal << std::endl;
+        }
+    }
+}
+
+void RightValue::GMod() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    /// TODO:
+    if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        if (isFinalNumberInt(p0)) {
+            node->mValue.intVal = getFinalNumber<int>(p0) + getFinalNumber<int>(p1);
+            node->mType = MType::MT_INT;
+            std::cout << "  - " 
+                << getFinalNumber<int>(p0)
+                << " % " << getFinalNumber<int>(p1)
+                << " = " << node->mValue.intVal 
+                << std::endl;
+        } else {
+            node->mValue.floatVal = getFinalNumber<int>(p0) + getFinalNumber<int>(p1);
+            node->mType = MType::MT_FLOAT;
+            std::cout << "  - " << getFinalNumber<int>(p0)
+                << " % " << getFinalNumber<int>(p1) 
+                << " = "  << node->mValue.floatVal << std::endl;
+        }
+    }
+}
+
+void RightValue::GEq() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GNe() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GGt() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GGe() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GLt() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GLe() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GXor() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GBor() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GBand() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GAnti() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GLshift() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GRshift() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GCast() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    /// TODO:
+}
+
+void RightValue::GInvoke() {
+    AstNode* node   = this->stack.back();
+    AstNode* p0     = node->children[0];
+    node->mType       = MType::MT_TEMP;
+    node->tempSpace   = CX->GAllocate();
+    /// TODO:
+    std::string cmd = "call|" + p0->text;
+    if (node->children.size() > 1) {
+        for (int i = 1; i < node->children.size(); i++) {
+            AstNode* pk = node->children[i];
+            if (pk->mType == MT_NONE) {
+                cmd += "|" + pk->text;
+                continue;
+            }
+            switch (pk->mType) {
+                case MType::MT_INT  : 
+                    cmd += "|" + std::to_string(getFinalNumber<int  >(pk));
+                    break;
+                case MType::MT_FLOAT: 
+                    cmd += "|" + std::to_string(getFinalNumber<float>(pk));
+                    break;
+                case MType::MT_TEMP : 
+                    cmd += "|" + pk->tempSpace;
+                    break;
+            }
+        }    
+    }
+    CT->commands.emplace_back(cmd);
+}
+
+void RightValue::GArray() {
+    AstNode* node = this->stack.back();
+    // if (node->children.size() != 2) {
+    //     return;
+    // }
+    /// TODO:
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    node->mType = MType::MT_TEMP;
+    node->tempSpace = p0->text + "::[" + p1->text + "]::" + CX->GAllocate();
+}
+
+void RightValue::GDot() {
+    AstNode* node = this->stack.back();
+    // if (node->children.size() != 2) {
+    //     return;
+    // }
+    /// TODO:
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    node->mType = MType::MT_TEMP;
+    node->tempSpace = p0->text + "::" + p1->text + "::" + CX->GAllocate();
+}
+
 
 
 /**  */
@@ -651,6 +1003,9 @@ void LScope::GExit() {
     this->GPop();
 }
 
+std::string LScope::GGet() {
+    return join<AstNode*>([](AstNode *p) {return p->text;}, this->stack, ".");
+}
 
 /**  */
 
@@ -670,6 +1025,7 @@ void prepareCompiler() {
     TP = new TypeHelper();
     SP = new LScope();
     EX = new LExecution();
+    CX = new LExecution();
 
     astTree->init();
 }
@@ -688,6 +1044,7 @@ void LContext::GPrint() {
         std::cout << "    " << im->toString() << std::endl;
     }
     std::cout << "}\n";
+    std::cout << "Context: \n" << join(this->commands, "\n") << std::endl;
     // for (auto& clazz : this->clazzes) {
     //     std::cout << clazz->toString() << std::endl;
     // }
@@ -747,4 +1104,10 @@ void LImport::append(cstring level) {
 
 std::string LImport::toString() {
     return join(this->pack, ".");
+}
+
+int LExecution::uniqueCode = 0;
+
+std::string LExecution::GAllocate() {
+    return "$" + std::to_string(++uniqueCode);
 }
