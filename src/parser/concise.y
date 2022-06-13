@@ -8,7 +8,7 @@ extern int yylex(yy::parser::semantic_type* value);
     char* ycText;
 };
 
-%token SEMI COLON COMMA DOT
+%token SEMI COLON COMMA DOT LINE_COMMENT COMMENT_BEGIN COMMENT_END NEWLINE
 %token LP RP LSP RSP LBP RBP
 %token MUL DIV MOD ADD SUB SADD SSUB
 %token XOR ANTI BAND BOR LSHIFT RSHIFT
@@ -54,20 +54,20 @@ start:
 }
 | multiImport multiLine ENDING {
   MO->GMergeDependency(MO->dependencies.GReset());
-  SM->GPrint("Symbol Loop Up");
-  TP->GPrint("Type System");
-  VA->GPrint("Right Value");
-  EX->GPrint("Execution");
-  CX->GPrint("Context execution");
+  //SM->GPrint("Symbol Loop Up");
+  //TP->GPrint("Type System");
+  //VA->GPrint("Right Value");
+  //EX->GPrint("Execution");
+  //CX->GPrint("Context execution");
   CT->GPrint();
   return 0;
 }
 | multiLine ENDING             {
-  SM->GPrint("Symbol Loop Up");
-  TP->GPrint("Type System");
-  VA->GPrint("Right Value");
-  EX->GPrint("Execution");
-  CX->GPrint("Context execution");
+  //SM->GPrint("Symbol Loop Up");
+  //TP->GPrint("Type System");
+  //VA->GPrint("Right Value");
+  //EX->GPrint("Execution");
+  //CX->GPrint("Context execution");
   CT->GPrint();
   return 0;
 }
@@ -325,7 +325,7 @@ atom:
 | FLOAT    {VA->GPush("FLOAT", $1);}
 | TRUE     {VA->GPush("BOOL", "true");}
 | FALSE    {VA->GPush("BOOL", "false");}
-| LP rv RP {VA->GMerge("PAREN", 1);}
+| LP rv RP {/*VA->GMerge("PAREN", 1);*/}
 | lambda   
 ;
 
@@ -334,7 +334,8 @@ atom:
 
 void yy::parser::error(const std::string& msg)
 {
-  std::cout << "\033[31;1m[yy] " <<"parse error : " << join(seq, ", ") << "\033[0m\n";
+  std::cout << "\033[31;1m[yy] " << "parse error : " << join(seq, ", ") << "\033[0m\n";
+  std::cout << "\033[31;1m[yy] " << __LEA_LINE__ << ":" << __LEA_CHAR__ << "\033[0m\n";
 }
 
 yy::parser* leaParser = new yy::parser;

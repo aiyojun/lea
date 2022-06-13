@@ -4,6 +4,8 @@ yy::parser::semantic_type yylval;
 #include <string>
 #include <map>
 #include <deque>
+
+
 struct Word {
     char *ptr;
     int length;
@@ -27,6 +29,9 @@ public:
         }
     }
 };
+
+long __LEA_LINE__ = 1;
+long __LEA_CHAR__ = 0;
 
 std::vector<std::string*> Space::storage;
 
@@ -85,46 +90,50 @@ yy::parser::token::token_kind_type number(const char* num) {
 
 %%
 
-[\n]                         {}
-" "                          {}
-";"                          {return yy::parser::token::token_kind_type::SEMI;}
-":"                          {return yy::parser::token::token_kind_type::COLON;}
-","                          {return yy::parser::token::token_kind_type::COMMA;}
-"{"                          {return yy::parser::token::token_kind_type::LBP;}
-"}"                          {return yy::parser::token::token_kind_type::RBP;}
-"("                          {return yy::parser::token::token_kind_type::LP;}
-")"                          {return yy::parser::token::token_kind_type::RP;}
-"["                          {return yy::parser::token::token_kind_type::LSP;}
-"]"                          {return yy::parser::token::token_kind_type::RSP;}
-_?[a-zA-Z_][a-zA-Z0-9_]*     {set_word(yytext);return keywords(yytext);}
-\"[^\"]*\"                   {set_word(yytext);return yy::parser::token::token_kind_type::STR;}
-\'[^\']\'                    {set_word(yytext);return yy::parser::token::token_kind_type::CHAR;}
-([0-9]+\.)?[0-9]+            {set_word(yytext);return number(yytext);}
-"."                          {return yy::parser::token::token_kind_type::DOT;}
-"*"                          {return yy::parser::token::token_kind_type::MUL;}
-"/"                          {return yy::parser::token::token_kind_type::DIV;}
-"%"                          {return yy::parser::token::token_kind_type::MOD;}
-"++"                         {return yy::parser::token::token_kind_type::SADD;}
-"+"                          {return yy::parser::token::token_kind_type::ADD;}
-"--"                         {return yy::parser::token::token_kind_type::SSUB;}
-"-"                          {return yy::parser::token::token_kind_type::SUB;}
-"^"                          {return yy::parser::token::token_kind_type::XOR;}
-"=>"                         {return yy::parser::token::token_kind_type::ARROW;}
-"=="                         {return yy::parser::token::token_kind_type::EQ;}
-"="                          {return yy::parser::token::token_kind_type::ASSIGN;}
-">="                         {return yy::parser::token::token_kind_type::GE;}
-"<="                         {return yy::parser::token::token_kind_type::LE;}
-"<<"                         {return yy::parser::token::token_kind_type::LSHIFT;}
-">>"                         {return yy::parser::token::token_kind_type::RSHIFT;}
-">"                          {return yy::parser::token::token_kind_type::GT;}
-"<"                          {return yy::parser::token::token_kind_type::LT;}
-"&&"                         {return yy::parser::token::token_kind_type::AND;}
-"&"                          {return yy::parser::token::token_kind_type::BAND;}
-"||"                         {return yy::parser::token::token_kind_type::OR;}
-"|"                          {return yy::parser::token::token_kind_type::BOR;}
-"!="                         {return yy::parser::token::token_kind_type::NE;}
-"!"                          {return yy::parser::token::token_kind_type::NOT;}
-"~"                          {return yy::parser::token::token_kind_type::ANTI;}
+[\n]                         {__LEA_LINE__++; __LEA_CHAR__ = 0;return yy::parser::token::token_kind_type::NEWLINE;}
+" "                          {__LEA_CHAR__ += 1;}
+"//"                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::LINE_COMMENT;}
+"/*"                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::COMMENT_BEGIN;}
+"*/"                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::COMMENT_END;}
+";"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::SEMI;}
+":"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::COLON;}
+","                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::COMMA;}
+"{"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::LBP;}
+"}"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::RBP;}
+"("                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::LP;}
+")"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::RP;}
+"["                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::LSP;}
+"]"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::RSP;}
+_?[a-zA-Z_][a-zA-Z0-9_]*     {set_word(yytext);__LEA_CHAR__ += word.length;return keywords(yytext);}
+\"[^\"]*\"                   {set_word(yytext);__LEA_CHAR__ += word.length;return yy::parser::token::token_kind_type::STR;}
+\'[^\']\'                    {set_word(yytext);__LEA_CHAR__ += word.length;return yy::parser::token::token_kind_type::CHAR;}
+([0-9]+\.)?[0-9]+            {set_word(yytext);__LEA_CHAR__ += word.length;return number(yytext);}
+"."                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::DOT;}
+"*"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::MUL;}
+"/"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::DIV;}
+"%"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::MOD;}
+"++"                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::SADD;}
+"+"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::ADD;}
+"--"                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::SSUB;}
+"-"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::SUB;}
+"^"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::XOR;}
+"=>"                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::ARROW;}
+"=="                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::EQ;}
+"="                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::ASSIGN;}
+">="                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::GE;}
+"<="                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::LE;}
+"<<"                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::LSHIFT;}
+">>"                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::RSHIFT;}
+">"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::GT;}
+"<"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::LT;}
+"&&"                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::AND;}
+"&"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::BAND;}
+"||"                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::OR;}
+"|"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::BOR;}
+"!="                         {__LEA_CHAR__ += 2;return yy::parser::token::token_kind_type::NE;}
+"!"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::NOT;}
+"~"                          {__LEA_CHAR__ += 1;return yy::parser::token::token_kind_type::ANTI;}
+.                            {__LEA_CHAR__ += 1;}
 
 %%
 
@@ -137,6 +146,24 @@ int yyFlexLexer::yywrap()
 
 int yylex(yy::parser::semantic_type* value) {
     int _r = lexer->yylex();
+
+    do {
+        if (_r == yy::parser::token::token_kind_type::LINE_COMMENT) {
+            while ((_r = lexer->yylex()) != yy::parser::token::token_kind_type::NEWLINE) {}
+            _r = lexer->yylex();
+        } else if (_r == yy::parser::token::token_kind_type::COMMENT_BEGIN) {
+            while ((_r = lexer->yylex()) != yy::parser::token::token_kind_type::COMMENT_END) {}
+            _r = lexer->yylex();
+        } else if (_r == yy::parser::token::token_kind_type::NEWLINE) {
+            _r = lexer->yylex();
+        }
+    } while (
+        _r == yy::parser::token::token_kind_type::LINE_COMMENT  || 
+        _r == yy::parser::token::token_kind_type::COMMENT_BEGIN ||
+        _r == yy::parser::token::token_kind_type::NEWLINE
+    );
+    
+
     value->ycText = word.ptr;
     std::string text(word.ptr, word.length);
     seq.push_back(text);

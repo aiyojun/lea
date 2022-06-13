@@ -106,6 +106,9 @@ void AstTree::merge(cstring nodeSign, int n) {
         this->popStack();
     }
     p->assign(nodeSign, "", nullptr);
+    // for (auto *pk : p->children) {
+    //     pk->parent = p;
+    // }
     this->stack.emplace_back(p);
 }
 
@@ -208,6 +211,9 @@ void LCollector::GMerge(cstring nodeSign, int n) {
         this->GPop();
     }
     p->assign(nodeSign, "", nullptr);
+    for (auto pk : p->children) {
+        pk->parent = p;
+    }
     this->stack.emplace_back(p);
 }
 
@@ -316,18 +322,7 @@ int RightValue::releaseArgsSpace() {
 }
 
 void RightValue::GMerge(cstring sign, int n) {
-    // std::cout << "  - " << "GMerge";
     LCollector::GMerge(sign, n);
-    // if (sign == "INVOKE" || sign == "ARRAY") {
-    //     AstNode* node = this->stack[this->stack.size() - 1];
-    //     node->mType = MType::MT_TEMP;
-    //     node->tempSpace = CX->GAllocate();
-    // } else if (sign == "DOT") {
-    //     AstNode* node = this->stack[this->stack.size() - 1];
-    //     AstNode* node = 
-    //     node->mType = MType::MT_TEMP;
-    //     node->tempSpace =  + CX->GAllocate();
-    // }
     static std::vector<std::string> signatures {
         "ADD", "SUB", "MUL", "DIV", "MOD",
         "SADD", "SSUB", "OR", "AND", "NOT", // 9
@@ -349,6 +344,14 @@ void RightValue::GMerge(cstring sign, int n) {
         case 2: GMul(); break;
         case 3: GDiv(); break;
         case 4: GMod(); break;
+        case 7: GOr(); break;
+        case 8: GAnd(); break;
+        case 10: GEq(); break;
+        case 11: GNe(); break;
+        case 12: GGt(); break;
+        case 13: GGe(); break;
+        case 14: GLt(); break;
+        case 15: GLe(); break;
         case 23: GInvoke(); break;
         case 24: GArray(); break;
         case 25: GDot(); break;
@@ -364,6 +367,13 @@ bool isFinalNumberInt(AstNode* p) {
     return p->type == "INT" || p->mType == MType::MT_INT;
 }
 
+bool isFinalString(AstNode* p) {return p->type == "STR" || p->mType == MType::MT_STRING;}
+std::string getFinalString(AstNode* p) {return p->text.substr(1, p->text.length() - 2);}
+bool isFinalBool (AstNode* p) {return p->type == "BOOL" || p->mType == MType::MT_BOOL;}
+bool getFinalBool(AstNode* p) {return p->mType == MType::MT_NONE ? p->text == "true" : p->mValue.boolVal;}
+bool isFinalChar (AstNode* p) {return p->type == "CHAR" || p->mType == MType::MT_CHAR;}
+char getFinalChar(AstNode* p) {return p->mType == MType::MT_NONE ? p->text[1] : p->mValue.charVal;}
+
 template<typename T>
 T getFinalNumber(AstNode* p) {
     if (p->mType == MType::MT_INT  ) return (T) p->mValue.intVal;
@@ -372,6 +382,37 @@ T getFinalNumber(AstNode* p) {
     if (p->type  == "FLOAT") return (T) std::stod(p->text);
     return (T) 0;
 }
+
+// template<typename T>
+// T getFinal(AstNode* p) {
+//     if (p->mType == MType::MT_NONE) {
+//         if (p->type == "INT") {
+//             return getFinalNumber<int>(p);
+//         } else if (p->type == "FLOAT" || p->type == "DOUBLE") {
+//             return getFinalNumber<double>(p);
+//         } else if (p->type == "CHAR") {
+//             return p->text[1];
+//         } else if (p->type == "STRING") {
+//             return p->text.substr(1, p->text.length() - 2);
+//         } else if (p->type == "BOOL") {
+//             return p->text == "true" ? true : false;
+//         }
+//     } else if (p->mType == MType::MT_INT) {
+//         return p->mValue.intVal;
+//     } else if (p->mType == MType::MT_BOOL) {
+//         return p->mValue.boolVal;
+//     } else if (p->mType == MType::MT_STRING) {
+//         return p->text;
+//     } else if (p->mType == MType::MT_DOUBLE) {
+//         return p->mValue.doubleVal;
+//     } else if (p->mType == MType::MT_FLOAT) {
+//         return p->mValue.floatVal;
+//     } else if (p->mType == MType::MT_CHAR) {
+//         return p->mValue.charVal;
+//     }
+//     throw new std::runtime_error("Type error!");
+// }
+
 
 void RightValue::GAdd() {
     AstNode* node = this->stack.back();
@@ -397,6 +438,15 @@ void RightValue::GAdd() {
                 << " + " << getFinalNumber<double>(p1) 
                 << " = "  << node->mValue.floatVal << std::endl;
         }
+    } else {
+        std::string cmd = "add";
+        cmd += " " + multiEvaluate(p0);
+        cmd += " " + multiEvaluate(p1);
+        std::string tmp = CX->GAllocate();
+        node->mType     = MType::MT_RETURN;
+        node->mReturn   = tmp;
+        cmd += " = " + tmp;
+        CT->commands.emplace_back(cmd);
     }
 }
 
@@ -424,6 +474,15 @@ void RightValue::GSub() {
                 << " - " << getFinalNumber<double>(p1) 
                 << " = "  << node->mValue.floatVal << std::endl;
         }
+    } else {
+        std::string cmd = "sub";
+        cmd += " " + multiEvaluate(p0);
+        cmd += " " + multiEvaluate(p1);
+        std::string tmp = CX->GAllocate();
+        node->mType     = MType::MT_RETURN;
+        node->mReturn   = tmp;
+        cmd += " = " + tmp;
+        CT->commands.emplace_back(cmd);
     }
 }
 
@@ -451,6 +510,15 @@ void RightValue::GMul() {
                 << " * " << getFinalNumber<double>(p1) 
                 << " = "  << node->mValue.floatVal << std::endl;
         }
+    } else {
+        std::string cmd = "mul";
+        cmd += " " + multiEvaluate(p0);
+        cmd += " " + multiEvaluate(p1);
+        std::string tmp = CX->GAllocate();
+        node->mType     = MType::MT_RETURN;
+        node->mReturn   = tmp;
+        cmd += " = " + tmp;
+        CT->commands.emplace_back(cmd);
     }
 }
 
@@ -478,6 +546,15 @@ void RightValue::GDiv() {
                 << " / " << getFinalNumber<int>(p1) 
                 << " = "  << node->mValue.floatVal << std::endl;
         }
+    } else {
+        std::string cmd = "div";
+        cmd += " " + multiEvaluate(p0);
+        cmd += " " + multiEvaluate(p1);
+        std::string tmp = CX->GAllocate();
+        node->mType     = MType::MT_RETURN;
+        node->mReturn   = tmp;
+        cmd += " = " + tmp;
+        CT->commands.emplace_back(cmd);
     }
 }
 
@@ -505,7 +582,66 @@ void RightValue::GMod() {
                 << " % " << getFinalNumber<int>(p1) 
                 << " = "  << node->mValue.floatVal << std::endl;
         }
+    } else {
+        std::string cmd = "mod";
+        cmd += " " + multiEvaluate(p0);
+        cmd += " " + multiEvaluate(p1);
+        std::string tmp = CX->GAllocate();
+        node->mType     = MType::MT_RETURN;
+        node->mReturn   = tmp;
+        cmd += " = " + tmp;
+        CT->commands.emplace_back(cmd);
     }
+}
+
+void RightValue::GAnd() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    /// TODO:
+    if (isFinalBool(p0) && isFinalBool(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalBool(p0) && getFinalBool(p1);
+        return;
+    }
+    // std::cout << p1->type << " | " << p1->mType << "\n";
+    // std::cout << "...x2 " << multiEvaluate(p0) << " | " << multiEvaluate(p1) <<"\n";
+    std::string cmd = "and";
+    cmd += " " + multiEvaluate(p0);
+    cmd += " " + multiEvaluate(p1);
+    std::string tmp = CX->GAllocate();
+    node->mType     = MType::MT_RETURN;
+    node->mReturn   = tmp;
+    cmd += " = " + tmp;
+    CT->commands.emplace_back(cmd);
+
+}
+
+void RightValue::GOr() {
+    AstNode* node = this->stack.back();
+    if (node->children.size() != 2) {
+        return;
+    }
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    if (isFinalBool(p0) && isFinalBool(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalBool(p0) || getFinalBool(p1);
+        return;
+    }
+    /// TODO:
+    std::string cmd = "or";
+    cmd += " " + multiEvaluate(p0);
+    cmd += " " + multiEvaluate(p1);
+    std::string tmp = CX->GAllocate();
+    node->mType     = MType::MT_RETURN;
+    node->mReturn   = tmp;
+    cmd += " = " + tmp;
+    CT->commands.emplace_back(cmd);
+
 }
 
 void RightValue::GEq() {
@@ -513,7 +649,45 @@ void RightValue::GEq() {
     if (node->children.size() != 2) {
         return;
     }
+    // if (p0->type != p1->type) {
+    //     node->mType     = MType::MT_BOOL;
+    //     node->mValue.boolVal = false;
+    //     return;
+    // }
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
     /// TODO:
+    if (isFinalNumberInt(p0) && isFinalNumberInt(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<int>(p0) == getFinalNumber<int>(p1);
+        return;
+    } else if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<double>(p0) == getFinalNumber<double>(p1);
+        return;
+    } else if (isFinalString(p0) && isFinalString(p1)) {
+        std::cout << "  - " << p0->text << " == " << p1->text<< " = " << (getFinalString(p0) == getFinalString(p1)) << "\n";
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalString(p0) == getFinalString(p1);
+        return;
+    } else if (isFinalBool(p0) && isFinalBool(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalBool(p0) == getFinalBool(p1);
+        return;
+    } else if (isFinalChar(p0) && isFinalChar(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalChar(p0) == getFinalChar(p1);
+        return;
+    }
+    std::string cmd = "eq";
+    cmd += " " + multiEvaluate(p0);
+    cmd += " " + multiEvaluate(p1);
+    std::string tmp = CX->GAllocate();
+    node->mType     = MType::MT_RETURN;
+    node->mReturn   = tmp;
+    cmd += " = " + tmp;
+    CT->commands.emplace_back(cmd);
+
 }
 
 void RightValue::GNe() {
@@ -522,6 +696,43 @@ void RightValue::GNe() {
         return;
     }
     /// TODO:
+    // if (p0->type != p1->type) {
+    //     node->mType     = MType::MT_BOOL;
+    //     node->mValue.boolVal = true;
+    //     return;
+    // }
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    if (isFinalNumberInt(p0) && isFinalNumberInt(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<int>(p0) != getFinalNumber<int>(p1);
+        return;
+    } else if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<double>(p0) != getFinalNumber<double>(p1);
+        return;
+    } else if (isFinalString(p0) && isFinalString(p1)) {
+        std::cout << "  - " << p0->text << " != " << p1->text << " = " << (getFinalString(p0) != getFinalString(p1)) << "\n";
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalString(p0) != getFinalString(p1);
+        return;
+    } else if (isFinalBool(p0) && isFinalBool(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalBool(p0) != getFinalBool(p1);
+        return;
+    } else if (isFinalChar(p0) && isFinalChar(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalChar(p0) != getFinalChar(p1);
+        return;
+    }
+    std::string cmd = "ne";
+    cmd += " " + multiEvaluate(p0);
+    cmd += " " + multiEvaluate(p1);
+    std::string tmp = CX->GAllocate();
+    node->mType     = MType::MT_RETURN;
+    node->mReturn   = tmp;
+    cmd += " = " + tmp;
+    CT->commands.emplace_back(cmd);
 }
 
 void RightValue::GGt() {
@@ -530,6 +741,37 @@ void RightValue::GGt() {
         return;
     }
     /// TODO:
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    if (isFinalNumberInt(p0) && isFinalNumberInt(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<int>(p0) > getFinalNumber<int>(p1);
+        return;
+    } else if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<double>(p0) > getFinalNumber<double>(p1);
+        return;
+    } else if (isFinalString(p0) && isFinalString(p1)) {
+        // node->mType = MType::MT_BOOL;
+        // node->mValue.boolVal = getFinalString(p0) == getFinalString(p1);
+        return;
+    } else if (isFinalBool(p0) && isFinalBool(p1)) {
+        // node->mType = MType::MT_BOOL;
+        // node->mValue.boolVal = getFinalBool(p0) == getFinalBool(p1);
+        return;
+    } else if (isFinalChar(p0) && isFinalChar(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalChar(p0) > getFinalChar(p1);
+        return;
+    }
+    std::string cmd = "gt";
+    cmd += " " + multiEvaluate(p0);
+    cmd += " " + multiEvaluate(p1);
+    std::string tmp = CX->GAllocate();
+    node->mType     = MType::MT_RETURN;
+    node->mReturn   = tmp;
+    cmd += " = " + tmp;
+    CT->commands.emplace_back(cmd);
 }
 
 void RightValue::GGe() {
@@ -538,6 +780,37 @@ void RightValue::GGe() {
         return;
     }
     /// TODO:
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    if (isFinalNumberInt(p0) && isFinalNumberInt(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<int>(p0) >= getFinalNumber<int>(p1);
+        return;
+    } else if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<double>(p0) >= getFinalNumber<double>(p1);
+        return;
+    } else if (isFinalString(p0) && isFinalString(p1)) {
+        // node->mType = MType::MT_BOOL;
+        // node->mValue.boolVal = getFinalString(p0) == getFinalString(p1);
+        return;
+    } else if (isFinalBool(p0) && isFinalBool(p1)) {
+        // node->mType = MType::MT_BOOL;
+        // node->mValue.boolVal = getFinalBool(p0) == getFinalBool(p1);
+        return;
+    } else if (isFinalChar(p0) && isFinalChar(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalChar(p0) >= getFinalChar(p1);
+        return;
+    }
+    std::string cmd = "ge";
+    cmd += " " + multiEvaluate(p0);
+    cmd += " " + multiEvaluate(p1);
+    std::string tmp = CX->GAllocate();
+    node->mType     = MType::MT_RETURN;
+    node->mReturn   = tmp;
+    cmd += " = " + tmp;
+    CT->commands.emplace_back(cmd);
 }
 
 void RightValue::GLt() {
@@ -546,6 +819,37 @@ void RightValue::GLt() {
         return;
     }
     /// TODO:
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    if (isFinalNumberInt(p0) && isFinalNumberInt(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<int>(p0) < getFinalNumber<int>(p1);
+        return;
+    } else if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<double>(p0) < getFinalNumber<double>(p1);
+        return;
+    } else if (isFinalString(p0) && isFinalString(p1)) {
+        // node->mType = MType::MT_BOOL;
+        // node->mValue.boolVal = getFinalString(p0) == getFinalString(p1);
+        return;
+    } else if (isFinalBool(p0) && isFinalBool(p1)) {
+        // node->mType = MType::MT_BOOL;
+        // node->mValue.boolVal = getFinalBool(p0) == getFinalBool(p1);
+        return;
+    } else if (isFinalChar(p0) && isFinalChar(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalChar(p0) < getFinalChar(p1);
+        return;
+    }
+    std::string cmd = "lt";
+    cmd += " " + multiEvaluate(p0);
+    cmd += " " + multiEvaluate(p1);
+    std::string tmp = CX->GAllocate();
+    node->mType     = MType::MT_RETURN;
+    node->mReturn   = tmp;
+    cmd += " = " + tmp;
+    CT->commands.emplace_back(cmd);
 }
 
 void RightValue::GLe() {
@@ -554,6 +858,37 @@ void RightValue::GLe() {
         return;
     }
     /// TODO:
+    AstNode* p0 = node->children[0];
+    AstNode* p1 = node->children[1];
+    if (isFinalNumberInt(p0) && isFinalNumberInt(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<int>(p0) <= getFinalNumber<int>(p1);
+        return;
+    } else if (isFinalNumber(p0) && isFinalNumber(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalNumber<double>(p0) <= getFinalNumber<double>(p1);
+        return;
+    } else if (isFinalString(p0) && isFinalString(p1)) {
+        // node->mType = MType::MT_BOOL;
+        // node->mValue.boolVal = getFinalString(p0) == getFinalString(p1);
+        return;
+    } else if (isFinalBool(p0) && isFinalBool(p1)) {
+        // node->mType = MType::MT_BOOL;
+        // node->mValue.boolVal = getFinalBool(p0) == getFinalBool(p1);
+        return;
+    } else if (isFinalChar(p0) && isFinalChar(p1)) {
+        node->mType = MType::MT_BOOL;
+        node->mValue.boolVal = getFinalChar(p0) <= getFinalChar(p1);
+        return;
+    }
+    std::string cmd = "le";
+    cmd += " " + multiEvaluate(p0);
+    cmd += " " + multiEvaluate(p1);
+    std::string tmp = CX->GAllocate();
+    node->mType     = MType::MT_RETURN;
+    node->mReturn   = tmp;
+    cmd += " = " + tmp;
+    CT->commands.emplace_back(cmd);
 }
 
 void RightValue::GXor() {
@@ -612,33 +947,63 @@ void RightValue::GCast() {
     /// TODO:
 }
 
+std::string RightValue::buildWithScope(AstNode* p) {
+    std::string _r;
+    if (p->mScope != "") {
+        _r = p->mScope + ".";
+    }
+    _r += p->mSymbol;
+    return _r;
+}
+
+std::string RightValue::getReturn(AstNode* p) {return p->mReturn;}
+std::string RightValue::getArray (AstNode* p) {return p->mSymbol + "[" + p->imArray + "]";}
+std::string RightValue::getSymbol(AstNode* p) {return buildWithScope(p);}
+
+std::string RightValue::multiEvaluate(AstNode* p) {
+    if (p->mType == MType::MT_NONE) return p->text;
+    switch (p->mType) {
+        case MType::MT_INT:
+            return std::to_string(p->mValue.intVal);
+            break;
+        case MType::MT_FLOAT: 
+            return std::to_string(p->mValue.floatVal);
+            break;
+        case MType::MT_CHAR: 
+            return std::to_string(p->mValue.charVal);
+            break;
+        case MType::MT_BOOL: 
+            // std::cout << "\r... x1 : "<< std::to_string(p->mValue.boolVal) << "\n";
+            return p->mValue.boolVal ? "true" : "false";
+            break;
+        case MType::MT_RETURN:
+            return getReturn(p);
+            break;
+        case MType::MT_SYMBOL: 
+            return getSymbol(p);
+            break;
+        case MType::MT_ARRAY: 
+            return getArray(p);
+            break;
+    }
+    return "???";
+}
+
 void RightValue::GInvoke() {
     AstNode* node   = this->stack.back();
     AstNode* p0     = node->children[0];
-    node->mType       = MType::MT_TEMP;
-    node->tempSpace   = CX->GAllocate();
+    node->mType     = MType::MT_RETURN;
+    // std::cout << "  ireturn " << node->parent<< "\n";
+    node->mReturn = CX->GAllocate();
     /// TODO:
-    std::string cmd = "call|" + p0->text;
+    std::string cmd = "call " + multiEvaluate(p0);
     if (node->children.size() > 1) {
         for (int i = 1; i < node->children.size(); i++) {
             AstNode* pk = node->children[i];
-            if (pk->mType == MT_NONE) {
-                cmd += "|" + pk->text;
-                continue;
-            }
-            switch (pk->mType) {
-                case MType::MT_INT  : 
-                    cmd += "|" + std::to_string(getFinalNumber<int  >(pk));
-                    break;
-                case MType::MT_FLOAT: 
-                    cmd += "|" + std::to_string(getFinalNumber<float>(pk));
-                    break;
-                case MType::MT_TEMP : 
-                    cmd += "|" + pk->tempSpace;
-                    break;
-            }
-        }    
+            cmd += " " + multiEvaluate(pk);
+        }
     }
+    cmd += " = " + node->mReturn;
     CT->commands.emplace_back(cmd);
 }
 
@@ -650,9 +1015,12 @@ void RightValue::GArray() {
     /// TODO:
     AstNode* p0 = node->children[0];
     AstNode* p1 = node->children[1];
-    node->mType = MType::MT_TEMP;
-    node->tempSpace = p0->text + "::[" + p1->text + "]::" + CX->GAllocate();
+    node->mType = MType::MT_ARRAY;
+    node->mSymbol = multiEvaluate(p0);
+    node->imArray = multiEvaluate(p1);
 }
+
+
 
 void RightValue::GDot() {
     AstNode* node = this->stack.back();
@@ -662,8 +1030,9 @@ void RightValue::GDot() {
     /// TODO:
     AstNode* p0 = node->children[0];
     AstNode* p1 = node->children[1];
-    node->mType = MType::MT_TEMP;
-    node->tempSpace = p0->text + "::" + p1->text + "::" + CX->GAllocate();
+    node->mType   = MType::MT_SYMBOL;
+    node->mScope  = multiEvaluate(p0);
+    node->mSymbol = multiEvaluate(p1);
 }
 
 

@@ -38,11 +38,14 @@ union MValue {
 
 enum MType {
     MT_NONE,
-    MT_TEMP,
+    MT_RETURN,
+    MT_SYMBOL,
+    MT_ARRAY,
     MT_BOOL, 
     MT_INT, 
     MT_LONG, 
     MT_FLOAT, 
+    MT_STRING,
     MT_DOUBLE, 
     MT_CHAR, 
     MT_BYTE,
@@ -64,7 +67,14 @@ public:
     /** Version 2022.06.12 */
     MValue mValue;
     MType  mType = MType::MT_NONE;
-    std::string tempSpace;
+    // std::string tempSpace;
+    /// Function invoking
+    std::string mScope;
+    std::string mSymbol;
+    std::string mReturn;
+    std::string imArray;
+    // std::string mFunction;
+
 };
 
 class AstTree {
@@ -160,6 +170,8 @@ public:
     void GMul();
     void GDiv();
     void GMod();
+    void GAnd();
+    void GOr();
     void GEq();
     void GNe();
     void GGt();
@@ -176,6 +188,12 @@ public:
     void GInvoke();
     void GArray();
     void GDot();
+
+    std::string buildWithScope(AstNode* p);
+    std::string getArray (AstNode* p);
+    std::string getReturn(AstNode* p);
+    std::string getSymbol(AstNode* p);
+    std::string multiEvaluate(AstNode* p);
 };
 
 class TheSymbol : public LCollector, public LMultiCounter {
@@ -344,6 +362,9 @@ extern LExecution *EX, *CX;
 void prepareCompiler();
 void releaseCompiler();
 
+
+extern long __LEA_LINE__;
+extern long __LEA_CHAR__;
 
 
 #endif/*__core_h__*/
