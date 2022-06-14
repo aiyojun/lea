@@ -60,6 +60,7 @@ public:
     double getLxNumber();
     bool isLxCharSeq();
     std::string getLxCharSeq();
+    bool isRef();
     LxInt* getLxInt();
     LxChar* getLxChar();
     LxBool* getLxBool();
@@ -77,6 +78,9 @@ LValue* LSub(LValue *p0, LValue *p1);
 LValue* LMul(LValue *p0, LValue *p1);
 LValue* LDiv(LValue *p0, LValue *p1);
 LValue* LMod(LValue *p0, LValue *p1);
+// LValue* LInvoke(LValue *p, const std::vector<LValue*>& args);
+// LValue* LCast(LValue *p);
+
 
 class LxValue : public LValue {}; /** Lexer word value */
 class SmValue : public LValue {
@@ -282,6 +286,9 @@ std::string LValue::getLxCharSeq() {
     if (getType() == TString) return getLxString()->get();
     throw std::runtime_error(getTypeStr() + " can't getLxCharSeq!");
 }
+bool LValue::isRef() {
+    return getType() == TMiddle || getType() == TSymbol;
+}
 
 #define IMPL_GET_REAL_VALUE(clazz, vt) \
 clazz* LValue::get##clazz() {\
@@ -304,32 +311,57 @@ LValue* LAdd(LValue *p0, LValue *p1) {
         return LValue::buildFloat(p0->getLxNumber() + p1->getLxNumber());
     } else if (p0->isLxCharSeq() && p1->isLxCharSeq()) {
         return LValue::buildString(p0->getLxCharSeq() + p1->getLxCharSeq());
+    } else if (p0->isRef() || p1->isRef()) {
+        /// TODO: 1. Query symbol table 
+        ///       2. Type validation (Type system)
+        ///       3. LR code generation
+        return LValue::buildMiddle("???");
     }
-    throw std::runtime_error("Unsupported calculation between " + p0->getTypeStr() + " and " + p1->getTypeStr());
+    throw std::runtime_error("Unsupported + between " + p0->getTypeStr() + " and " + p1->getTypeStr());
 }
 LValue* LSub(LValue *p0, LValue *p1) {
     if (p0->isLxNumber() && p1->isLxNumber()) {
         return LValue::buildFloat(p0->getLxNumber() - p1->getLxNumber());
+    } else if (p0->isRef() || p1->isRef()) {
+        /// TODO: 1. Query symbol table 
+        ///       2. Type validation (Type system)
+        ///       3. LR code generation
+        return LValue::buildMiddle("???");
     }
-    throw std::runtime_error("Unsupported calculation between " + p0->getTypeStr() + " and " + p1->getTypeStr());
+    throw std::runtime_error("Unsupported - between " + p0->getTypeStr() + " and " + p1->getTypeStr());
 }
 LValue* LMul(LValue *p0, LValue *p1) {
     if (p0->isLxNumber() && p1->isLxNumber()) {
         return LValue::buildFloat(p0->getLxNumber() * p1->getLxNumber());
+    } else if (p0->isRef() || p1->isRef()) {
+        /// TODO: 1. Query symbol table 
+        ///       2. Type validation (Type system)
+        ///       3. LR code generation
+        return LValue::buildMiddle("???");
     }
-    throw std::runtime_error("Unsupported calculation between " + p0->getTypeStr() + " and " + p1->getTypeStr());
+    throw std::runtime_error("Unsupported * between " + p0->getTypeStr() + " and " + p1->getTypeStr());
 }
 LValue* LDiv(LValue *p0, LValue *p1) {
     if (p0->isLxInt() && p1->isLxInt()) {
         return LValue::buildInt(p0->getLxInt() / p1->getLxInt());
+    } else if (p0->isRef() || p1->isRef()) {
+        /// TODO: 1. Query symbol table 
+        ///       2. Type validation (Type system)
+        ///       3. LR code generation
+        return LValue::buildMiddle("???");
     }
-    throw std::runtime_error("Unsupported calculation between " + p0->getTypeStr() + " and " + p1->getTypeStr());
+    throw std::runtime_error("Unsupported / between " + p0->getTypeStr() + " and " + p1->getTypeStr());
 }
 LValue* LMod(LValue *p0, LValue *p1) {
     if (p0->isLxInt() && p1->isLxInt()) {
         return LValue::buildInt(p0->getLxInt() / p1->getLxInt());
+    } else if (p0->isRef() || p1->isRef()) {
+        /// TODO: 1. Query symbol table 
+        ///       2. Type validation (Type system)
+        ///       3. LR code generation
+        return LValue::buildMiddle("???");
     }
-    throw std::runtime_error("Unsupported calculation between " + p0->getTypeStr() + " and " + p1->getTypeStr());
+    throw std::runtime_error("Unsupported % between " + p0->getTypeStr() + " and " + p1->getTypeStr());
 }
 
 #endif
