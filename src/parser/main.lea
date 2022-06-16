@@ -6,7 +6,7 @@ class Media;
 def println(s: string);
 
 class MainDemo 
-{/*
+{
 	private val x: int = 43+43 * 2+add_01(2, 'b', 12.12, "haha") + 2;
 	def px: bool = true && ("haha" != "casdb") || 12 == (21 -pp(3,5));
 	val pp: bool = true && ("haha" == "casdb") || 12 == (21 -pp(3,5));
@@ -15,7 +15,7 @@ class MainDemo
  	var p2: int = t0(12, t1("aaa", t2()), t3());
  	var p3: int = 1 + 2 + 4;
  	var p4: bool = true && (aa == -12) && true && true;
- 	var p5: bool = (43 < 24) || (p0 <= pp0( p1, 12 + 32 + 43, "haha"  ));*/
+ 	var p5: bool = (43 < 24) || (p0 <= pp0( p1, 12 + 32 + 43, "haha"  ));
 
     def main(args: string): void {
 		;
@@ -43,7 +43,7 @@ class MainDemo
 
     		}
             if (12 > 23 && 12 != 23) {
-		        println("ok" + 2);
+		        println("ok");
 	        }
     	}
 
