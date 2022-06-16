@@ -5,7 +5,7 @@ CXX     =gcc
 
 all: build_dir lex yacc
 	@echo "[3/3] Compiling lex.yy.c $(TARGET).tab.c"
-	@$(CXX) -std=c++11 -o $(TARGET) build/$(TARGET).yacc.cc build/$(TARGET).lex.cc main.cpp core.cpp -lstdc++ -lc
+	@$(CXX) -std=c++11 -o $(TARGET) build/$(TARGET).yacc.cc build/$(TARGET).lex.cc main.cpp impl.cpp -lstdc++ -lc
 
 build_dir:
 	@if [ ! -d build ]; then mkdir build; fi
