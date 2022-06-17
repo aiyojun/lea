@@ -2,8 +2,8 @@ import math;
 import stdlib.system.os;
 import http.server;
 
-class Media;
-def println(s: string);
+def printlx: (string) => void;
+//def println(s: string);
 
 class MainDemo 
 {
@@ -17,7 +17,7 @@ class MainDemo
  	var p4: bool = true && (aa == -12) && true && true;
  	var p5: bool = (43 < 24) || (p0 <= pp0( p1, 12 + 32 + 43, "haha"  ));
 
-    def main(args: string): void {
+    def main(args: string) {
 		;
 		;;;;;
 		;
@@ -27,6 +27,8 @@ class MainDemo
         println("hello");
         //println("world");
         (a.xx+b).no();
+
+		val hapi: string = "haha string";
 
         doSomething("haha", doTask03(12,34,'a', do_task_04(var01, var02, var_03)));
 
@@ -54,7 +56,9 @@ class MainDemo
 		} else {
 			
 		}
-    }
+
+		var xxx: float = 12.12;
+    };
 
     def add(x: int, y: int): int {
 		return x + y.add(a.ref(), b.r[10]).sub();
@@ -63,6 +67,9 @@ class MainDemo
 
 def _main() {
     MainDemo.main();
+
+	val a : int  = 12;
+	val b: bool = true;
 }
 
 def complex(fn: (int, char, => string) => void): => int {

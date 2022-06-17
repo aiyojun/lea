@@ -45,6 +45,7 @@ class LFloat;
 class LString;
 class ClassType;
 class LambdaType;
+class FunctionType;
 
 class ScopeNode;
 class LSymbol;
@@ -262,6 +263,7 @@ public:
     TypeEnum getType();
     ClassType* getClassType();
     LambdaType* getLambdaType();
+    FunctionType* getFunctionType();
     void setAlias(cstring s);
     std::string toString();
     /** Provide search service */
@@ -275,8 +277,9 @@ public:
     static LInt*       getInt();
     static LFloat*     getFloat();
     static LString*    getString();
-    static ClassType*   buildClass(cstring s);
+    static ClassType*  buildClass(cstring s);
     static LambdaType* buildLambda();
+    static FunctionType* buildFunction();
 private:
     TypeEnum te;
     std::vector<std::string> alias;
@@ -308,8 +311,10 @@ private:
 class FunctionType : public LType {
 public:
     FunctionType() {setType(TFunction);}
+    void mount(Node<LType*>* p) { self = p; }
+    std::string get();
 private:
-    std::string name;
+    // std::string name;
     // 1. return type
     // 2. parameters type list
     Node<LType*>* self; 
@@ -331,7 +336,10 @@ DEF_LANG_TYPE(String)
 // ----------------------------------------------------------------------------
 class LSymbol {
 public:
-    LSymbol(cstring s, LType *t, ScopeNode* p);
+    LSymbol(cstring s, LType *type, ScopeNode* p);
+    // void setType(LType* t) { type = t; }
+    // void setScope(ScopeNode* p) { scope = p; }
+    void addQualifier(cstring);
     std::string get();
     LType* getType();
     /** prepared for symbol construction */
@@ -339,18 +347,32 @@ public:
     /** prepared for symbol query */
     static bool has(cstring s, ScopeNode* p);
     static LSymbol* search(cstring s, ScopeNode* p);
+    static void record(cstring s, ScopeNode* p, LSymbol* symbol);
     static void printTable();
     static LSymbol* getSymbol(SmValue *p);
 private:
     std::string id;
     LType* type;
     ScopeNode* scope;
+    std::vector<std::string> qualifiers;
     static std::map<std::string, std::map<std::string, LSymbol*>> scopeTable;
 };
 
-class SymbolAnalysis : public Collector<LType*> {
+class SymbolAnalysis : public Collector<LSymbol*> {
 public:
-    void GDef(cstring name, LType* type);
+    inline void GClear() {iDef = ""; iSymbolName = ""; iType = nullptr; iScope = nullptr; iQualifiers.clear(); }
+    inline void GDef(cstring d, cstring name)
+    { iDef = d; iSymbolName = name; }
+    inline void GType(LType* t) { iType = t; }
+    inline void GQualifier(cstring q) { iQualifiers.emplace_back(q); }
+    inline void GScope(ScopeNode* s) { iScope = s; }
+    inline void GOver() { GPush(LSymbol::build(iSymbolName, iType, iScope)); GClear(); }
+private:
+    std::string iDef;
+    std::string iSymbolName;
+    LType* iType;
+    ScopeNode* iScope;
+    std::vector<std::string> iQualifiers;
 };
 
 typedef Node<LValue*> RightValueNode;
@@ -406,6 +428,7 @@ typedef Node<LType*> LTypeNode;
 class LTypeAnalysis : public Collector<LType*>, public MultiCounter {
 public:
     void GLambda(int argc = 0);
+    void GFunction(int argc = 0, bool hasReturnType = false);
 public:
     void GPrint(cstring sign="Tree");
     nlohmann::json GLoopUp(LTypeNode* node, int depth=0);
@@ -413,7 +436,7 @@ public:
 
 ///
 class ScopeNode {
-private:
+protected:
     ScopeNode(cstring n) {
         parent = nullptr;
         name = n;
@@ -428,7 +451,7 @@ public:
         std::vector<std::string> _r;
         ScopeNode* p = this;
         do {
-            _r.emplace_back(p->getScopeStr());
+            _r.emplace_back(p->getName());
         } while ((p = p->parent) != nullptr);
         return std::move(join(_r, "."));
     }
@@ -448,6 +471,16 @@ private:
     ScopeNode* parent;
 };
 
+class GlobalScope : public ScopeNode {
+private:
+    GlobalScope(): ScopeNode("global") {}
+public:
+    static GlobalScope* getInstance() {
+        static GlobalScope* self = new GlobalScope();
+        return self;
+    }
+};
+
 class ScopeMaker : public Collector<ScopeNode*> {
 public:
     inline void GEnter(cstring s) {
@@ -456,7 +489,10 @@ public:
             GBack()->setParent(stack[stack.size() - 2]);
     }
     inline ScopeNode* GExit() { return GPop()->getValue(); }
-    inline ScopeNode* GGet() { return GBack()->getValue(); }
+    inline ScopeNode* GGet() {
+        if (stack.empty()) return GlobalScope::getInstance();
+        return GBack()->getValue();
+    }
 };
 
 
@@ -474,6 +510,7 @@ void LPrepare();
 extern RightValue *RV;
 extern ScopeMaker *SP;
 extern LTypeAnalysis *TP;
+extern SymbolAnalysis *SA;
 
 } // ending of namespace lea
 

@@ -539,6 +539,10 @@ LambdaType* LType::getLambdaType() {
     if (te == TLambda) return reinterpret_cast<LambdaType*>(this);
     throw std::runtime_error("Non LambdaType!");
 }
+FunctionType* LType::getFunctionType() {
+    if (te == TFunction) return reinterpret_cast<FunctionType*>(this);
+    throw std::runtime_error("Non FunctionType!");
+}
 std::map<std::string, LType*> LType::table {
     {"int" ,  LInt::getInstance()}, {"float", LFloat::getInstance()},
     {"char", LChar::getInstance()}, {"bool" ,  LBool::getInstance()},
@@ -573,13 +577,14 @@ std::string LType::toString() {
         case TString: return "string";
         case TClass:  return std::move(getClassType()->get());
         case TLambda: return std::move(getLambdaType()->get());
+        case TFunction: return std::move(getFunctionType()->get());
     }
     throw std::runtime_error("Type system error!");
 }
 
 LType* LType::build(cstring s) {
     static const std::vector<std::string> basicTypes{
-        "bool", "char", "int", "float", "string"
+        "bool", "char", "int", "float", "string", "void"
     };
     int index = -1;
     for (int i = 0; i < basicTypes.size(); i++) {
@@ -594,6 +599,7 @@ LType* LType::build(cstring s) {
         case 2: return LType::getInt();
         case 3: return LType::getFloat();
         case 4: return LType::getString();
+        case 5: return LType::getVoid();
     }
     return LType::buildClass(s);
 }
@@ -615,6 +621,7 @@ IMP_GET_TYPE(Void)
 
 ClassType* LType::buildClass(cstring s) { return ClassType::build(s); }
 LambdaType* LType::buildLambda() { return new LambdaType(); }
+FunctionType* LType::buildFunction() { return new FunctionType(); }
 
 ClassType* ClassType::build(cstring s) 
 { return LType::table.find(s) != LType::table.end() ? LType::table[s]->getClassType() : new ClassType(s); }
@@ -636,15 +643,25 @@ std::string LambdaType::get() {
     return _r;
 }
 
+std::string FunctionType::get() {
+    std::string _r = "";
+    std::string returnTypeStr = self->children[0]->getValue()->toString();
+    _r += "(";
+    if (self->children.size() > 1) {
+        for (int i = 1; i < self->children.size(); i++) {
+            if (i != 1) _r += ", ";
+            _r += self->children[i]->getValue()->toString();
+        }
+    }
+    _r += ") => " + returnTypeStr;
+    return _r;
+}
+
 
 
 LSymbol::LSymbol(cstring s, LType *t, ScopeNode* p) {
     id = s; type = t; scope = p;
-    std::string scopeChain = p->getScopeChain();
-    if (LSymbol::scopeTable.find(scopeChain) == LSymbol::scopeTable.end()) {
-        LSymbol::scopeTable[scopeChain] = std::map<std::string, LSymbol*>();
-    }
-    LSymbol::scopeTable[scopeChain][s] = this;
+    LSymbol::record(s, p, this);
 }
 std::string LSymbol::get() {return id;}
 LType* LSymbol::getType() {return type;}
@@ -699,6 +716,13 @@ LSymbol* LSymbol::search(cstring s, ScopeNode* p) {
         throw std::runtime_error("No such symbol " + name);
     return LSymbol::scopeTable[theScope][name];
 }
+void LSymbol::record(cstring s, ScopeNode* p, LSymbol* symbol) {
+    std::string scopeChain = p->getScopeChain();
+    if (LSymbol::scopeTable.find(scopeChain) == LSymbol::scopeTable.end()) {
+        LSymbol::scopeTable[scopeChain] = std::map<std::string, LSymbol*>();
+    }
+    LSymbol::scopeTable[scopeChain][s] = symbol;
+}
 void LSymbol::printTable() {
     std::cout << "\rSymbol table:\n";
     std::cout << "\r--------------------------------------------" << std::endl;
@@ -706,7 +730,7 @@ void LSymbol::printTable() {
         << std::setw(15) << "type" << " | " 
         << std::setw(20) << "scope" 
         << std::endl;
-    std::cout << "\r--------------------------------------------" << std::endl;
+    std::cout << "\r--------------------------------------------" << LSymbol::scopeTable.size() << std::endl;
     // for (auto& kv : LSymbol::table) {
     //     std::cout << "\r" << std::setw(15) << kv.first << " | " 
     //         << std::setw(15) << kv.second->getType()->getTypeStr() << " | " 
@@ -714,11 +738,14 @@ void LSymbol::printTable() {
     //         << std::endl;
     // }
     for (auto& kv0 : LSymbol::scopeTable) {
+        // std::cout << std::setw(15) << kv0.first << "|" << std::setw(15) << kv0.second.size() << "\n";
         for (auto& kv1 : kv0.second) {
-            std::cout << "\r" << std::setw(15) << kv1.first << " | " 
-                << std::setw(15) << kv1.second->getType()->toString() << " | " 
-                << std::setw(20) << kv0.first
-                << std::endl;
+            std::cout << std::setw(15) << kv0.first << "|" << std::setw(5) << kv0.second.size() 
+                << std::setw(8) << kv1.first << " " << kv1.second << " " << kv1.second->getType() << " " << kv1.second->getType()->toString() << "\n";
+        //     std::cout << "\r" << std::setw(15) << kv1.first << " | " 
+        //         << std::setw(15) << (kv1.second!=nullptr?kv1.second->getType()->toString():"") << " | " 
+        //         << std::setw(20) << kv0.first
+        //         << std::endl;
         }
     }
     std::cout << "\r--------------------------------------------" << std::endl;
@@ -726,9 +753,9 @@ void LSymbol::printTable() {
 
 
 
-void SymbolAnalysis::GDef(cstring name, LType* type) {
+// void SymbolAnalysis::GDef(cstring name, LType* type) {
 
-}
+// }
 
 
 
@@ -836,23 +863,24 @@ nlohmann::json RightValue::GLoopUp(RightValueNode* node, int depth) {
 }
 
 void LTypeAnalysis::GLambda(int argc) {
-    //std::cout << "\r--- argc: " << argc << "\n";
     LTypeNode* returnTypeNode = GPop();
-    // std::cout << "\n--- return: " << returnTypeNode->getValue()->toString() << "\n";
     std::vector<LTypeNode*> paramTypeList = GPop(argc);
-    // std::cout << "\n--- params: " << join<LTypeNode*>([](LTypeNode* p) {return p->getValue()->toString();}, paramTypeList, ", ") << "\n";
     auto lambda = LType::buildLambda();
     GPush(lambda);
     lambda->mount(GBack());
-    // GPush(LType::buildLambda(returnTypeNode->getValue(), 
-    //     EachMap<LType*, LTypeNode*>(
-    //         paramTypeList, [](LTypeNode* node) {return node->getValue();})));
-    // std::cout << "\r--- 2\n";
-    // std::cout << "\r--- 3\n";
     GBind<LType*>(GBack(), {returnTypeNode});
     GBind<LType*>(GBack(), paramTypeList);
-    // std::cout << "\n--- lambda: " << GBack()->getValue()->toString() << "\n";
-    // std::cout << "\r--- 2\n";
+}
+
+void LTypeAnalysis::GFunction(int argc, bool hasReturnType) {
+    if (!hasReturnType) GPush(LType::build("void"));
+    LTypeNode* returnTypeNode = GPop();
+    std::vector<LTypeNode*> paramTypeList = GPop(argc);
+    auto function = LType::buildFunction();
+    GPush(function);
+    function->mount(GBack());
+    GBind<LType*>(GBack(), {returnTypeNode});
+    GBind<LType*>(GBack(), paramTypeList);
 }
 
 void LTypeAnalysis::GPrint(cstring sign) {
@@ -884,6 +912,7 @@ nlohmann::json LTypeAnalysis::GLoopUp(LTypeNode* node, int depth) {
 RightValue *RV;
 ScopeMaker *SP;
 LTypeAnalysis *TP;
+SymbolAnalysis *SA;
 
 int ScopeNode::uuid = 0;
 std::map<std::string, ScopeNode*> ScopeNode::table;
@@ -892,6 +921,7 @@ void LPrepare() {
     RV = new RightValue();
     SP = new ScopeMaker();
     TP = new LTypeAnalysis();
+    SA = new SymbolAnalysis();
 }
 
 
