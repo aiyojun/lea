@@ -60,7 +60,6 @@ private:
 
 };
 
-
 class IArrayType : public IType {
 private:
     IType *_elementType;
@@ -68,8 +67,7 @@ private:
 // ---------------------------------------------------------------------
 // Value system
 class IValue {};
-
-class VString : public IValue {
+class VString    : public IValue {
 public:
     static VString *build(const std::string& s);
     void setValue(std::string s) {_value = std::move(s);}
@@ -80,8 +78,7 @@ private:
     std::string _value;
     friend class Runtime;
 };
-
-class VChar : public IValue {
+class VChar      : public IValue {
 public:
     static VChar *build(char c) { return new VChar(c); }
     void setValue(char c) {_value = c;}
@@ -91,27 +88,21 @@ private:
 private:
     char _value;
 };
-
-//class VNumber {
-//private:
-//};
-
-class VTure : public IValue {
+class VTure      : public IValue {
 public:
     static VTure *self() { if (VTure::_self == nullptr) VTure::_self = new VTure; return VTure::_self; }
 private:
     VTure() = default;
     static VTure *_self;
 };
-class VFalse: public IValue {
+class VFalse     : public IValue {
 public:
     static VFalse *self() { if (VFalse::_self == nullptr) VFalse::_self = new VFalse; return VFalse::_self; }
 private:
     VFalse() = default;
     static VFalse *_self;
 };
-
-class VInteger : public IValue {
+class VInteger   : public IValue {
 public:
     static VInteger *build(int i) { return new VInteger(i); }
     void setValue(int i) {_value = i;}
@@ -121,8 +112,7 @@ private:
 private:
     int _value;
 };
-
-class VDouble : public IValue {
+class VDouble    : public IValue {
 public:
     static VDouble *build(double d) { return new VDouble(d); }
     void setValue(double d) {_value = d;}
@@ -132,8 +122,8 @@ private:
 private:
     double _value;
 };
-
 class Evaluation : public IValue {
+class VNumber {};
 public:
 
 private:
