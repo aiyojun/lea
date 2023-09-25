@@ -1,0 +1,7 @@
+class Utility {
+    private val a: i32 = 12
+
+    def add(x: i32, y: i32): i32 {
+        return x + y;
+    }
+}

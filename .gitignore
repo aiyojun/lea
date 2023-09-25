@@ -1,14 +1,9 @@
+.idea
 
-build/
+cmake-build-release
 
-.idea/
+gen
 
-lea.iml
+lib
 
-cmake-build-debug/
-
-lea
-
-test/
-
-main.lea.run*
+include/antlr4-runtime
