@@ -7,7 +7,7 @@
 
 
 // --------------------------------------------------------------------
-// prefix class declarations
+// pre-declarations of class
 class IValue;
 class VString;
 class VChar;
@@ -139,6 +139,8 @@ private:
     IType *_datatype;
 };
 
+class IDeclaration {};
+
 class IClass : public Nameable {
 
 };
@@ -205,6 +207,20 @@ public:
 private:
     std::vector<IStatement *> _statements;
 };
+
+// -----------------------------------------------------------------------------------
+// Calculation/Expression(Right value)
+class IExpr {};
+class PrefixExpr {};
+class PlusExpr {};
+class MulExpr {};
+class EqExpr {};
+class BooleanOrExpr {};
+class BooleanAndExpr {};
+class BooleanNotExpr {};
+class BitOrExpr {};
+class BitAndExpr {};
+class BitNotExpr {};
 
 
 // -----------------------------------------------------------------------------------

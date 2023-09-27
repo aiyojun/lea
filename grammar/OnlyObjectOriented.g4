@@ -22,7 +22,7 @@ decl: defcls | defunc | decvar;
 
 defcls: 'class' nl ID nl '{' nl (members semi)? '}';
 members: members semi+ member | member;
-member: ('private' | 'proteced')? (decvar | defunc);
+member: ('private' | 'protected')? (decvar | defunc);
 defunc: 'def' ID ('(' args ')')? (':' ID)? '{' impls '}';
 args: args ',' arg | arg | ;
 arg: ID ':' ID;

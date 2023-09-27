@@ -21,6 +21,8 @@ add_executable(lea
         src/CleanParseTree.h
         src/IR/lang.cpp
         src/IR/lang.h
+        src/AntlrUtils.cpp
+        src/AntlrUtils.h
 )
 
 target_link_libraries(lea C:/Users/jun.dai/Documents/GitHub/lea/lib/x64/antlr4-runtime.lib)

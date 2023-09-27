@@ -3,23 +3,25 @@
 #include "antlr4-runtime.h"
 #include "OnlyObjectOrientedLexer.h"
 #include "OnlyObjectOrientedParser.h"
-#include "OnlyObjectOrientedBaseListener.h"
 #include "CleanParseTree.h"
 
 using namespace antlr4;
 
 
-//void printNode(tree::ParseTree *node, int depth = 0) {
-//    if (node == nullptr) return;
-//    auto text = node->getText();
-////    text.replace(text.begin(), text.end(), "");
-//    if (node->children.empty()) {
-//        std::cout << depth << "\t" << text << node. << std::endl;
-//    }
-//    for (int i = 0; i < node->children.size(); i++) {
-//        printNode(node->children.at(i), depth + 1);
-//    }
-//}
+class IRGenerator : public IWalker {
+public:
+    virtual void onBeforeTree(tree::ParseTree *node) override;
+    virtual void onAfterTree(tree::ParseTree *node) override;
+};
+
+void IRGenerator::onBeforeTree(tree::ParseTree *node) {
+
+}
+
+void IRGenerator::onAfterTree(tree::ParseTree *node) {
+
+}
+
 
 
 int main(int argc, const char* argv[]) {
@@ -34,13 +36,9 @@ int main(int argc, const char* argv[]) {
 
     tree::ParseTree *tree = parser.start();
 
-//    printNode(tree);
-//    OnlyObjectOrientedBaseListener listener;
-//    tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
-
-    CleanParseTree cleaner;
-    cleaner.setRoot(tree);
-    cleaner.clean();
+    IRGenerator generator;
+    generator.setRoot(tree);
+    generator.walk(generator.root());
 
     std::cout << "clean complete.\n";
 
