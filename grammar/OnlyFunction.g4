@@ -1,7 +1,0 @@
-grammar OnlyFunction;
-
-
-
-
-
-
