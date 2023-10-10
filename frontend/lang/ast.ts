@@ -4,7 +4,8 @@ import {
     ErrorListener,
     ParserRuleContext,
     ParseTree,
-    TerminalNode, Token,
+    TerminalNode,
+    Token,
 } from 'antlr4';
 import ScriptGrammarLexer from './ScriptGrammarLexer.ts';
 import ScriptGrammarParser, {
@@ -30,7 +31,33 @@ import ScriptGrammarParser, {
 } from './ScriptGrammarParser.ts';
 import {Recognizer} from "antlr4/src/antlr4/Recognizer";
 import {RecognitionException} from "antlr4/src/antlr4/error/RecognitionException";
-import {TreeNode} from "./dstree.ts";
+import {
+    AssignmentExpression,
+    BinaryExpression,
+    BlockStatement,
+    BreakStatement,
+    CallExpression,
+    ClassDeclaration,
+    ContinueStatement,
+    Declaration,
+    DynamicMemberExpression,
+    Expression,
+    ForeachStatement,
+    ForStatement,
+    FunctionDeclaration,
+    Identifier,
+    IfStatement,
+    Literal,
+    LoopStatement,
+    MemberExpression,
+    NewExpression,
+    Program,
+    ReturnStatement,
+    Statement,
+    UnaryExpression,
+    VariableDeclaration,
+    WhileStatement
+} from "./psi.ts";
 
 export class ScriptGrammarErrorListener extends ErrorListener<Token> {
     syntaxError(recognizer: Recognizer<Token>, offendingSymbol: Token, line: number, column: number, msg: string, e: RecognitionException | undefined): void {
@@ -39,12 +66,9 @@ export class ScriptGrammarErrorListener extends ErrorListener<Token> {
 }
 
 export class ASTBuilder {
-    private _ASTJson: Record<string, any> = null
-    private _withLocation: boolean = true
+    private _ASTJson: Program = null
 
-    toJSONString() { return this._ASTJson }
-
-    setLocation(b: boolean) { this._withLocation = b; return this }
+    psi() { return this._ASTJson }
 
     compile(input: string) {
         const chars = new CharStream(input);
@@ -55,74 +79,79 @@ export class ASTBuilder {
         parser.addErrorListener(new ScriptGrammarErrorListener())
         try {
             const tree = parser.program();
-            builder.handleProgram(tree)
+            this._ASTJson = this.handleProgram(tree)
         } catch (e) {
             console.error(e)
         }
     }
 
     handleProgram(program: ParseTree) {
-        const AST: Record<string, any> = {...this.location(program), type: "Program", body: []}
+        const prog = new Program().loc(this.location(program))
         this.handleParseTree(program,
                 tree => {
                     if (tree instanceof ClassDeclarationContext) {
                         const identifiers = this.findTerminals(tree.children, ScriptGrammarLexer.ID)
-                        AST.body.push({
-                            ...this.location(tree), type: "ClassDeclaration",
-                            id: this.handleIdentifier(identifiers[0]),
-                            members: this.unfoldMembers(
-                                this.findFirstParserRule(tree.children, ScriptGrammarParser.RULE_members))
-                        })
+                        const classDeclaration = new ClassDeclaration()
+                        classDeclaration.id = this.handleIdentifier(identifiers[0])
+                        this.unfoldMembers(this.findFirstParserRule(tree.children, ScriptGrammarParser.RULE_members))
+                            .forEach(member =>
+                                member instanceof VariableDeclaration
+                                    ? classDeclaration.variables.push(member)
+                                    : classDeclaration.methods.push(member as FunctionDeclaration)
+                            )
+                        prog.body.push(classDeclaration)
                         return true
                     }
                     if (tree instanceof VariableDeclarationContext) {
-                        AST.body.push(this.handleVariableDeclaration(tree))
+                        prog.body.push(this.handleVariableDeclaration(tree))
                         return true
                     }
                     if (tree instanceof FunctionDeclarationContext) {
-                        AST.body.push(this.handleFunctionDeclaration(tree))
+                        prog.body.push(this.handleFunctionDeclaration(tree))
                         return true
                     }
                     return false
                 },
                 tree => {}
             )
-        this._ASTJson = AST
+        prog.body.forEach(d => d.relate(prog))
+        return prog
     }
 
-    handleMember(tree: MemberContext): Record<string, any> {
+    handleMember(tree: MemberContext): Declaration {
         if (tree.children[0] instanceof VariableDeclarationContext)
             return this.handleVariableDeclaration(tree.children[0])
         if (tree.children[0] instanceof FunctionDeclarationContext)
             return this.handleFunctionDeclaration(tree.children[0])
     }
 
-    handleVariableDeclaration(tree: VariableDeclarationContext): Record<string, any> {
-        return {...this.location(tree), type: "VariableDeclaration",
-            id: this.handleIdentifier(tree.children[0] as TerminalNode),
-            init: this.handleExpression(tree.children[2] as ExpressionContext)}
+    handleVariableDeclaration(tree: VariableDeclarationContext): VariableDeclaration {
+        const v = new VariableDeclaration().loc(this.location(tree))
+        v.id = this.handleIdentifier(tree.children[0] as TerminalNode)
+        v.init = this.handleExpression(tree.children[2] as ExpressionContext)
+        return v
     }
 
-    handleFunctionDeclaration(tree: FunctionDeclarationContext): Record<string, any> {
+    handleFunctionDeclaration(tree: FunctionDeclarationContext): FunctionDeclaration {
         const params = this.findFirstParserRule(tree.children, ScriptGrammarParser.RULE_params)
-        return {...this.location(tree),
-            type: "FunctionDeclaration",
-            id: this.handleIdentifier(tree.children[1] as TerminalNode),
-            params: params !== null ? this.unfoldParams(params) : [],
-            body: this.handleBlockStatement(tree.children[tree.children.length - 1] as BlockStatementContext)
-        }
+        const f = new FunctionDeclaration().loc(this.location(tree))
+        f.id = this.handleIdentifier(tree.children[1] as TerminalNode)
+        f.params = (params !== null ? this.unfoldParams(params) : []).map(p => p.relate(f))
+        f.body = this.handleBlockStatement(tree.children[tree.children.length - 1] as BlockStatementContext)
+        return f
     }
 
-    handleStatements(tree: StatementsContext): Array<Record<string, any>> {
+    handleStatements(tree: StatementsContext): Array<Statement> {
         return this.unfoldStatements(tree);
     }
 
-    handleIfStatement(tree: IfStatementContext): Record<string, any> {
+    handleIfStatement(tree: IfStatementContext): IfStatement {
         const conditions =
             this.unfoldMultiIfStatement(tree.children[0] as MultiIfStatementContext)
         let index = 1
         let iter = conditions[0]
         while (index < conditions.length) {
+            // conditions[index].relate(iter)
             iter.alternate = conditions[index]
             iter = conditions[index]
             index++
@@ -131,97 +160,98 @@ export class ASTBuilder {
         if (elseStatement.children.length > 0)
             conditions[conditions.length - 1].alternate =
                 this.handleBlockStatement(elseStatement.children[1] as BlockStatementContext)
-        return {...this.location(tree), ...conditions[0]}
+        return conditions[0].loc(this.location(tree))
     }
 
-    handleForStatement(tree: ForStatementContext): Record<string, any> {
+    handleForStatement(tree: ForStatementContext): LoopStatement {
         const semi = this.indexOfTerminals(tree.children, ScriptGrammarLexer.SEMI)
         const isNumeric = semi.length > 0
         if (isNumeric) {
-            return {
-                ...this.location(tree),
-                type  : "ForStatement",
-                init  : tree.children[semi[0] - 1] instanceof ExpressionContext
-                    ? this.handleExpression(tree.children[semi[0] - 1] as ExpressionContext) : null,
-                test  : tree.children[semi[1] - 1] instanceof ExpressionContext
-                    ? this.handleExpression(tree.children[semi[1] - 1] as ExpressionContext) : null,
-                update: tree.children[semi[2] - 1] instanceof ExpressionContext
-                    ? this.handleExpression(tree.children[semi[2] - 1] as ExpressionContext) : null,
-                body  : this.handleBlockStatement(tree.children[tree.children.length - 1] as BlockStatementContext),
-            }
+            const l = new ForStatement().loc(this.location(tree))
+            l.init = tree.children[semi[0] - 1] instanceof ExpressionContext
+                ? this.handleExpression(tree.children[semi[0] - 1] as ExpressionContext) : null
+            l.test = tree.children[semi[1] - 1] instanceof ExpressionContext
+                ? this.handleExpression(tree.children[semi[1] - 1] as ExpressionContext) : null
+            l.update = tree.children[semi[2] - 1] instanceof ExpressionContext
+                ? this.handleExpression(tree.children[semi[2] - 1] as ExpressionContext) : null
+            l.body = this.handleBlockStatement(tree.children[tree.children.length - 1] as BlockStatementContext)
+            // l.init?.relate(l); l.test?.relate(l); l.update?.relate(l); l.body.relate(l)
+            return l
         } else {
-            return {
-                ...this.location(tree),
-                type  : "ForeachStatement",
-                left  : this.handleExpression(tree.children[2] as ExpressionContext),
-                right : this.handleExpression(tree.children[4] as ExpressionContext),
-                body  : this.handleBlockStatement(tree.children[tree.children.length - 1] as BlockStatementContext),
-            }
+            const l = new ForeachStatement().loc(this.location(tree))
+            l.left  = this.handleExpression(tree.children[2] as ExpressionContext)
+            l.right = this.handleExpression(tree.children[4] as ExpressionContext)
+            l.body  = this.handleBlockStatement(tree.children[tree.children.length - 1] as BlockStatementContext)
+            // l.left.relate(l); l.right.relate(l); l.body.relate(l)
+            return l
         }
     }
 
-    handleWhileStatement(tree: WhileStatementContext): Record<string, any> {
-        return {...this.location(tree), type: "WhileStatement",
-            test: this.handleExpression(tree.children[2] as ExpressionContext),
-            body: this.handleBlockStatement(tree.children[4] as BlockStatementContext)}
+    handleWhileStatement(tree: WhileStatementContext): WhileStatement {
+        const w = new WhileStatement().loc(this.location(tree))
+        w.test = this.handleExpression(tree.children[2] as ExpressionContext)
+        w.body = this.handleBlockStatement(tree.children[4] as BlockStatementContext)
+        // w.test.relate(w); w.body.relate(w)
+        return w
     }
 
-    handleReturnStatement(tree: ReturnStatementContext): Record<string, any> {
-        return {...this.location(tree), type: "ReturnStatement",
-            argument: tree.children.length === 2 ? this.handleExpression(tree.children[1] as ExpressionContext) : null}
+    handleReturnStatement(tree: ReturnStatementContext): ReturnStatement {
+        const r = new ReturnStatement().loc(this.location(tree))
+        r.argument = tree.children.length === 2 ? this.handleExpression(tree.children[1] as ExpressionContext) : null
+        // r.argument?.relate(r)
+        return r
     }
 
-    handleContinueStatement(tree: ContinueStatementContext): Record<string, any> {
-        return {...this.location(tree), type: "ContinueStatement"}
+    handleContinueStatement(tree: ContinueStatementContext): ContinueStatement {
+        return new ContinueStatement().loc(this.location(tree))
     }
 
-    handleBreakStatement(tree: BreakStatementContext): Record<string, any> {
-        return {...this.location(tree), type: "BreakStatement"}
+    handleBreakStatement(tree: BreakStatementContext): BreakStatement {
+        return new BreakStatement().loc(this.location(tree))
     }
 
-    handleBlockStatement(tree: BlockStatementContext): Record<string, any> {
-        return {...this.location(tree), type: "BlockStatement",
-            body: tree.children.length === 3 ? this.handleStatements(tree.children[1] as StatementsContext) : []}
+    handleBlockStatement(tree: BlockStatementContext): BlockStatement {
+        const b = new BlockStatement().loc(this.location(tree))
+        b.body = tree.children.length === 3 ? this.handleStatements(tree.children[1] as StatementsContext) : []
+        b.body.forEach(s => s.relate(b))
+        return b
     }
 
-    handleExpression(tree: ExpressionContext): Record<string, any> {
+    handleExpression(tree: ExpressionContext): Expression {
         if (tree.children[0] instanceof TerminalNode && tree.children[0].getText() === '(') {
-            let obj: Record<string, any> = this.handleExpression(tree.children[1] as ExpressionContext)
+            let obj: Expression = this.handleExpression(tree.children[1] as ExpressionContext)
             const last = tree.children[tree.children.length - 1] as any
             if (last.ruleIndex && last.ruleIndex === ScriptGrammarParser.RULE_accessExpression) {
                 obj = this.handleAccessExpression(obj, last)
             }
-            return {...this.location(tree), ...obj}
+            return obj.loc(this.location(tree))
         }
         if (tree.children[0] instanceof TerminalNode && tree.children[0].getText() === 'new') {
-            let obj: Record<string, any> = this.handleNewExpression(tree.children[1] as TerminalNode, [])
+            let obj = this.handleNewExpression(tree.children[1] as TerminalNode, [])
             const last = tree.children[tree.children.length - 1] as any
             if (last.ruleIndex && last.ruleIndex === ScriptGrammarParser.RULE_accessExpression) {
                 obj = this.handleAccessExpression(obj, last)
             }
-            return {...this.location(tree), ...obj}
+            return obj.loc(this.location(tree))
         }
         if (tree.children[0] instanceof TerminalNode && tree.children[0].symbol.type === ScriptGrammarLexer.ID) {
-            let obj: Record<string, any> = this.handleIdentifier(tree.children[0])
+            let obj = this.handleIdentifier(tree.children[0])
             const last = tree.children[tree.children.length - 1] as any
             if (last.ruleIndex && last.ruleIndex === ScriptGrammarParser.RULE_accessExpression) {
                 obj = this.handleAccessExpression(obj, last)
             }
-            return {...this.location(tree), ...obj}
+            return obj.loc(this.location(tree))
         }
         if (tree.children.length === 1) { return this.handleTerminal(tree.children[0] as TerminalNode) }
         if (tree.children.length === 2
             && tree.children[0] instanceof TerminalNode
             && tree.children[1] instanceof ExpressionContext) {
-            return {...this.location(tree), ...this.handleUnaryExpression(tree.children[0], tree.children[1])}
+            return this.handleUnaryExpression(tree.children[0], tree.children[1]).loc(this.location(tree))
         }
         if (tree.children.length === 2
             && tree.children[0] instanceof ExpressionContext
             && tree.children[1] instanceof TerminalNode) {
-            return {
-                ...this.location(tree),
-                ...this.handleUnaryExpression(tree.children[1], tree.children[0], false)
-            }
+            return this.handleUnaryExpression(tree.children[1], tree.children[0], false).loc(this.location(tree))
         }
         if (tree.children.length === 3
             && tree.children[0] instanceof ExpressionContext
@@ -229,86 +259,107 @@ export class ASTBuilder {
             && tree.children[2] instanceof ExpressionContext
         ) {
             return tree.children[1].getText() === '='
-                ? {
-                    ...this.location(tree),
-                    ...this.handleAssignmentExpression(tree.children[0], tree.children[2])
-                }
-                : {
-                    ...this.location(tree),
-                    ...this.handleBinaryExpression(tree.children[1], tree.children[0], tree.children[2])
-                }
+                ? this.handleAssignmentExpression(tree.children[0], tree.children[2]).loc(this.location(tree))
+                : this.handleBinaryExpression(tree.children[1], tree.children[0], tree.children[2]).loc(this.location(tree))
         }
-        return {}
+        return null
     }
 
-    handleAccessExpression(obj: Record<string, any>, tree: AccessExpressionContext) {
+    handleAccessExpression(obj, tree: AccessExpressionContext) {
         const seq = this.unfoldAccessExpression(tree)
         let index = 0
         let iObj = obj
         while (index < seq.length) {
-            if (Object.hasOwn(seq[index], "callee")) {
-                seq[index].callee = iObj
+            seq[index].relate(iObj)
+            if (seq[index] instanceof CallExpression) {
+                (seq[index] as CallExpression).callee = iObj
             } else {
-                seq[index].object = iObj
+                (seq[index] as MemberExpression).object_ = iObj
             }
+            // if (Object.hasOwn(seq[index], "callee")) {
+            //     (seq[index] as any).callee  = iObj
+            // } else {
+            //     (seq[index] as any).object_ = iObj
+            // }
             iObj = seq[index]
             index++
         }
         return iObj
     }
 
-    handleMemberExpression(obj: Record<string, any>, id: TerminalNode) {
-        return {type: "MemberExpression", object: obj, property: this.handleTerminal(id)}
+    handleMemberExpression(obj, id: TerminalNode) {
+        const call = new MemberExpression()
+        call.object_ = obj//.relate(call)
+        call.property = this.handleIdentifier(id)//.relate(call)
+        return call
     }
 
-    handleDynamicMemberExpression(obj: Record<string, any>, expr: ExpressionContext) {
-        return {type: "MemberExpression", object: obj, property: this.handleExpression(expr)}
+    handleDynamicMemberExpression(obj, expr: ExpressionContext) {
+        const call = new DynamicMemberExpression()
+        call.object_ = obj//?.relate(call)
+        call.property = this.handleExpression(expr)//.relate(call)
+        return call
     }
 
-    handleCallExpression(obj: Record<string, any>, args: ArgumentsContext) {
-        return {type: "CallExpression", callee: obj, arguments: this.unfoldArguments(args)}
+    handleCallExpression(obj, args: ArgumentsContext) {
+        const call = new CallExpression()
+        call.callee = obj//?.relate(call)
+        call.arguments = this.unfoldArguments(args).map(a => a.relate(call))
+        return call
     }
 
     handleNewExpression(callee: TerminalNode, _arguments: Array<ExpressionContext>) {
-        return {type: "NewExpression", callee: this.handleIdentifier(callee), arguments: []}
+        const newObj = new NewExpression()
+        newObj.callee = this.handleIdentifier(callee)//.relate(newObj)
+        return newObj
     }
 
     handleAssignmentExpression(left: ExpressionContext, right: ExpressionContext) {
-        return {type: "AssignmentExpression", operator: '=',
-            left: this.handleExpression(left), right: this.handleExpression(right)}
+        const assignment = new AssignmentExpression()
+        assignment.left = this.handleExpression(left)//.relate(assignment)
+        assignment.right = this.handleExpression(right)//.relate(assignment)
+        return assignment
     }
 
     handleBinaryExpression(operator: TerminalNode, left: ExpressionContext, right: ExpressionContext) {
-        return {type: "BinaryExpression", operator: operator.getText(),
-            left: this.handleExpression(left), right: this.handleExpression(right)}
+        const binary = new BinaryExpression()
+        binary.operator = operator.getText()
+        binary.left = this.handleExpression(left)//.relate(binary)
+        binary.right = this.handleExpression(right)//.relate(binary)
+        return binary
     }
 
     handleUnaryExpression(operator: TerminalNode, argument: ExpressionContext, prefix: boolean = true) {
-        return {type: "UnaryExpression", operator: operator.getText(), argument: this.handleExpression(argument)}
+        const unary = new UnaryExpression()
+        unary.operator = operator.getText()
+        unary.argument = this.handleExpression(argument)//.relate(unary)
+        unary.prefix = prefix
+        return unary
     }
 
-    handleIdentifier(tree: TerminalNode): Record<string, any> {
-        return {...this.location(tree), type: "Identifier", name: tree.getText()}
+    handleIdentifier(tree: TerminalNode) {
+        return Identifier.build(tree.getText()).loc(this.location(tree))
     }
 
     handleTerminal(tree: TerminalNode) {
         if (tree.symbol.type === ScriptGrammarLexer.ID)
-            return {...this.location(tree), type: "Identifier", name: tree.getText()}
+            return Identifier.build(tree.getText()).loc(this.location(tree))
+            // return {...this.location(tree), type: "Identifier", name: tree.getText()}
         if (tree.symbol.type === ScriptGrammarLexer.NUMBER)
-            return {...this.location(tree), type: "Literal", value: parseFloat(tree.getText())}
+            return Literal.build(parseFloat(tree.getText())).loc(this.location(tree))
         if (tree.symbol.type === ScriptGrammarLexer.HEX)
-            return {...this.location(tree), type: "Literal", value: parseInt(tree.getText(), 16)}
+            return Literal.build(parseInt(tree.getText(), 16)).loc(this.location(tree))
         if (tree.symbol.type === ScriptGrammarLexer.OCT)
-            return {...this.location(tree), type: "Literal", value: parseInt(tree.getText(), 8)}
+            return Literal.build(parseInt(tree.getText(), 8)).loc(this.location(tree))
         if (tree.symbol.type === ScriptGrammarLexer.BIN)
-            return {...this.location(tree), type: "Literal", value: parseInt(tree.getText(), 2)}
+            return Literal.build(parseInt(tree.getText(), 2)).loc(this.location(tree))
         if (tree.symbol.type === ScriptGrammarLexer.STRING)
-            return {...this.location(tree), type: "Literal", value: tree.getText()}
+            return Literal.build(tree.getText()).loc(this.location(tree))
         if (tree.getText() === 'true')
-            return {...this.location(tree), type: "Literal", value: true}
+            return Literal.build(true).loc(this.location(tree))
         if (tree.getText() === 'false')
-            return {...this.location(tree), type: "Literal", value: false}
-        return {}
+            return Literal.build(false).loc(this.location(tree))
+        return null
     }
 
     handleParseTree(tree: ParseTree, onBefore, onAfter) {
@@ -361,13 +412,17 @@ export class ASTBuilder {
         return null
     }
 
-    private unfoldMembers(tree: MembersContext): Array<Record<string, any>> {
+    private unfoldMembers(tree: MembersContext): Array<Declaration> {
         if (tree === null) return []
         if (tree.children.length === 1) return [this.handleMember(tree.children[0] as MemberContext)]
-        else return tree.children.map(child => this.unfoldMembers(child as MembersContext))
+        let r: Array<Declaration> = []
+        for (const child of tree.children) {
+            r = r.concat(this.unfoldMembers(child as MembersContext))
+        }
+        return r
     }
 
-    private unfoldParams(tree: ParamsContext): Array<Record<string, any>> {
+    private unfoldParams(tree: ParamsContext): Array<Identifier> {
         if (tree.children.length === 1)
             return [this.handleIdentifier(tree.children[0] as TerminalNode)]
         return [
@@ -376,7 +431,7 @@ export class ASTBuilder {
         ]
     }
 
-    private unfoldAccessExpression(tree: AccessExpressionContext) {
+    private unfoldAccessExpression(tree: AccessExpressionContext): Array<Expression> {
         const first = tree.children[0]
         if (first instanceof TerminalNode) {
             if (first.getText() === '.') {
@@ -395,7 +450,7 @@ export class ASTBuilder {
         ]
     }
 
-    private unfoldArguments(tree: ArgumentsContext): Array<Record<string, any>> {
+    private unfoldArguments(tree: ArgumentsContext): Array<Expression> {
         if (tree === null) return []
         if (tree.children.length === 1) return [this.handleExpression(tree.children[0] as ExpressionContext)]
         return [
@@ -404,7 +459,7 @@ export class ASTBuilder {
         ]
     }
 
-    private unfoldStatements(tree: StatementsContext): Array<Record<string, any>> {
+    private unfoldStatements(tree: StatementsContext): Array<Statement> {
         const first = tree.children[0]
         if (!(first instanceof StatementsContext)) {
             if (first instanceof IfStatementContext)
@@ -428,15 +483,14 @@ export class ASTBuilder {
         return [...this.unfoldStatements(first), ...this.unfoldStatements(tree.children[1] as StatementsContext)]
     }
 
-    private unfoldMultiIfStatement(tree: MultiIfStatementContext): Array<Record<string, any>> {
+    private unfoldMultiIfStatement(tree: MultiIfStatementContext): Array<IfStatement> {
         const first = tree.children[0]
         if (!(first instanceof MultiIfStatementContext)) {
-            return [{
-                type: "IfStatement",
-                test: this.handleExpression(tree.children[2] as ExpressionContext),
-                consequent: this.handleBlockStatement(tree.children[4] as BlockStatementContext),
-                alternate: null
-            }]
+            const r = new IfStatement().loc(this.location(tree))
+            r.test = this.handleExpression(tree.children[2] as ExpressionContext)
+            r.consequent = this.handleBlockStatement(tree.children[4] as BlockStatementContext)
+            r.alternate = null
+            return [r]
         }
         return [
             ...this.unfoldMultiIfStatement(first),
@@ -445,29 +499,10 @@ export class ASTBuilder {
     }
 
     private location(tree: ParseTree) {
-        if (!this._withLocation) return {}
         if (tree instanceof TerminalNode) return {start: tree.symbol.start, end: tree.symbol.stop}
         else if (tree instanceof ParserRuleContext) return {start: tree.start.start, end: tree.stop.stop}
         else return {}
     }
 }
 
-const input = "def main(argc, argv) {\n" +
-    "    (43 < 24) || (p0 <= pp0( p1, 12 + 32 + 43, \"haha\"  ));" +
-    "    a = 12 + add(32, 12) * 43;\n" +
-    "    if (a < 0) {\n" +
-    "        a = 2 + a;\n" +
-    "    } else if (a == 0) {\n" +
-    "        print(a);\n" +
-    "    } else {\n" +
-    "        a = a - 10;\n" +
-    "    }\n" +
-    "    \twhile (1) {\n" +
-    "      \n" +
-    "    }" +
-    "    return a + 5;\n" +
-    "}"
-const builder = new ASTBuilder()
-builder.compile(input)
-console.info("AST :", JSON.stringify(builder.toJSONString()))
 
