@@ -3,6 +3,9 @@ import {Identifier, Literal, PsiElement} from "./psi.ts";
 export function isNumber(psi: PsiElement)
 { return psi instanceof Literal && typeof psi.value === 'number' }
 
+export function isFlatNumber(psi: PsiElement)
+{ return psi instanceof Literal && (typeof psi.value === 'number' || typeof psi.value === 'boolean') }
+
 export function isString(psi: PsiElement)
 { return psi instanceof Literal && typeof psi.value === 'string' }
 

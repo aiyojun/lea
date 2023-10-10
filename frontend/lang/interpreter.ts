@@ -15,7 +15,7 @@ import {
     UnaryExpression,
     VariableDeclaration
 } from "./psi.ts";
-import {extractString, isEvalLeaf, isIdentifier, isNumber, isString} from "./psiutils.ts";
+import {extractString, isBoolean, isEvalLeaf, isIdentifier, isFlatNumber, isString} from "./psiutils.ts";
 
 // export type CallableFunction = Function // (...args) => any
 
@@ -64,6 +64,15 @@ export class RuntimeContext {
         _refs !== null ? _refs.set(id, entity) : this._chain[this._chain.length - 1].identifiers.set(id, entity)
     }
 
+    exchange(id: Identifier) {
+        const refs = this.refScope(id.name)
+        if (refs === null) {
+            // console.info(this.interpreter.context())
+            throw new Error(`no such identifier : ${id.name}`)
+        }
+        return refs.get(id.name)
+    }
+
     refScope(id: string) {
         let index = this._chain.length - 1
         while (index > -1) {
@@ -85,24 +94,24 @@ export class RuntimeContext {
     }
 }
 
-export class LFunction {
-    private _declaration: FunctionDeclaration = null
-
-    setPrototype(decl: FunctionDeclaration) {
-        this._declaration = decl
-        return this
-    }
-
-    invoke(...args) {
-
-    }
-}
+// export class LFunction {
+//     private _declaration: FunctionDeclaration = null
+//
+//     setPrototype(decl: FunctionDeclaration) {
+//         this._declaration = decl
+//         return this
+//     }
+//
+//     invoke(...args) {
+//
+//     }
+// }
 
 export class Evaluator {
     constructor(private readonly interpreter: Interpreter) {
     }
 
-    private getValue(id: Identifier) {
+    private exchange(id: Identifier) {
         const refs = this.interpreter.context().refScope(id.name)
         if (refs === null) {
             // console.info(this.interpreter.context())
@@ -146,7 +155,7 @@ export class Evaluator {
                 if (el instanceof AssignmentExpression) {
                     const [l, r] = stack.splice(stack.length - 2)
                     if (!isIdentifier(l))
-                        this.reportException(`${el.textRange().start}:${el.textRange().end}: error: identifier should be provided!`);
+                        this.reportException(`${el.textRange().line}:${el.textRange().start}: error: identifier should be provided!`);
                     stack.push(this.handleAssignmentExpression(l, r))
                     return
                 }
@@ -154,7 +163,7 @@ export class Evaluator {
         )
         const _r = stack.pop()
         if (_r instanceof Identifier) {
-            return this.getValue(_r)
+            return this.exchange(_r)
         } else if (_r instanceof Literal) {
             return _r.value
         } else {
@@ -187,14 +196,28 @@ export class Evaluator {
 
 
     private handleBinaryExpression(op: string, left: Literal | Identifier, right: Literal | Identifier): any {
+        let lv = left  instanceof Identifier ? Literal.build(this.interpreter.context().exchange(left))  : left
+        let rv = right instanceof Identifier ? Literal.build(this.interpreter.context().exchange(right)) : right
         const options = [
-            {_match: () => isNumber(left) && isNumber(right) && op === '+', _handle: () => Literal.build((left as Literal).value + (right as Literal).value)},
-            {_match: () => isNumber(left) && isNumber(right) && op === '-', _handle: () => Literal.build((left as Literal).value - (right as Literal).value)},
-            {_match: () => isNumber(left) && isNumber(right) && op === '*', _handle: () => Literal.build((left as Literal).value * (right as Literal).value)},
-            {_match: () => isNumber(left) && isNumber(right) && op === '/', _handle: () => Literal.build((left as Literal).value / (right as Literal).value)},
-            {_match: () => isNumber(left) && isNumber(right) && op === '%', _handle: () => Literal.build((left as Literal).value % (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '+', _handle: () => Literal.build((left as Literal).value + (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '-', _handle: () => Literal.build((left as Literal).value - (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '*', _handle: () => Literal.build((left as Literal).value * (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '/', _handle: () => Literal.build((left as Literal).value / (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '%', _handle: () => Literal.build((left as Literal).value % (right as Literal).value)},
             {_match: () => isString(left) && isString(right) && op === '+', _handle: () => Literal.build(extractString((left as Literal).value) + extractString((right as Literal).value))},
-            // {_match: () => isIdentifier(left) , _handle: () => Literal.build(this.handleIdentifierFirst(expr))},
+            {_match: () => isString(left) && isFlatNumber(right) && op === '+', _handle: () => Literal.build(extractString((left as Literal).value) + `${(right as Literal).value}`)},
+            {_match: () => isString(left) && isBoolean(right) && op === '+', _handle: () => Literal.build(extractString((left as Literal).value) + `${(right as Literal).value ? 'true' : 'false'}`)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '|', _handle: () => Literal.build((left as Literal).value | (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '&', _handle: () => Literal.build((left as Literal).value & (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '>', _handle: () => Literal.build((left as Literal).value > (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '>=', _handle: () => Literal.build((left as Literal).value >= (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '<', _handle: () => Literal.build((left as Literal).value < (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '<=', _handle: () => Literal.build((left as Literal).value <= (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '==', _handle: () => Literal.build((left as Literal).value === (right as Literal).value)},
+            {_match: () => isFlatNumber(left) && isFlatNumber(right) && op === '!=', _handle: () => Literal.build((left as Literal).value !== (right as Literal).value)},
+            {_match: () => isString(left) && isString(right) && op === '==', _handle: () => Literal.build((left as Literal).value === (right as Literal).value)},
+            {_match: () => isString(left) && isString(right) && op === '!=', _handle: () => Literal.build((left as Literal).value !== (right as Literal).value)},
+            // {_match: () => isIdentifier(left), _handle: () => Literal.build(this.handleIdentifierFirst(op, left as Identifier, right))},
             // {_match: () => isIdentifier(right), _handle: () => Literal.build(this.handleIdentifierSecond(expr))},
             {_match: () => true, _handle: () => { throw new Error('unknown expression') }},
         ]
@@ -206,7 +229,7 @@ export class Evaluator {
         return null
     }
 
-    private handleIdentifierFirst(expr: BinaryExpression): any {
+    private handleIdentifierFirst(op: string, left: Identifier, right: Literal | Identifier): any {
 
     }
 
@@ -215,7 +238,7 @@ export class Evaluator {
     }
 
     private handleException(expr: Expression) {
-        this.reportException(`${expr.textRange().start}:${expr.textRange().end}: error: evaluate failed, ${JSON.stringify(expr.dumps())}`)
+        this.reportException(`${expr.textRange().line}:${expr.textRange().start}: error: evaluate failed, ${JSON.stringify(expr.dumps())}`)
     }
 
     private reportException(msg: string) {

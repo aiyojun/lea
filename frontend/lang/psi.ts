@@ -1,6 +1,7 @@
 // PSI: program structure interface
 
 export class TextRange {
+    line: number;
     start: number;
     end: number;
 }
@@ -26,6 +27,7 @@ export class PsiElement {
     }
 
     loc(obj: Record<string, any>) {
+        this._textRange.line = obj.line
         this._textRange.start = obj.start
         this._textRange.end = obj.end
         return this

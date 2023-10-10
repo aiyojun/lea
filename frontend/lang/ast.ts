@@ -499,8 +499,8 @@ export class ASTBuilder {
     }
 
     private location(tree: ParseTree) {
-        if (tree instanceof TerminalNode) return {start: tree.symbol.start, end: tree.symbol.stop}
-        else if (tree instanceof ParserRuleContext) return {start: tree.start.start, end: tree.stop.stop}
+        if (tree instanceof TerminalNode) return {line: tree.symbol.line, start: tree.symbol.start, end: tree.symbol.stop}
+        else if (tree instanceof ParserRuleContext) return {line: tree.start.line, start: tree.start.start, end: tree.stop.stop}
         else return {}
     }
 }
