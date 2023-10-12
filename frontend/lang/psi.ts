@@ -35,6 +35,8 @@ export class PsiElement {
 
     dumps(): Record<string, any> { return {start: this._textRange.start, end: this._textRange.end} }
 
+    toString(): string { return "" }
+
     static walk(el: PsiElement, onBefore: (e: PsiElement) => boolean, onAfter: (e: PsiElement) => void = null) {
         if (!el || onBefore(el)) return
         for (const child of el.children()) {
@@ -195,6 +197,7 @@ export class BinaryExpression extends Expression {
     dumps(): Record<string, any> {
         return {...super.dumps(), type: "BinaryExpression", operator: this.operator, left: this._left?.dumps(), right: this._right?.dumps()};
     }
+    toString(): string { return `${this._left.toString()} ${this.operator} ${this._right.toString()}`}
 }
 
 export class UnaryExpression extends Expression {
@@ -206,6 +209,7 @@ export class UnaryExpression extends Expression {
     dumps(): Record<string, any> {
         return {...super.dumps(), type: "UnaryExpression", operator: this.operator, prefix: this.prefix, argument: this._argument?.dumps()};
     }
+    toString(): string { return `${this.prefix ? `${this.operator} ` : ''}${this._argument.toString()}${!this.prefix ? ` ${this.operator}` : ''}`}
 }
 
 export class NewExpression extends Expression {
@@ -216,6 +220,7 @@ export class NewExpression extends Expression {
     dumps(): Record<string, any> {
         return {...super.dumps(), type: "NewExpression", callee: this._callee?.dumps(), arguments: this.arguments.map(arg => arg?.dumps())};
     }
+    toString(): string { return `new ${this._callee}`}
 }
 
 export class CallExpression extends Expression {
@@ -225,6 +230,9 @@ export class CallExpression extends Expression {
     set callee(e: Expression) { this._callee = e; this._callee?.relate(this) }
     dumps(): Record<string, any> {
         return {...super.dumps(), type: "CallExpression", callee: this._callee?.dumps(), arguments: this.arguments.map(arg => arg?.dumps())};
+    }
+    toString(): string {
+        return `${this._callee.toString()}(${this.arguments.map(arg => arg.toString()).join(', ')})`
     }
 }
 
@@ -237,6 +245,9 @@ export class MemberExpression extends Expression {
     set property(e: Expression) { this._property = e; this._property?.relate(this) }
     dumps(): Record<string, any> {
         return {...super.dumps(), type: "MemberExpression", "object": this._object_?.dumps(), property: this._property?.dumps()};
+    }
+    toString(): string {
+        return `${this._object_.toString()}.${this._property.toString()}`
     }
 }
 
@@ -256,6 +267,9 @@ export class AssignmentExpression extends Expression {
     dumps(): Record<string, any> {
         return {...super.dumps(), type: "AssignmentExpression", operator: "=", left: this._left?.dumps(), right: this._right?.dumps()};
     }
+    toString(): string {
+        return `${this._left.toString()} = ${this._right.toString()}`
+    }
 }
 
 export class Identifier extends Expression {
@@ -268,6 +282,7 @@ export class Identifier extends Expression {
         r.name = name
         return r
     }
+    toString(): string {return `${this.name}`}
 }
 
 export class Literal extends Expression {
@@ -277,7 +292,8 @@ export class Literal extends Expression {
     }
     static build(v: any): Literal {
         const r = new Literal()
-        r.value = v
+        r.value = v instanceof Literal ? v.value : v
         return r
     }
+    toString(): string {return `${this.value}`}
 }

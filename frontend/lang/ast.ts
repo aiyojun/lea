@@ -7,7 +7,7 @@ import {
     TerminalNode,
     Token,
 } from 'antlr4';
-import ScriptGrammarLexer from './ScriptGrammarLexer.ts';
+import ScriptGrammarLexer from '../parser/ScriptGrammarLexer.ts';
 import ScriptGrammarParser, {
     AccessExpressionContext,
     ArgumentsContext,
@@ -28,7 +28,7 @@ import ScriptGrammarParser, {
     StatementsContext,
     VariableDeclarationContext,
     WhileStatementContext
-} from './ScriptGrammarParser.ts';
+} from '../parser/ScriptGrammarParser.ts';
 import {Recognizer} from "antlr4/src/antlr4/Recognizer";
 import {RecognitionException} from "antlr4/src/antlr4/error/RecognitionException";
 import {
@@ -58,6 +58,7 @@ import {
     VariableDeclaration,
     WhileStatement
 } from "./psi.ts";
+import {extractString} from "./psiutils.ts";
 
 export class ScriptGrammarErrorListener extends ErrorListener<Token> {
     syntaxError(recognizer: Recognizer<Token>, offendingSymbol: Token, line: number, column: number, msg: string, e: RecognitionException | undefined): void {
@@ -157,7 +158,7 @@ export class ASTBuilder {
             index++
         }
         const elseStatement = tree.children[1] as ElseStatementContext
-        if (elseStatement.children.length > 0)
+        if (elseStatement && Array.isArray(elseStatement.children) && elseStatement.children.length > 0)
             conditions[conditions.length - 1].alternate =
                 this.handleBlockStatement(elseStatement.children[1] as BlockStatementContext)
         return conditions[0].loc(this.location(tree))
@@ -354,7 +355,7 @@ export class ASTBuilder {
         if (tree.symbol.type === ScriptGrammarLexer.BIN)
             return Literal.build(parseInt(tree.getText(), 2)).loc(this.location(tree))
         if (tree.symbol.type === ScriptGrammarLexer.STRING)
-            return Literal.build(tree.getText()).loc(this.location(tree))
+            return Literal.build(extractString(tree.getText())).loc(this.location(tree))
         if (tree.getText() === 'true')
             return Literal.build(true).loc(this.location(tree))
         if (tree.getText() === 'false')
@@ -504,5 +505,4 @@ export class ASTBuilder {
         else return {}
     }
 }
-
 

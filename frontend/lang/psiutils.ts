@@ -16,12 +16,19 @@ export function extractString(text: string) {
     else return ""
 }
 
+export function extractValue(psi: Literal) {
+    if (isString(psi)) return extractString((psi as Literal).value)
+    else return (psi as Literal)?.value
+}
+
 export function isBoolean(psi: PsiElement)
 { return psi instanceof Literal && typeof psi.value === 'boolean' }
+
+export function isNull(psi: PsiElement)
+{ return psi instanceof Literal && psi.value === null }
 
 export function isIdentifier(psi: PsiElement)
 { return psi instanceof Identifier }
 
 export function isEvalLeaf(psi: PsiElement)
 { return psi instanceof Literal || psi instanceof Identifier }
-
